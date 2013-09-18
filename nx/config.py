@@ -2,6 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import socket
+from site_settings import *
 
-site_name = "OpenNX"
 host      = socket.gethostname() 

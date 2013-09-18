@@ -3,3 +3,15 @@
 
 
 
+class Item():
+ def __init__(self, id_item=False):
+  pass
+  
+  
+class Bin()
+ def __init__(self, id_bin=False):
+  pass
+  
+  
+class Rundown(self, date=False):
+ pass
