@@ -3,5 +3,8 @@
 
 import config
 
-from common import db, messaging, logging, cache
+from common import *
+from assets import *
+from items import *
+
 from cg import CG

@@ -4,4 +4,5 @@
 import socket
 from site_settings import *
 
-host      = socket.gethostname() 
+host  = socket.gethostname()  # Machine hostname
+user  = "CORE"                # Service identifier. Should be overwriten by service/script.

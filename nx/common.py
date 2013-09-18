@@ -7,23 +7,111 @@ import socket, json
 from time import *
 
 
-class Db():
- def __init__(self):
-  pass
+########################################################################
+## Constants
 
- def __connect(self):  
-  pass
-  
- def query(self,q):
-  pass
- 
- def fetchall(self):
-  pass
- 
- def lastid (self):
-  pass
-  
+# Asset type
+VIDEO = 1
+AUDIO = 2
+IMAGE = 3
+XML   = 4
 
+# Asset subtype
+FILE      = 1
+VIRTUAL   = 2
+COMPOSITE = 3
+
+# Asset status
+ONLINE   = 1
+OFFLINE  = 2
+CREATING = 3
+TRASHED  = 4
+RESET    = 5
+
+
+
+## Constants
+########################################################################
+## Database
+
+if config.db_driver == "postgres":
+ import psycopg2
+ 
+ class Db():
+  def __init__(self):
+   self.__connect()
+
+  def __connect(self):  
+   try:
+    self.conn = psycopg2.connect(database=config.db_name, host=config.db_host, user=config.db_user,password=config.db_pass) 
+    self.cur = self.conn.cursor()
+   except:
+    raise Exception, "Unable to connect database."
+   
+  def query(self,q,*args):
+   self.cur.execute(q,*args)
+
+  def sanit(self, instr):
+   #TODO: THIS SHOULD BE HEEEEAAAVILY MODIFIED
+   try: return str(instr).replace("''","'").replace("'","''").decode("utf-8")
+   except: return instr.replace("''","'").replace("'","''")
+
+  def fetchall(self):
+   return self.cur.fetchall()
+ 
+  def lastid (self):
+   self.query("select lastval()")
+   return self.fetchall()[0][0]
+
+  def commit(self):
+   self.conn.commit()
+
+  def rollback(self):
+   self.conn.rollback()
+
+
+elif config.db_driver == "sqlite":
+ import sqlite3
+
+ class Db():
+  def __init__(self):
+   self.__connect()
+    
+  def __connect(self):  
+   try:
+    self.conn = sqlite3.connect(config.db_host) 
+    self.cur = self.conn.cursor()
+   except:
+    raise Exception, "Unable to connect database."
+   
+  def query(self,q,*args):
+   self.cur.execute(q,*args)
+
+  def sanit(self, instr):
+   return str(instr).replace("''","'").replace("'","''")
+
+  def fetchall(self):
+   return self.cur.fetchall()
+  
+  def lastid(self):
+   self.query("select lastval()")
+   return self.fetchall()[0][0]
+  
+  def commit(self):
+   self.conn.commit()
+ 
+  def close(self):
+   self.conn.close()
+ 
+ 
+else:
+ print "Unknown DB Driver. Exiting."
+ sys.exit(-1)
+ 
+ 
+## Database
+########################################################################
+## Messaging
 
 
 class Messaging():
@@ -40,7 +128,9 @@ class Messaging():
   self.sock.sendto(json.dumps([time(), config.site_name, config.host, method, data]), (self.MCAST_ADDR,self.MCAST_PORT) )
   
 
-
+## Messaging
+########################################################################
+## Logging
 
 
 class Logging():
@@ -56,21 +146,63 @@ class Logging():
  def warning (self,msg): self.__send("WARNING",msg) 
  def error   (self,msg): self.__send("ERROR",msg) 
  def goodnews(self,msg): self.__send("GOODNEWS",msg) 
+ 
+ 
 
+## Logging
+########################################################################
+## Cache
 
+if config.cache_driver == "memcached":
+ class Cache():
+  def __init__(self):
+   pass
 
+elif config.cache_driver == "internal":
+ class Cache():
+  def __init__(self):
+   self.data = {}   
+   
+  def load(self,key):
+   return self.data.get(key,False)
+   
+  def save(self,key,value):
+   self.data[key] = value
+  
 
+## Cache
+########################################################################
+## Filesystem
 
-
-class Cache():
+class Storage():
+ def __init__(self): 
+  pass
+  
+ def path(self,rel=False):
+  return 
+  
+  
+class Storages():
  def __init__(self):
+  self.refresh()
+ 
+ def refresh(self):
   pass
   
   
- 
+## Filesystem
+########################################################################
+## Init
 
 
 db        = Db()
 messaging = Messaging()
 logging   = Logging()  
 cache     = Cache()
+storages  = Storages()
+
+
+
+def CriticalError(message):
+ logging.error(message)
+ sys.exit(-1)

@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+ #!/usr/bin/env python
+ # -*- coding: utf-8 -*-
 
 
 
@@ -8,10 +8,11 @@ class Item():
   pass
   
   
-class Bin()
+class Bin():
  def __init__(self, id_bin=False):
   pass
   
   
-class Rundown(self, date=False):
- pass
+class Rundown():
+ def __init__(self, date=False):
+  pass
