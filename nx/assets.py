@@ -76,16 +76,7 @@ class Asset():
   """returns "final" duration of the asset (after mark-in and mark-out) in seconds"""
   return 0 #TODO
  
- 
- 
- def save(self):
-  if self.__saveToCache():
-   db.commit()
-  else:
-   db.rollback()
-   CriticalError("Unable to save %s to cache. This should never happen. Exiting" % self)
 
- 
  def trash(self):
   pass #TODO
  
@@ -95,6 +86,17 @@ class Asset():
  def purge(self):
   pass #TODO
   
+
+ 
+ 
+ def save(self):
+  if self.__saveToCache():
+   db.commit()
+  else:
+   db.rollback()
+   CriticalError("Unable to save %s to cache. This should never happen. Exiting" % self)
+
+   
  def __saveToCache(self):
   if self.id_asset:
    for i in range(4):
@@ -116,18 +118,20 @@ class Asset():
   else: return self.meta.get(key,"")
   
  def __setitem__(self,key,value):
-  if   key in ["ctime","Created"]     : self.ctime = int(value)
-  elif key in ["mtime","Modified"]    : self.mtime = int(value)
-  elif key in ["folder","Folder"]     : self.folder = int(value)
+  if   key in ["ctime","Created"]     : self.ctime   = int(value)
+  elif key in ["mtime","Modified"]    : self.mtime   = int(value)
+  elif key.lower() == "folder"        : self.folder  = int(value)
+  elif key.lower() == "parent"        : self.parent  = int(value)
+  elif key.lower() == "spinoff"       : self.spinoff = int(value)
   elif key in ["status","Status"]     : 
-   if value in [ONLINE, OFFLINE, CREATING, TRASHED, RESET]: self.status = value 
+   if value in [ONLINE, OFFLINE, CREATING, TRASHED, RESET]: 
+    self.status = value 
   elif key in ["asset_type","Asset type"]: 
    if value in [VIDEO,AUDIO,IMAGE,XML]:
     self.asset_type = value
   elif key.lower() == "subtype":
-   if value in [FILE,COMPOSITE,VIRTUAL]: self.subtype = value
-  elif key.lower() == "parent"               : self.parent  = int(value)
-  elif key.lower() == "spinoff"              : self.spinoff = int(value)
+   if value in [FILE,COMPOSITE,VIRTUAL]:
+    self.subtype = value
   else: self.meta[key] = value
  
  def __repr__(self):
