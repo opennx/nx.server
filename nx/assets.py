@@ -11,6 +11,9 @@ import os
 class Asset():
  def __init__(self,id_asset=False):
   if id_asset == -1:
+   """
+   id_asset=-1 is reserved for live events.
+   """
    self.__new()
    self.status      = ONLINE
    self.asset_type  = VIDEO
