@@ -1,4 +1,5 @@
 nx.server
 =========
 
-OpenNX MAM - Server part
+OpenNX media asset management core. 
+Only to be used in presence of developers.
