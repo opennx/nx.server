@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import config
-import socket, json
+import socket, json, sys
 
 from time import *
 
@@ -29,8 +29,16 @@ TRASHED  = 4
 RESET    = 5
 
 
-
 ## Constants
+########################################################################
+
+
+def critical_error(message):
+ logging.error(message)
+ sys.exit(-1)
+
+
+
 ########################################################################
 ## Database
 
@@ -105,8 +113,8 @@ elif config.db_driver == "sqlite":
  
  
 else:
- print "Unknown DB Driver. Exiting."
- sys.exit(-1)
+ critical_error("Unknown DB Driver. Exiting.")
+
  
  
 ## Database
@@ -158,7 +166,7 @@ if config.cache_driver == "memcached":
   def __init__(self):
    pass
 
-elif config.cache_driver == "internal":
+else:
  class Cache():
   def __init__(self):
    self.data = {}   
@@ -202,7 +210,3 @@ cache     = Cache()
 storages  = Storages()
 
 
-
-def CriticalError(message):
- logging.error(message)
- sys.exit(-1)

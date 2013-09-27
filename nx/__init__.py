@@ -7,4 +7,3 @@ from common import *
 from assets import *
 from items import *
 
-from cg import CG

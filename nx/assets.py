@@ -10,29 +10,23 @@ import os
 
 class Asset():
  def __init__(self,id_asset=False):
-  if id_asset == -1:
-   """
-   id_asset=-1 is reserved for live events.
-   """
-   self.__new()
+  self.id_asset = id_asset
+  self.ctime = self.mtime = time()
+  self.meta       = {"Title":"Unsaved asset"}
+  self.status     = CREATING
+  self.asset_type = VIDEO
+  self.subtype    = FILE
+  self.parent = self.spinoff = self.folder = 0
+
+  if self.id_asset == -1:
+   """id_asset=-1 is reserved for live events."""
    self.status      = ONLINE
    self.asset_type  = VIDEO
    self.subtype     = VIRTUAL
    self.meta        = {"Title":"LIVE"}
-  
-  elif  id_asset: self.__load(id_asset)
-  else:           self.__new()
- 
- def __new(self):
-  self.id_asset = False
-  self.ctime = self.mtime = time()
-  self.meta = {"Title":"Unsaved asset"}
-  self.status     = CREATING
-  self.asset_type = VIDEO
-  self.subtype    = FILE
-  self.parent     = 0
-  self.spinoff    = 0
-  self.folder     = 0
+  elif self.id_asset:
+   self.__load(self.id_asset)
+
  
  
  def __load(self, id_asset, force_db=False):
@@ -60,7 +54,7 @@ class Asset():
    for r in db.fetchall(): self.meta[r[0]] = r[1]
    force_cache_save = True
   
-  if force_cache_save: self.__saveToCache()
+  if force_cache_save: self.__save_to_cache()
   return True
   
  
@@ -72,7 +66,7 @@ class Asset():
  def json(self):
   return json.dumps(self.dump())
   
- def filePath(self):
+ def file_path(self):
   return #TODO
  
  def duration(self):
@@ -93,14 +87,14 @@ class Asset():
  
  
  def save(self):
-  if self.__saveToCache():
+  if self.__save_to_cache():
    db.commit()
   else:
    db.rollback()
    CriticalError("Unable to save %s to cache. This should never happen. Exiting" % self)
 
    
- def __saveToCache(self):
+ def __save_to_cache(self):
   if self.id_asset:
    for i in range(4):
     if cache.save("A%s"%self.id_asset,self.json()): break
@@ -141,23 +135,22 @@ class Asset():
   try:
    return "Asset ID:%s (%s, %s)"%(self.id_asset,self["Title"].decode("utf-8"),self["Origin"])
   except:
-   return "Asset ID:%s"%(self.id_asset)
+   return "Asset ID:%s"%self.id_asset
 
 
 
 
 
 
-def AssetByPath(storage, path):
+def asset_by_path(storage, path):
  db.query("SELECT id_asset FROM nebula_meta WHERE tag='STORAGE' AND value='%s' AND id_asset IN (SELECT id_asset FROM nebula_meta WHERE tag='PATH' and value='%s')"%(storage,path))
  try:    return db.fetchall()[0][0]
  except: return False
   
-def Browse():
+def browse():
  pass #TODO
  
-def MetaExists(tag,value):
- db = dbconn()
+def meta_exists(tag,value):
  db.query("SELECT a.id_asset FROM nebula_meta as m, nebula_assets as a WHERE a.status <> 'TRASHED' AND a.id_asset = m.id_asset AND m.tag='%s' AND m.value='%s'"%(tag,value))
  res = db.fetchall()
  if res: return True
