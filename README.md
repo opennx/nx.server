@@ -25,15 +25,15 @@ _Early pre-alpha version - Only to be used in presence of developers._
 
 ### Manual
 In the distant future, installation should be like this:
-1. Install fresh Debian 7.x machine.
-2. Log in as root
-3. Run `wget http://please.nxme.eu -o inst.all && chmod +x inst.all && ./inst.all`
-4. Grab a beer
+* Install fresh Debian 7.x machine.
+* Log in as root
+* Run `wget http://please.nxme.eu -o inst.all && chmod +x inst.all && ./inst.all`
+* Grab a beer
 
 ### Via Puppet
 .... there will be a day...
-1. Install puppet on fresh Debian 7.x machine
-2. Pray
+* Install puppet on fresh Debian 7.x machine
+* Pray
 
 
 ## Hive
