@@ -3,16 +3,15 @@ nx.server
 
 ## About
 
-OpenNX media asset management core. Complete rewrite of Nebula project.
+OpenNX media asset management core.
 
-Early pre-alpha version - Only to be used in presence of developers.
+_Early pre-alpha version - Only to be used in presence of developers._
 
 ### New core features
 * EBUCore Compliant. 
 * Simplified HTTPS-Based API 
-* FIMS Support for 3rd party integration - when someone writes useable specs
+* FIMS Compliant
 * Multilanguage support for UI and metadata
-* Deployment and updates via Puppet
 * Hive-side seismic message queue for outsiders
 * Metadata tags aliases and grouping (genre for music and movies in one column)
 
@@ -22,8 +21,25 @@ Early pre-alpha version - Only to be used in presence of developers.
 * Seismic (Multicast UDP) messaging for instant view updates, logging, chat….
 
 
+## Installation
+
+### Manual
+In the distant future, installation should be like this:
+1) Install fresh Debian 7.x machine.
+2) Log in as root
+3) Run `wget http://please.nxme.eu -o inst.all && chmod +x inst.all && ./inst.all`
+4) Grab a beer
+
+### Via Puppet
+.... there will be a day...
+1) Install puppet on fresh Debian 7.x machine
+2) Pray
+
+
 ## Hive
-Hive protocol is HTTP(s) based protocol used for communication between nx.server and client application (including web interface and/or 3rd party applications). Hive should also serve as playout control proxy (optional).
+Hive protocol is HTTP(s) based protocol used for communication between nx.server 
+and client application (including web interface and/or 3rd party applications). 
+Hive can also serve as playout control proxy (optional).
 
 ### Generic responses
 
@@ -37,13 +53,13 @@ Hive protocol is HTTP(s) based protocol used for communication between nx.server
 
 #### browse
 returns
-* `200` - OK, body contains search result
+* `200` - OK, body contains search result json`[{assetdata}, {assetdata}, ...]`
 * `203` - OK, partial information. There are more matching assets than can be displayed.
 * `204` - OK, no result, no body sent
 
 #### asset_detail
 returns
-* `200` - OK, bodu contains asset detail data
+* `200` - OK, body contains asset detail data `{assetdata}`
 * `404` - asset not foud
 
 #### new_asset
@@ -52,15 +68,17 @@ returns
 
 #### item_detail
 returns
-* `200` - OK, bodu contains item detail data
-* `404` - asset not foud
+* `200` - OK, bodu contains item detail data json`[{itemdata}{assetdata}]`
+* `404` - item not foud
 
-### new_item
+### bin_order
+Used for item creation and reordering.
 returns
-* `201` - created, no body sent
+* `200` - reordered, no body sent
+* `201` - reordered, item(s) created, no body sent
 
-bin
+#### bin
 
-rundown
+#### rundown
 
 
