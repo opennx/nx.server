@@ -3,8 +3,6 @@
 
 import os
 
-try:    os.delete("demo.s3db")
-except: pass
 
 
 from nx.common import db

@@ -8,72 +8,47 @@ import json
 
 from time import *
 
-
-########################################################################
-## Constants
-
-# Asset type
-VIDEO = 0
-AUDIO = 1
-IMAGE = 2
-TEXT  = 3
-
-# Asset subtype
-FILE      = 0
-VIRTUAL   = 1
-
-# Asset status
-OFFLINE  = 0   # 
-ONLINE   = 1   # 
-CREATING = 2   #  
-TRASHED  = 3   #  
-RESET    = 4   # Reset metadata action has been invoked. Meta service will update asset metadata.
-
-# Meta classes
-
-NUMERIC  = 0   # Any integer of float number. 'min', 'max' and 'step' values can be provided in config
-TEXT     = 1   # Single-line plain text
-BLOB     = 2   # Multiline text. 'syntax' can be provided in config
-DATE     = 3   # Date information. Stored as timestamp, presented as YYYY-MM-DD or calendar
-TIME     = 4   # Clock information Stored as timestamp, presened as HH:MM #TBD
-DATETIME = 5   # Date and time information. Stored as timestamp
-TIMECODE = 6   # Timecode information, stored as float(seconds), presented as HH:MM:SS.CS (centiseconds)
-DURATION = 7   # Similar as TIMECODE, Marks and subclips are visualised 
-REGION   = 8   # Single time region stored as ///// TBD
-REGIONS  = 9   # Multiple time regions stored as json {"region_name":(float(start_second),float(end_second), "second_region_name":(float(start_second),float(end_second)}
-SELECT   = 10  # Select box
-COMBO    = 11  # Similar to SELECT. Free text can be also provided instead of predefined options
-FOLDER   = 12  # Folder selector. Stored as int(id_folder), Represented as text / select. including color etc.
-
-
-
-## Constants
-########################################################################
+from constants import *
 
 
 def critical_error(message):
- logging.error(message)
- sys.exit(-1)
+    try: 
+        logging.error(message)
+    except: 
+        print "CRITICAL ERROR: %s" % message
+    sys.exit(-1)
 
 
 ########################################################################
 ## Config
 
 class Config(dict):
-  def __init__(self):
-    super(Config, self).__init__()
-    self["host"] = socket.gethostname()  # Machine hostname
-    self["user"] = "CORE" # Service identifier. Should be overwritten by service/script.
+    def __init__(self):
+        super(Config, self).__init__()
+        self["host"] = socket.gethostname()  # Machine hostname
+        self["user"] = "CORE" # Service identifier. Should be overwritten by service/script.
 
-    try:
-      local_settings = json.loads(open("local_settings.json").read())
-    except:
-      critical_error("Unable to open site_settings file.")
-    self.update(site_settings)
+        try:
+            local_settings = json.loads(open("local_settings.json").read())
+        except:
+            critical_error("Unable to open site_settings file.")
+        self.update(site_settings)
 
 
-  def load_site_settings(self):
-    """Should be called after db initialisation"""
+    def load_site_settings(self):
+        """Should be called after db initialisation"""
+
+        #TODO: Load from DB
+        result = [
+            ("seismic_addr" , "224.168.2.9"),
+            ("seismic_port" , "42112")
+            ("cache_driver" , "memcached"),
+            ("cache_host"   , "192.168.32.320"),
+            ("cache_port"   , "11211")
+            ]
+
+        for key, value in result:
+           self[key] = value
 
 
 config = Config()
@@ -85,7 +60,7 @@ config = Config()
 
 if config['db_driver'] == "postgres": 
     import psycopg2
- 
+
     class DB():
         def __init__(self):
             self._connect()
@@ -120,31 +95,38 @@ elif config['db_driver'] == "sqlite":
     class DB():
         # Not implemented
         pass
- 
- 
+
+
 else:
     critical_error("Unknown DB Driver. Exiting.")
 
  
+## Now it's time to load rest of the settings
+config.load_site_settings()
+
  
 ## Database
 ########################################################################
 ## Messaging
 
+#
+# Seismic messaging sends multicast UDP message over local network. 
+# It's useful for logging, updating client views, configurations etc.
+#
+
 
 class Messaging():
- def __init__(self):
-  self.MCAST_ADDR = "224.168.2.9"
-  self.MCAST_PORT = 42112
-  self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-  self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 255)
+    def __init__(self):
+        self.MCAST_ADDR = config["seismic_addr"]
+        self.MCAST_PORT = int(config["seismic_port"])
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 255)
   
- def send(self, method, data=None):
-  """
-  message = [timestamp, site_name, host, method, DATA] 
-  """
-  self.sock.sendto(json.dumps([time(), config.site_name, config.host, method, data]), (self.MCAST_ADDR,self.MCAST_PORT) )
-  
+    def send(self, method, data=None):
+        """
+        message = [timestamp, site_name, host, method, DATA] 
+        """
+        self.sock.sendto(json.dumps([time(), config.site_name, config.host, method, data]), (self.MCAST_ADDR,self.MCAST_PORT) )
 
 ## Messaging
 ########################################################################
@@ -152,65 +134,106 @@ class Messaging():
 
 
 class Logging():
- def __init__(self):
-  pass
+    def __init__(self):
+    pass
 
- def __send(self,msgtype,message):
-  messaging.send("LOG",[config['user'], msgtype, message])
-  print config['user']], msgtype, message
+   def _send(self,msgtype,message):
+      messaging.send("LOG",[config['user'], msgtype, message])
+      print config['user']], msgtype, message
 
- def debug   (self,msg): self.__send("DEBUG",msg) 
- def info    (self,msg): self.__send("INFO",msg) 
- def warning (self,msg): self.__send("WARNING",msg) 
- def error   (self,msg): self.__send("ERROR",msg) 
- def goodnews(self,msg): self.__send("GOODNEWS",msg) 
- 
- 
+    def debug   (self,msg): self._send("DEBUG",msg) 
+    def info    (self,msg): self._send("INFO",msg) 
+    def warning (self,msg): self._send("WARNING",msg) 
+    def error   (self,msg): self._send("ERROR",msg) 
+    def goodnews(self,msg): self._send("GOODNEWS",msg) 
+
+
 
 ## Logging
 ########################################################################
 ## Cache
 
-if config.cache_driver == "memcached":
- class Cache():
-  def __init__(self):
-   pass
+if config["cache_driver"] == "memcached":
+    import pylibmc
+
+    class Cache():
+        def __init__(self):
+            self.site = config["site_name"]
+            self.host = config["cache_host"]
+            self.port = config["cache_port"]
+            self.cstring = '%s:%s'%(self.host,self.port)
+
+        def _conn(self):
+            return pylibmc.Client([self.cstring])
+
+        def load(self,key):
+            try:
+                conn = self._conn()
+                return conn.get("%s_%s"%(self.site,key))
+            except:
+                return False
+
+        def save(self,key,value):
+            for i in range(10):
+                try:
+                    conn = self._conn()
+                    val = conn.set("%s_%s"%(self.site,key),value)
+                    break
+                except:  
+                    print "MEMCACHE SAVE FAILED %s" % key
+                    print str(sys.exc_info())
+                    sleep(1)
+                else:
+                    critical_error ("Memcache save failed. This should never happen. Check MC server")
+                    sys.exit(-1)
+            return val
+
+        def delete(self,key):
+            for i in range(10):
+                try:
+                    conn = self._conn()
+                    conn.delete("%s_%s"%(self.site,key))
+                    break
+                except: 
+                    print "MEMCACHE DELETE FAILED %s" % key
+                    print str(sys.exc_info())
+                    sleep(1)
+                else:
+                    critical_error ("Memcache delete failed. This should never happen. Check MC server")
+                    sys.exit(-1)
+            return True
+
 
 else:
- class Cache():
-  def __init__(self):
-   self.data = {}   
-   
-  def load(self,key):
-   return self.data.get(key,False)
-   
-  def save(self,key,value):
-   self.data[key] = value
-  
+    class Cache():
+        def __init__(self):
+            self.data = {}   
+        def load(self,key):
+            return self.data.get(key,False)
+        def save(self,key,value):
+            self.data[key] = value
 
 ## Cache
 ########################################################################
 ## Filesystem
 
 class Storage():
- def __init__(self): 
-  pass
-  
- def path(self,rel=False):
-  return 
-  
-  
+    def __init__(self): 
+        pass
+    def path(self,rel=False):
+        return 
+
 class Storages():
- def __init__(self):
-  self.refresh()
+    def __init__(self):
+        self.refresh()
  
- def refresh(self):
-  pass
-  
-  
+    def refresh(self):
+        pass
+
 ## Filesystem
 ########################################################################
-## Init
+## Init global objects
+
 
 
 messaging = Messaging()
