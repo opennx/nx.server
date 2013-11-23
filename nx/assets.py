@@ -1,16 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
 from common import *
-
 
 #
 # Asset is ... 
 #
 #
-
-
 
 class MetaType(object):
     editable   = False
@@ -18,10 +14,9 @@ class MetaType(object):
     class_     = TEXT
     config     = False
 
-
-class MetaDict(dict):
+class MetaTypes(dict):
     def __init__(self):
-        super(Config, self).__init__()
+        super(MetaTypes, self).__init__()
         self._load()
 
     def _load(self):
@@ -29,20 +24,43 @@ class MetaDict(dict):
         from default import BASE_META_SET
         for ns, tag, editable, searchable, class_, config in BASE_META_SET:
             meta_type = MetaType()
+            meta_type.namespace  = ns
             meta_type.editable   = bool(editable)
             meta_type.searchable = bool(searchable)
             meta_type.class_     = class_
             meta_type.config     = config
             self[tag] = meta_type
 
+    def format(self, tag, value):
+        if not tag in self.meta_types:
+            return value
+        mtype = meta_types["tag"]
 
-meta_types = MetaDict()
+        ## PLEASE REFACTOR ME.
+        if   mtype.class_ == TEXT:     return value
+        elif mtype.class_ == INTEGER:  return int(value)
+        elif mtype.class_ == NUMERIC:  return float(value)
+        elif mtype.class_ == BLOB:     return value
+        elif mtype.class_ == DATE:     return float(value)
+        elif mtype.class_ == TIME:     return float(value)
+        elif mtype.class_ == DATETIME: return float(value)
+        elif mtype.class_ == TIMECODE: return float(value)
+        elif mtype.class_ == DURATION: return float(value)
+        elif mtype.class_ == REGION:   return json.loads(value)
+        elif mtype.class_ == REGIONS:  return json.loads(value)
+        elif mtype.class_ == SELECT:   return value
+        elif mtype.class_ == ISELECT:  return int(value)
+        elif mtype.class_ == COMBO:    return value
+        elif mtype.class_ == FOLDER:   return int(value)
+        elif mtype.class_ == STATUS:   return int(value)
+        elif mtype.class_ == STATE:    return int(value)
+
+
+meta_types = MetaTypes()
 
 
 
 class AssetPrototype(object):
-    """This prototype can be used both on client and server"""
-
     def __init__(self,id_asset=False,db=False):
         self.id_asset = id_asset
         self.meta = {}
@@ -54,7 +72,7 @@ class AssetPrototype(object):
         elif self.id_asset:
             self._load(self.id_asset,db)
         else:
-            self._new(self)
+            self._new()
 
     def _load(self,id_asset,db=False):
         self.meta = {}
@@ -78,7 +96,6 @@ class AssetPrototype(object):
         if mki > 0: dur -= mki
         return dur
 
-
     ## Special Getters
     #######################################
     ## Asset deletion
@@ -101,6 +118,9 @@ class AssetPrototype(object):
 
     def __getitem__(self,key):
         key = key.lower().strip()
+        if not key in self.meta:
+            return False
+        return self.meta[key]
 
 
     def __setitem__(self,key,value):
@@ -109,16 +129,26 @@ class AssetPrototype(object):
         if not value:
             del self[key]
             return True
+        self.meta[key] = meta_types.format(key,value)
 
 
     def __delitem__(self,key):
         key = key.lower().strip()
+        if key in meta_types and meta_types["key"].namespace == "a": 
+            return
+        if not key in self.meta:
+            return
+        del self.meta[key]
 
 
 
 class Asset(AssetPrototype):
     """ Server variant of Asset class"""
-    pass
+    def _load(self,id_asset,db=False):
+        pass
+
+    def save(self):
+        pass
 
 
 

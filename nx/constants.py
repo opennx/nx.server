@@ -1,6 +1,14 @@
 ########################################################################
 ## Constants
 
+# service states
+STOPPED   = 0  # Service is stopped. Surprisingly.
+STARTED   = 1  # Service is started and running
+STARTING  = 2  # Service start requested.
+STOPPING  = 3  # Service graceful stop requested. It should shutdown itself after current iteration
+KILL      = 4  # Service force stop requested. Dispatch is about to kill -9 it
+
+
 # content_type
 TEXT  = 0
 VIDEO = 1
@@ -12,6 +20,7 @@ IMAGE = 3
 FILE      = 0  # There is (or should be) physical file specified by 'storage' and 'path' metadata
 VIRTUAL   = 1  # Asset exists only as DB record (macro, text...)
 
+
 # asset status
 OFFLINE  = 0   # Associated file does not exist
 ONLINE   = 1   # File exists and is ready to use
@@ -19,8 +28,8 @@ CREATING = 2   # File exists, but was changed recently. It is no safe (or possib
 TRASHED  = 3   # File has been moved to trash location.
 RESET    = 4   # Reset metadata action has been invoked. Meta service will update/refresh auto-generated asset information.
 
-# meta_classes
 
+# meta_classes
 TEXT     = 0   # Single-line plain text (default)
 INTEGER  = 1   # Integer only value (for db keys etc)
 NUMERIC  = 2   # Any integer of float number. 'min', 'max' and 'step' values can be provided in config
@@ -33,10 +42,11 @@ DURATION = 8   # Similar to TIMECODE, Marks and subclips are visualised
 REGION   = 9   # Single time region stored as ///// TBD
 REGIONS  = 10  # Multiple time regions stored as json {"region_name":(float(start_second),float(end_second), "second_region_name":(float(start_second),float(end_second)}
 SELECT   = 11  # Select box
-COMBO    = 12  # Similar to SELECT. Free text can be also provided instead of predefined options
-FOLDER   = 13  # Folder selector. Stored as int(id_folder), Represented as text / select. including color etc.
-STATUS   = 14  # Asset status representation (with colors or icons). stored as int
-STATE    = 15  # Asset approval state representation. stored as int
+ISELECT  = 12  # Select box with integer value
+COMBO    = 13  # Similar to SELECT. Free text can be also provided instead of predefined options
+FOLDER   = 14  # Folder selector. Stored as int(id_folder), Represented as text / select. including color etc.
+STATUS   = 15  # Asset status representation (with colors or icons). stored as int
+STATE    = 16  # Asset approval state representation. stored as int
 
 ## Constants
 ########################################################################

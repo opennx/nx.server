@@ -10,6 +10,18 @@ from time import *
 
 from constants import *
 
+if __name__ == "__main__":
+    sys.exit(-1)
+
+
+if sys.platform == "win32":
+    PLATFORM   = "windows"
+    python_cmd = "c:\\python27\python.exe"
+else:
+    PLATFORM   = "linux"
+    python_cmd = "python"
+
+
 
 def critical_error(message):
     try: 
@@ -28,11 +40,12 @@ class Config(dict):
         self["host"] = socket.gethostname()  # Machine hostname
         self["user"] = "CORE" # Service identifier. Should be overwritten by service/script.
 
+        
         try:
             local_settings = json.loads(open("local_settings.json").read())
         except:
             critical_error("Unable to open site_settings file.")
-        self.update(site_settings)
+        self.update(local_settings)
 
 
     def load_site_settings(self):
@@ -41,8 +54,8 @@ class Config(dict):
         #TODO: Load from DB
         result = [
             ("seismic_addr" , "224.168.2.9"),
-            ("seismic_port" , "42112")
-            ("cache_driver" , "memcached"),
+            ("seismic_port" , "42112"),
+            ("cache_driver" , "null"),
             ("cache_host"   , "192.168.32.320"),
             ("cache_port"   , "11211")
             ]
@@ -58,7 +71,7 @@ config = Config()
 ########################################################################
 ## Database
 
-if config['db_driver'] == "postgres": 
+if config['db_driver'] == 'postgres': 
     import psycopg2
 
     class DB():
@@ -91,11 +104,15 @@ if config['db_driver'] == "postgres":
             self.conn.rollback()
 
 
-elif config['db_driver'] == "sqlite":
+elif config['db_driver'] == 'sqlite':
     class DB():
         # Not implemented
         pass
 
+elif config['db_driver'] == 'null':
+    class DB():
+        # For testing purposes only. To be removed
+        pass
 
 else:
     critical_error("Unknown DB Driver. Exiting.")
@@ -126,7 +143,7 @@ class Messaging():
         """
         message = [timestamp, site_name, host, method, DATA] 
         """
-        self.sock.sendto(json.dumps([time(), config.site_name, config.host, method, data]), (self.MCAST_ADDR,self.MCAST_PORT) )
+        self.sock.sendto(json.dumps([time(), config["site_name"], config["host"], method, data]), (self.MCAST_ADDR,self.MCAST_PORT) )
 
 ## Messaging
 ########################################################################
@@ -135,11 +152,11 @@ class Messaging():
 
 class Logging():
     def __init__(self):
-    pass
+        pass
 
-   def _send(self,msgtype,message):
-      messaging.send("LOG",[config['user'], msgtype, message])
-      print config['user']], msgtype, message
+    def _send(self,msgtype,message):
+        messaging.send("LOG",[config['user'], msgtype, message])
+        print config['user'], msgtype, message
 
     def debug   (self,msg): self._send("DEBUG",msg) 
     def info    (self,msg): self._send("INFO",msg) 

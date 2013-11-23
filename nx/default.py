@@ -1,4 +1,4 @@
-from constsants import *
+from constants import *
 
 #
 # This is basic 
@@ -6,7 +6,7 @@ from constsants import *
 #
 
 
-BASE_META_SET = {
+BASE_META_SET = [
 
 #
 # a namespace:
@@ -14,14 +14,20 @@ BASE_META_SET = {
 #
 
 ("a",  "id_asset",             0, 0, INTEGER,    False),
-("a",  "media_type",           0, 0, SELECT,     {FILE:"File",VIRTUAL:"Virtual"}),
-("a",  "content_type",         0, 0, SELECT,     {VIDEO:"Video",AUDIO:"Audio",IMAGE:"Image",TEXT:"Text"}),
+("a",  "media_type",           0, 0, ISELECT,    {FILE:"File",
+												  VIRTUAL:"Virtual"
+												  }),
+("a",  "content_type",         0, 0, ISELECT,    {VIDEO:"Video",
+												  AUDIO:"Audio",
+												  IMAGE:"Image",
+												  TEXT:"Text"
+												  }),
 ("a",  "folder",               1, 0, FOLDER,     False),
 ("a",  "ctime",                0, 0, DATETIME,   False),
 ("a",  "mtime",                0, 0, DATETIME,   False),
 ("a",  "variant",              0, 0, SELECT,     {"Import"     : "Import",         #
-												  "Acquisition": "Acquisition",    #
-												  "Library"    : "Library",        # 
+												  "Acquisition": "Acquisition",    # 
+												  "Library"    : "Library",        # Jingles, templates, static and reusable stuff, stock footage
 												  "Ingest"     : "Ingest",         # Material ingested by Ingest service
 												  "Edit"       : "Edit",           # Material imported from NLE in production format
 												  "Playout 1"  : "Playout 1"       # Material loacated on first playout storage
@@ -42,8 +48,7 @@ BASE_META_SET = {
 												  }),
 ("nx", "script/rundown",       1, 0, BLOB,       {"syntax":"python"}),
 ("nx", "mark_in",              1, 0, TIMECODE,   False),
-("nx", "mark_out",             1, 0, TIMECODE    False),
-("nx", "duration",             0, 0, DURATION,   False),
+("nx", "mark_out",             1, 0, TIMECODE,   False),
 ("nx", "subclips",             0, 0, REGIONS,    False),
 ("nx", "article",              1, 1, BLOB,       {"syntax":"md"}),
 
@@ -68,21 +73,23 @@ BASE_META_SET = {
 
 #
 # fmt namespace:
-# Technical metadata 
+# Technical metadata. Should be reset on mediafile change
 #
 
-("fmt","width",                0, 0, INTEGER, False),
-("fmt","height",               0, 0, INTEGER, False),
-("fmt","fps",                  0, 0, TEXT, False),
-("fmt","codec/*",              0, 0, TEXT, False),
-("fmt","codec/*",              0, 0, TEXT, False),
+("fmt","duration",             0, 0, DURATION,   False),
+("fmt","width",                0, 0, INTEGER,    False),
+("fmt","height",               0, 0, INTEGER,    False),
+("fmt","fps",                  0, 0, TEXT,       False),
+("fmt","codec/*",              0, 0, TEXT,       False),
+("fmt","codec/*",              0, 0, TEXT,       False),
 
 #
 # qc Namespace:
 # These metadata hold results of automated Quality controll process
+# Should be reset on mediafile change
 #
 
 ("qc", "silences",             0, 0, REGIONS, False),
 ("qc", "blacks",               0, 0, REGIONS, False),
 ("qc", "statics",              0, 0, REGIONS, False)
-}
+]
