@@ -27,7 +27,6 @@ if NX_ROOT != os.getcwd():
 class ServiceMonitor():
     def __init__(self):
         self.services = {}
-        
         #db = dbconn()
         #db.query("SELECT id_service,pid FROM nebula_services WHERE server='%s'" % HOSTNAME)
         #for r in db.fetchall(): 
@@ -43,7 +42,7 @@ class ServiceMonitor():
         for id_service in self.services.keys():
             proc, title = self.services[id_service]
             if proc.poll() == None:
-                result.append(title)
+                result.append((id_service, title))
         return result
 
     def _run(self):
@@ -121,6 +120,11 @@ class ServiceMonitor():
         #    os.system ("taskkill /F /PID " + str(pid))
 
 
+
+service_monitor = ServiceMonitor()
+
+
+service_monitor.startService(42,"Dummy")
 
 
 while True:

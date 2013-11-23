@@ -2,14 +2,14 @@ from constants import *
 
 #
 # This is basic 
-# Feel free to adjust variant, language and state configs according to your needs
+# Feel free to adjust variant, language and state configuration according to your needs
 #
 
 
 BASE_META_SET = [
 
 #
-# a namespace:
+# A name space:
 # Asset data.
 #
 
@@ -53,7 +53,7 @@ BASE_META_SET = [
 ("nx", "article",              1, 1, BLOB,       {"syntax":"md"}),
 
 #
-# ebu namespace:
+# eBU name space:
 # 
 #
 
@@ -72,8 +72,8 @@ BASE_META_SET = [
 ("ebu","source/*",             0, 1, TEXT,       False ),
 
 #
-# fmt namespace:
-# Technical metadata. Should be reset on mediafile change
+# FMT name space:
+# Technical meta data. Should be reset on media file change
 #
 
 ("fmt","duration",             0, 0, DURATION,   False),
@@ -84,9 +84,9 @@ BASE_META_SET = [
 ("fmt","codec/*",              0, 0, TEXT,       False),
 
 #
-# qc Namespace:
-# These metadata hold results of automated Quality controll process
-# Should be reset on mediafile change
+# QC name space:
+# These meta data hold results of automated Quality control process
+# Should be reset on media file change
 #
 
 ("qc", "silences",             0, 0, REGIONS, False),
