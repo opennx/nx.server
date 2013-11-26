@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from nx import *
+from nx.assets import *
 
 from stat import *
 from filetypes import FILETYPES
@@ -31,9 +32,9 @@ class Service(ServicePrototype):
             ###################
             ## Mirror settings
 
-            mstorage = int(mirror.find("storage").text)
+            mstorage = int(mirror.find("id_storage").text)
             mpath    = mirror.find("path").text
-            stpath   = storages[mstorage].path
+            stpath   = storages[mstorage].get_path()
            
 
             filters = []
@@ -65,7 +66,7 @@ class Service(ServicePrototype):
                 if asset_by_path(mstorage,apath,db=db): continue 
 
                 asset = Asset() 
-                asset["storage"]       = mstorage
+                asset["id_storage"]    = mstorage
                 asset["path"]          = apath
                 asset["title"]         = file_to_title(apath)
                 asset["content_type"]  = filetype

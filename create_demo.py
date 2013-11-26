@@ -9,6 +9,7 @@ from default_db import *
 from default_meta import *
 
 
+
 ## key, value
 SITE_SETTINGS = [
     ("seismic_addr" , "224.168.2.8"),
@@ -29,8 +30,8 @@ FOLDERS = [
 
 ## agent, title, host, autostart, loop_delay, settings
 SERVICES = [
-("watch", "Watch", HOSTNAME, 1, 20,"""<settings><mirror><storage>1</storage><path>Jingles</path><recursive>0</recursive><meta tag='variant'>Library</meta><post>asset["id_folder"] = 3</post></mirror></settings>"""),
-("meta" , "Meta" , HOSTNAME, 1, 20,"""<settings></settings>""")
+("watch", "Watch", HOSTNAME, 1, 10,"""<settings><mirror><id_storage>1</id_storage><path>Jingles</path><recursive>0</recursive><meta tag='variant'>Library</meta><post>asset["id_folder"] = 3</post></mirror></settings>"""),
+("meta" , "Meta" , HOSTNAME, 1, 5,"""<settings></settings>""")
 ]
 
 
@@ -102,5 +103,5 @@ db.commit()
 for id_storage, title, protocol, path, login, password in STORAGES:
     q = "INSERT INTO nx_storages (id_storage, title, protocol, path, login, password) VALUES (%d, '%s', %d, '%s', '%s', '%s')" % \
         (id_storage, db.sanit(title), protocol, db.sanit(path), db.sanit(login), db.sanit(password))
-
+    db.query(q)
 db.commit() 

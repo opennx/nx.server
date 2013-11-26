@@ -11,6 +11,8 @@ import sys
 import subprocess
 
 from nx import *
+
+
 from time import *
 
 NX_ROOT = os.path.split(sys.argv[0])[0]
@@ -59,12 +61,9 @@ class ServiceMonitor():
                 if not id_service in self.services.keys():
                     self.start_service(id_service, title, db = db)
 
-
             elif state == KILL: # Kill service
                 if id_service in self.services.keys():
                     self.kill_service(self.services[id_services][0].pid)
-
-
 
         ## Starting / Stopping
         #######################
@@ -88,8 +87,6 @@ class ServiceMonitor():
                 logging.info("AutoStarting service %s (%s)"% (title, id_service))
                 self.start_service(id_service, title)
             
-
-    
     def start_service(self, id_service, title, db=False):
         logging.info("Starting service %d - %s"%(id_service, title))
         self.services[id_service] = (subprocess.Popen([python_cmd, "run_service.py", str(id_service)]), title )

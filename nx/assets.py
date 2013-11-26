@@ -8,11 +8,14 @@ from common import *
 #
 #
 
+__all__ = ["meta_types", "Asset", "asset_by_path", "asset_by_full_path", "meta_exists"]
+
+
 class MetaType(object):
     editable   = False
     searchable = False
     class_     = TEXT
-    config     = False
+    settings   = False
 
 class MetaTypes(dict):
     def __init__(self):
@@ -20,15 +23,15 @@ class MetaTypes(dict):
         self._load()
 
     def _load(self):
-        #TODO: This should be loaded from database
-        from default import BASE_META_SET
-        for ns, tag, editable, searchable, class_, config in BASE_META_SET:
+        db = DB()
+        db.query("SELECT namespace, tag, editable, searchable, class, settings FROM nx_meta_types")
+        for ns, tag, editable, searchable, class_, settings in db.fetchall():
             meta_type = MetaType()
             meta_type.namespace  = ns
             meta_type.editable   = bool(editable)
             meta_type.searchable = bool(searchable)
             meta_type.class_     = class_
-            meta_type.config     = config
+            meta_type.settings   = settings
             self[tag] = meta_type
 
     def _default(self):
@@ -37,7 +40,7 @@ class MetaTypes(dict):
         meta_type.editable   = 0
         meta_type.searchable = 0
         meta_type.class_     = TEXT
-        meta_type.config     = False
+        meta_type.settings   = False
         return meta_type
 
     def __getitem__(self, key):
@@ -107,7 +110,7 @@ class AssetPrototype(object):
         pass
 
     def save(self, set_mtime=True):
-        if self["mtime"]:
+        if set_mtime:
             self["mtime"] = time()
         self._save()
 
@@ -116,7 +119,7 @@ class AssetPrototype(object):
     ## Special Getters
 
     def get_file_path(self):
-        return False
+        return os.path.join(storages[self["id_storage"]].get_path(), self["path"])
 
     def get_duration(self):
         dur = float(self.meta.get("duration",0))
@@ -184,7 +187,7 @@ class Asset(AssetPrototype):
         db = DB()
         db.query("SELECT media_type, content_type, id_folder, ctime, mtime, variant, version_of, status FROM nx_assets WHERE id_asset = %d" % self.id_asset)
         try:
-            self["media_type"], self["content_type"], self["id_folder"], self["ctime"], self["mtime"], self["variant"], self["version_of"], self["status"] = db.fetchall()[0][0]
+            self["media_type"], self["content_type"], self["id_folder"], self["ctime"], self["mtime"], self["variant"], self["version_of"], self["status"] = db.fetchall()[0]
         except:
             logging.error("Unable to load Asset ID %d" % id_asset)
             return False
@@ -229,24 +232,26 @@ class Asset(AssetPrototype):
 ## Miscelaneous asset related utilities
 
 
-def asset_by_path(storage, path, db=False):
+def asset_by_path(id_storage, path, db=False):
     if not db:
         db = DB()
     db.query("""SELECT id_asset FROM nx_meta 
-                WHERE tag='storage' 
+                WHERE tag='id_storage' 
                 AND value='%s' 
                 AND id_asset IN (SELECT id_asset FROM nx_meta WHERE tag='path' and value='%s')
-                """ % (storage,path))
+                """ % (id_storage,path))
     try:
         return db.fetchall()[0][0]
     except: 
         return False
 
+
 def asset_by_full_path(path, db=False):
     for s in storages:
-        if path.startswith(s.path):
-            return asset_by_path(storage,path.lstrip(s.path),db=db)
+        if path.startswith(storages[s].get_path()):
+            return asset_by_path(s,path.lstrip(s.path),db=db)
     return False
+
 
 def meta_exists(tag, value, db=False):
     if not db:

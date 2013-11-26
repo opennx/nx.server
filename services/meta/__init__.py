@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from nx import *
+from nx.assets import *
 
 class Service(ServicePrototype):
     def onInit(self):
@@ -14,9 +15,7 @@ class Service(ServicePrototype):
 
     def onMain(self):
         db = DB()
-        q  = "SELECT id_asset FROM nx_assets %s" % self.filters
-        print q
-        db.query(q)
+        db.query("SELECT id_asset FROM nx_assets %s" % self.filters)
         for id_asset, in db.fetchall():
             self._proc(id_asset, db)
 
@@ -25,7 +24,7 @@ class Service(ServicePrototype):
         fname = asset.get_file_path()
         logging.debug("Probing %s"%asset)
         
-        if not os.path.exists():
+        if not os.path.exists(fname):
             if asset["status"] == ONLINE:
                 logging.warning("Turning offline %s" % asset)
                 asset["status"] = OFFLINE
@@ -61,7 +60,6 @@ class Service(ServicePrototype):
                 asset.save(set_mtime=False)
             else:
                 logging.debug("Updating metadata %s" % asset)
-                asset["mtime"]      = int(time())
                 asset["file/size"]  = fsize
                 asset["file/mtime"] = fmtime
             
@@ -69,10 +67,10 @@ class Service(ServicePrototype):
 
                 if asset["status"] == RESET:
                     asset["status"] = ONLINE
-                    asset.ave()
                     logging.info("%s reset completed" % asset)
                 else:
                     asset["status"] = CREATING
+                asset.save()
         
    
         if asset["status"] == CREATING and asset["mtime"] + 15 > time(): 

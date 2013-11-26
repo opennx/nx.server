@@ -10,13 +10,17 @@ if __name__ == "__main__":
         critical_error("You must provide service id as first parameter")
 
     db = DB()
-    db.query("SELECT title, agent, settings FROM nx_services WHERE id_service=%d" % id_service)
+    db.query("SELECT agent, title, host, loop_delay, settings FROM nx_services WHERE id_service=%d" % id_service)
     try:
-        title, agent, settings = db.fetchall()[0]
+        agent, title, host, loop_delay, settings = db.fetchall()[0]
     except:
         critical_error("Unable to start service %s. No such service" % id_service)
 
     config["user"] = title
+
+    if host != HOSTNAME:
+        critical_error("This service should not run here.")
+
     try:
         settings = ET.XML(str(settings))
     except:
@@ -34,4 +38,4 @@ if __name__ == "__main__":
 
     while True:
         service.onMain()
-        sleep(1)
+        sleep(loop_delay)

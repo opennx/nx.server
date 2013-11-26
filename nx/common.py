@@ -12,7 +12,6 @@ from xml.etree import ElementTree as ET
 from constants import *
 
 
-
 if __name__ == "__main__":
     sys.exit(-1)
 
@@ -54,10 +53,13 @@ class Config(dict):
 
     def load_site_settings(self):
         """Should be called after db initialisation"""
-        db = DB()
-        db.query("SELECT key, value FROM nx_settings")
-        for key, value in db.fetchall():
-            self[key] = value
+        try:
+            db = DB()
+            db.query("SELECT key, value FROM nx_settings")
+            for key, value in db.fetchall():
+                self[key] = value
+        except:
+            print "Unable to load local settings. Nothing will work."
 
 
 config = Config()
@@ -266,8 +268,9 @@ else:
 class Storage():
     def __init__(self): 
         pass
-    def path(self,rel=False):
-        return self.path 
+    def get_path(self,rel=False):
+        if self.protocol == LOCAL:
+            return self.path
 
 class Storages(dict):
     def __init__(self):
@@ -275,9 +278,23 @@ class Storages(dict):
         self.refresh()
  
     def refresh(self):
-        self[1] = Storage()
-        self[1].path = "c:\\hfn\\opennx1\\"
-
+        try:
+            db = DB()
+            db.query("SELECT id_storage, title, protocol, path, login, password FROM nx_storages")
+        except:
+            print "Unable to load storages information."
+            return
+            
+        for id_storage, title, protocol, path, login, password in db.fetchall():
+            storage = Storage()
+            storage.id_storage = id_storage
+            storage.title      = title
+            storage.protocol   = protocol
+            storage.path       = path
+            storage.login      = login
+            storage.password   = password
+            self[id_storage] = storage
+            
 ## Filesystem
 ########################################################################
 ## Init global objects
