@@ -7,12 +7,14 @@ import socket
 import json
 
 from time import *
+from xml.etree import ElementTree as ET
 
 from constants import *
 
+
+
 if __name__ == "__main__":
     sys.exit(-1)
-
 
 if sys.platform == "win32":
     PLATFORM   = "windows"
@@ -21,6 +23,7 @@ else:
     PLATFORM   = "linux"
     python_cmd = "python"
 
+HOSTNAME = socket.gethostname()
 
 
 def critical_error(message):
@@ -38,30 +41,23 @@ class Config(dict):
     def __init__(self):
         super(Config, self).__init__()
         self["host"] = socket.gethostname()  # Machine hostname
-        self["user"] = "CORE" # Service identifier. Should be overwritten by service/script.
+        self["user"] = "Core" # Service identifier. Should be overwritten by service/script.
 
-        
         try:
             local_settings = json.loads(open("local_settings.json").read())
         except:
             critical_error("Unable to open site_settings file.")
         self.update(local_settings)
 
+    def __getitem__(self,key):
+        return self.get(key,False)
 
     def load_site_settings(self):
         """Should be called after db initialisation"""
-
-        #TODO: Load from DB
-        result = [
-            ("seismic_addr" , "224.168.2.9"),
-            ("seismic_port" , "42112"),
-            ("cache_driver" , "null"),
-            ("cache_host"   , "192.168.32.320"),
-            ("cache_port"   , "11211")
-            ]
-
-        for key, value in result:
-           self[key] = value
+        db = DB()
+        db.query("SELECT key, value FROM nx_settings")
+        for key, value in db.fetchall():
+            self[key] = value
 
 
 config = Config()
@@ -73,13 +69,16 @@ config = Config()
 
 if config['db_driver'] == 'postgres': 
     import psycopg2
-
     class DB():
         def __init__(self):
             self._connect()
 
         def _connect(self):  
-            self.conn = psycopg2.connect(database=config['db_name'], host=config['db_host'], user=config['db_user'],password=config['db_pass']) 
+            self.conn = psycopg2.connect(database = config['db_name'], 
+                                         host     = config['db_host'], 
+                                         user     = config['db_user'],
+                                         password = config['db_pass']
+                                         ) 
             self.cur = self.conn.cursor()
 
         def query(self,q,*args):
@@ -105,10 +104,42 @@ if config['db_driver'] == 'postgres':
 
 
 elif config['db_driver'] == 'sqlite':
+    import sqlite3
     class DB():
-        # Not implemented
-        pass
+        def __init__(self):
+            self._connect()
 
+        def _connect(self):
+            try:
+                self.conn = sqlite3.connect(config["db_host"]) 
+                self.cur = self.conn.cursor()
+            except:
+                raise Exception, "Unable to connect database."
+
+        def query(self,q,*args):
+            self.cur.execute(q,*args)
+
+        def sanit(self, instr):
+            return str(instr).replace("''","'").replace("'","''")
+
+        def fetchall(self):
+            return self.cur.fetchall()
+          
+        def lastid(self):
+            r = self.cur.lastrowid
+            return r
+          
+        def commit(self):
+            self.conn.commit()
+
+        def rollback(self):
+            self.conn.rollback()
+         
+        def close(self):
+            self.conn.close()
+
+
+ 
 elif config['db_driver'] == 'null':
     class DB():
         # For testing purposes only. To be removed
@@ -125,12 +156,10 @@ config.load_site_settings()
 ## Database
 ########################################################################
 ## Messaging
-
 #
 # Seismic messaging sends multicast UDP message over local network. 
 # It's useful for logging, updating client views, configurations etc.
 #
-
 
 class Messaging():
     def __init__(self):
@@ -156,13 +185,13 @@ class Logging():
 
     def _send(self,msgtype,message):
         messaging.send("LOG",[config['user'], msgtype, message])
-        print config['user'], msgtype, message
+        print msgtype.ljust(10), config['user'].ljust(15), message
 
     def debug   (self,msg): self._send("DEBUG",msg) 
     def info    (self,msg): self._send("INFO",msg) 
     def warning (self,msg): self._send("WARNING",msg) 
     def error   (self,msg): self._send("ERROR",msg) 
-    def goodnews(self,msg): self._send("GOODNEWS",msg) 
+    def goodnews(self,msg): self._send("GOOD NEWS",msg) 
 
 
 
@@ -238,24 +267,22 @@ class Storage():
     def __init__(self): 
         pass
     def path(self,rel=False):
-        return 
+        return self.path 
 
-class Storages():
+class Storages(dict):
     def __init__(self):
+        super(Storages, self).__init__()
         self.refresh()
  
     def refresh(self):
-        pass
+        self[1] = Storage()
+        self[1].path = "c:\\hfn\\opennx1\\"
 
 ## Filesystem
 ########################################################################
 ## Init global objects
 
-
-
 messaging = Messaging()
 logging   = Logging()  
 cache     = Cache()
 storages  = Storages()
-
-
