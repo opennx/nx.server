@@ -52,25 +52,25 @@ class MetaTypes(dict):
         mtype = self[key]
 
         ## PLEASE REFACTOR ME.
-        if   mtype.class_ == TEXT:     return value.strip()
-        elif mtype.class_ == INTEGER:  return int(value)
-        elif mtype.class_ == NUMERIC:  return float(value)
-        elif mtype.class_ == BLOB:     return value.strip()
-        elif mtype.class_ == DATE:     return float(value)
-        elif mtype.class_ == TIME:     return float(value)
-        elif mtype.class_ == DATETIME: return float(value)
-        elif mtype.class_ == TIMECODE: return float(value)
-        elif mtype.class_ == DURATION: return float(value)
-        elif mtype.class_ == REGION:   return json.loads(value)
-        elif mtype.class_ == REGIONS:  return json.loads(value)
-        elif mtype.class_ == SELECT:   return value.strip()
-        elif mtype.class_ == ISELECT:  return int(value)
-        elif mtype.class_ == COMBO:    return value.strip()
-        elif mtype.class_ == FOLDER:   return int(value)
-        elif mtype.class_ == STATUS:   return int(value)
-        elif mtype.class_ == STATE:    return int(value)
-        elif mtype.class_ == FILESIZE: return int(value)
-
+        if   mtype.class_ == TEXT:        return value.strip()
+        elif mtype.class_ == INTEGER:     return int(value)
+        elif mtype.class_ == NUMERIC:     return float(value)
+        elif mtype.class_ == BLOB:        return value.strip()
+        elif mtype.class_ == DATE:        return float(value)
+        elif mtype.class_ == TIME:        return float(value)
+        elif mtype.class_ == DATETIME:    return float(value)
+        elif mtype.class_ == TIMECODE:    return float(value)
+        elif mtype.class_ == DURATION:    return float(value)
+        elif mtype.class_ == REGION:      return json.loads(value)
+        elif mtype.class_ == REGIONS:     return json.loads(value)
+        elif mtype.class_ == SELECT:      return value.strip()
+        elif mtype.class_ == ISELECT:     return int(value)
+        elif mtype.class_ == COMBO:       return value.strip()
+        elif mtype.class_ == FOLDER:      return int(value)
+        elif mtype.class_ == STATUS:      return int(value)
+        elif mtype.class_ == STATE:       return int(value)
+        elif mtype.class_ == FILESIZE:    return int(value)
+        elif mtype.class_ == MULTISELECT: return json.loads(value)
 
 meta_types = MetaTypes()
 
@@ -156,14 +156,12 @@ class AssetPrototype(object):
             return False
         return self.meta[key]
 
-
     def __setitem__(self,key,value):
         key   = key.lower().strip()
         if not value:
             del self[key]
             return True
         self.meta[key] = meta_types.format(key,value)
-
 
     def __delitem__(self,key):
         key = key.lower().strip()
@@ -177,7 +175,6 @@ class AssetPrototype(object):
         title = self.meta.get("title","")
         if title: title = " (%s)" % title
         return ("Asset ID:%d%s"%(self.id_asset,title))
-
 
 
 class Asset(AssetPrototype):
@@ -233,13 +230,12 @@ class Asset(AssetPrototype):
 
 
 def asset_by_path(id_storage, path, db=False):
-    if not db:
-        db = DB()
+    if not db: db = DB()
     db.query("""SELECT id_asset FROM nx_meta 
                 WHERE tag='id_storage' 
                 AND value='%s' 
                 AND id_asset IN (SELECT id_asset FROM nx_meta WHERE tag='path' and value='%s')
-                """ % (id_storage,path))
+                """ % (id_storage, path))
     try:
         return db.fetchall()[0][0]
     except: 
@@ -254,14 +250,13 @@ def asset_by_full_path(path, db=False):
 
 
 def meta_exists(tag, value, db=False):
-    if not db:
-        db = DB()
+    if not db: db = DB()
     db.query("""SELECT a.id_asset FROM nx_meta as m, nx_assets as a 
                 WHERE a.status <> 'TRASHED' 
                 AND a.id_asset = m.id_asset 
                 AND m.tag='%s' 
                 AND m.value='%s'
-                """ % (tag,value))
+                """ % (tag, value))
     try:
         return res[0][0]
     except:

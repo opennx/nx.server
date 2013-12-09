@@ -15,7 +15,7 @@ SITE_SETTINGS = [
     ("seismic_addr" , "224.168.2.8"),
     ("seismic_port" , "42112"),
     ("cache_driver" , "null"),
-    ("cache_host"   , "192.168.32.320"),
+    ("cache_host"   , "192.168.32.32"),
     ("cache_port"   , "11211")
 ]
 
@@ -63,7 +63,7 @@ db.commit()
 
 for ns, tag, editable, searchable, class_, settings in BASE_META_SET:
     print "%s/%s"%(ns,tag)
-    q = """INSERT INTO nx_meta_types (namespace, tag, editable, searchable, class, settings) VALUES('%s' ,'%s', %d, %d, %d, '%s')""" % \
+    q = """INSERT INTO nx_meta_types (namespace, tag, editable, searchable, class, settings) VALUES ('%s' ,'%s', %d, %d, %d, '%s')""" % \
            (ns, tag, editable, searchable, class_, json.dumps(settings))
     db.query(q)
 db.commit()
