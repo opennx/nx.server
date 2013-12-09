@@ -30,14 +30,15 @@ FOLDERS = [
 
 ## agent, title, host, autostart, loop_delay, settings
 SERVICES = [
-("watch", "Watch", HOSTNAME, 1, 10,"""<settings><mirror><id_storage>1</id_storage><path>Jingles</path><recursive>0</recursive><meta tag='variant'>Library</meta><post>asset["id_folder"] = 3</post></mirror></settings>"""),
+("watch", "Watch", HOSTNAME, 1, 10,"""<settings><mirror><id_storage>1</id_storage><path>Jingles</path><recursive>0</recursive><meta tag='origin'>Library</meta><post>asset["id_folder"] = 3</post></mirror></settings>"""),
 ("meta" , "Meta" , HOSTNAME, 1, 5,"""<settings></settings>""")
 ]
 
 
 ## id_storage, title, protocol, path, login, password
 STORAGES = [
-(1, "Test", LOCAL, "c:\\martas\\opennx\\", "", "")
+(1, "Test", LOCAL, "c:\\martas\\opennx\\", "", "").
+(2, "Playout", LOCAL, "c:\\martas\\opt\\Caspar\\media", "", "")
 ]
 
 
