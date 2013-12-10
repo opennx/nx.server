@@ -21,12 +21,13 @@ if __name__ == "__main__":
     if host != HOSTNAME:
         critical_error("This service should not run here.")
 
-    try:
-        settings = ET.XML(str(settings))
-    except:
-        db.query("UPDATE nx_services SET autostart=0 WHERE id_service=%d" % id_service)
-        db.commit()
-        critical_error("Malformed settings XML")
+    if settings:
+        try:
+            settings = ET.XML(settings)
+        except:
+            db.query("UPDATE nx_services SET autostart=0 WHERE id_service=%d" % id_service)
+            db.commit()
+            critical_error("Malformed settings XML")
 
 
     _module = __import__("services.%s"%agent, globals(), locals(), ["Service"], -1)
@@ -38,4 +39,5 @@ if __name__ == "__main__":
 
     while True:
         service.onMain()
+        service.heartbeat()
         sleep(loop_delay)
