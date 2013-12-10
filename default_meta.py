@@ -5,7 +5,7 @@ from nx.constants import *
 
 #
 # This is basic metadata set, which should be present.
-# Feel free to adjust variant, language and state configuration according to your needs
+# Feel free to adjust origin, language and state configuration according to your needs
 #
 
 BASE_META_SET = [
@@ -27,7 +27,7 @@ BASE_META_SET = [
 ("a",  "id_folder",             1, 0, FOLDER,     False),
 ("a",  "ctime",                 0, 0, DATETIME,   False),
 ("a",  "mtime",                 0, 0, DATETIME,   False),
-("a",  "variant",               0, 0, SELECT,     {"Import"     : "Import",         # Temporary material in watchfolders.
+("a",  "origin",                0, 0, SELECT,     {"Import"     : "Import",         # Temporary material in watchfolders.
                                                    "Acquisition": "Acquisition",    # 
                                                    "Library"    : "Library",        # Jingles, templates, reusable stuff, stock footage
                                                    "Ingest"     : "Ingest",         # Material ingested by Ingest service

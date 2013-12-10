@@ -8,7 +8,15 @@ class ServicePrototype(object):
         logging.info("Initialising service")
         self.id_service = id_service
         self.settings   = settings
-        self.onInit()
+        try:
+            self.onInit()
+        except:
+            logging.error("Unable to initialize service. %s" % str(sys.exc_info()))
+            self.shutdown()
+        else:
+            db = DB()
+            db.query("UPDATE nx_services SET last_seen = %d, state=1 WHERE id_service=%d" % (time(), self.id_service))
+            db.commit()
         logging.goodnews("Service started")
 
     def onInit(self):
@@ -17,7 +25,13 @@ class ServicePrototype(object):
     def onMain(self):
         pass        
 
-    def heartBeat(self):
+    def shutdown(self):
+        db = Db()
+        db.query("UPDATE nx_services SET autostart=0 WHERE id_service=%d"%self.id_service)
+        db.commit()
+        sys.exit(-1)
+
+    def heartbeat(self):
         db = DB()
         db.query("SELECT state FROM nx_services WHERE id_service=%s" % self.id_service)
         try:

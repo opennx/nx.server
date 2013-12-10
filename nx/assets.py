@@ -8,7 +8,7 @@ from common import *
 #
 #
 
-__all__ = ["meta_types", "Asset", "asset_by_path", "asset_by_full_path", "meta_exists"]
+__all__ = ["meta_types", "Asset", "asset_by_path", "asset_by_full_path", "meta_exists", "browse"]
 
 
 class MetaType(object):
@@ -79,6 +79,7 @@ meta_types = MetaTypes()
 class AssetPrototype(object):
     def __init__(self,id_asset=False,db=False):
         self.id_asset = id_asset
+        self.db = db
         self.meta = {}
         if self.id_asset == -1: #id_asset==-1 is reserved for live events
             self["title/en-US"]  = "Live"
@@ -86,11 +87,11 @@ class AssetPrototype(object):
             self["media_type"]   = VIRTUAL
             self["content_type"] = VIDEO
         elif self.id_asset:
-            self._load(self.id_asset,db)
+            self._load(self.id_asset)
         else:
             self._new()
 
-    def _load(self,id_asset,db=False):
+    def _load(self,id_asset):
         self.meta = {}
 
     def _new(self):
@@ -101,7 +102,7 @@ class AssetPrototype(object):
             "id_folder"    : 0, 
             "ctime"        : time(), 
             "mtime"        : time(), 
-            "variant"      : "Library", 
+            "origin"      : "Library", 
             "version_of"   : 0, 
             "status"       : OFFLINE
         }
@@ -179,12 +180,16 @@ class AssetPrototype(object):
 
 class Asset(AssetPrototype):
     """ Server variant of Asset class"""
-    def _load(self,id_asset,db=False):
+    def _load(self,id_asset):
+        if not self.db:
+            self.db = DB()
+        db = self.db
+
         self.meta = {}
-        db = DB()
-        db.query("SELECT media_type, content_type, id_folder, ctime, mtime, variant, version_of, status FROM nx_assets WHERE id_asset = %d" % self.id_asset)
+
+        db.query("SELECT media_type, content_type, id_folder, ctime, mtime, origin, version_of, status FROM nx_assets WHERE id_asset = %d" % self.id_asset)
         try:
-            self["media_type"], self["content_type"], self["id_folder"], self["ctime"], self["mtime"], self["variant"], self["version_of"], self["status"] = db.fetchall()[0]
+            self["media_type"], self["content_type"], self["id_folder"], self["ctime"], self["mtime"], self["origin"], self["version_of"], self["status"] = db.fetchall()[0]
         except:
             logging.error("Unable to load Asset ID %d" % id_asset)
             return False
@@ -198,14 +203,17 @@ class Asset(AssetPrototype):
         return True
 
     def _save(self):
-        db = DB()
+        if not self.db:
+            self.db = DB()
+        db = self.db
+
         if self.id_asset:
-            query = "UPDATE nx_assets SET media_type=%d, content_type=%d, id_folder=%d, ctime=%d, mtime=%d, variant='%s', version_of=%d, status=%d WHERE id_asset=%d" % \
-                                        (self["media_type"], self["content_type"], self["id_folder"], self["ctime"], self["mtime"], self["variant"], self["version_of"], self["status"],   self.id_asset)
+            query = "UPDATE nx_assets SET media_type=%d, content_type=%d, id_folder=%d, ctime=%d, mtime=%d, origin='%s', version_of=%d, status=%d WHERE id_asset=%d" % \
+                                        (self["media_type"], self["content_type"], self["id_folder"], self["ctime"], self["mtime"], self["origin"], self["version_of"], self["status"],   self.id_asset)
             db.query(query)
         else:
-            query = "INSERT INTO nx_assets (media_type,content_type,id_folder, ctime, mtime, variant, version_of, status) VALUES (%d, %d, %d, %d, %d, '%s', %d, %d)" % \
-                                        (self["media_type"], self["content_type"], self["id_folder"], self["ctime"], self["mtime"], self["variant"], self["version_of"], self["status"])
+            query = "INSERT INTO nx_assets (media_type,content_type,id_folder, ctime, mtime, origin, version_of, status) VALUES (%d, %d, %d, %d, %d, '%s', %d, %d)" % \
+                                        (self["media_type"], self["content_type"], self["id_folder"], self["ctime"], self["mtime"], self["origin"], self["version_of"], self["status"])
             db.query(query)
             self.id_asset = db.lastid()
 
@@ -261,3 +269,8 @@ def meta_exists(tag, value, db=False):
         return res[0][0]
     except:
         return False
+
+
+def browse(query={}):
+    if "fulltext" in query:
+        pass

@@ -32,7 +32,6 @@ class ServiceMonitor():
         for id_service, pid in db.fetchall(): 
             if pid:
                 self.Kill(r[1])
-        
         db.query("UPDATE nx_services SET state = 0 WHERE host='%s'" % HOSTNAME)
         db.commit()
         
@@ -109,9 +108,6 @@ class ServiceMonitor():
 
 service_monitor = ServiceMonitor()
 
-
-
-
 while True:
     service_monitor._main()
-    sleep(2)
+    sleep(1)

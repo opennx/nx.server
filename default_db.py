@@ -6,7 +6,7 @@ SQLITE_TPL = [
     "id_folder" integer NOT NULL, 
     "ctime" integer NOT NULL, 
     "mtime" integer NOT NULL, 
-    "variant" text NOT NULL, 
+    "origin" text NOT NULL, 
     "version_of" integer NOT NULL, 
     "status" integer NOT NULL
 )""",

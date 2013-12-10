@@ -50,10 +50,10 @@ class CasparChannel():
         self.cued_in = self.cued_out = self.current_in = self.current_out = 0
 
 
-    def on_main():
+    def on_main(self):
         pass
 
-    def on_change():
+    def on_change(self):
         pass
 
 

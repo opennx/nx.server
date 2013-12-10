@@ -32,13 +32,8 @@ class Service(ServicePrototype):
             exec(self.exec_require)
         except:
             logging.error("Worker requirements check failed. Shutting down.")
-            db = Db()
-            db.query("UPDATE nx_services SET autostart=0 WHERE id_service=%d"%self.id_service)
-            db.commit()
-            sys.exit(-1)
-
+            self.shutdown()
         exec (self.exec_init)
-
 
     def onMain(self):
         if self.exec_main:

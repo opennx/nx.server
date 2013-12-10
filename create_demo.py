@@ -37,7 +37,7 @@ SERVICES = [
 
 ## id_storage, title, protocol, path, login, password
 STORAGES = [
-(1, "Test", LOCAL, "c:\\martas\\opennx\\", "", "").
+(1, "Test", LOCAL, "c:\\martas\\opennx\\", "", ""),
 (2, "Playout", LOCAL, "c:\\martas\\opt\\Caspar\\media", "", "")
 ]
 
