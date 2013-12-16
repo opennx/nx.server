@@ -24,13 +24,14 @@ class MetaTypes(dict):
 
     def _load(self):
         db = DB()
-        db.query("SELECT namespace, tag, editable, searchable, class, settings FROM nx_meta_types")
-        for ns, tag, editable, searchable, class_, settings in db.fetchall():
+        db.query("SELECT namespace, tag, editable, searchable, class, default,  settings FROM nx_meta_types")
+        for ns, tag, editable, searchable, class_, default, settings in db.fetchall():
             meta_type = MetaType()
             meta_type.namespace  = ns
             meta_type.editable   = bool(editable)
             meta_type.searchable = bool(searchable)
             meta_type.class_     = class_
+            meta_type.default    = default
             meta_type.settings   = settings
             self[tag] = meta_type
 
@@ -40,11 +41,18 @@ class MetaTypes(dict):
         meta_type.editable   = 0
         meta_type.searchable = 0
         meta_type.class_     = TEXT
+        meta_type.default    = ""
         meta_type.settings   = False
         return meta_type
 
     def __getitem__(self, key):
         return self.get(key, self._default())
+
+    def format_default(key):
+        if not key in self:
+            return False
+        else:
+            return self.format(key, self[key].default)
 
     def format(self, key, value):
         if not key in self:
@@ -72,9 +80,29 @@ class MetaTypes(dict):
         elif mtype.class_ == FILESIZE:    return int(value)
         elif mtype.class_ == MULTISELECT: return json.loads(value)
 
+    def read_format(self, key, value):
+        """ Human readable representation. Value must be formated first using format"""
+        if not key in self:
+            return value
+        mtype = self[key]
+
+        if   mtype.class_ in [TEXT, BLOB]:         return value
+        elif mtype.class_ in [INTEGER, NUMERIC]:   return ["%.3f","%d"][float(value).is_integer()] % value
+        elif mtype.class_ == DATE:                 return strftime("%Y-%m-%d",localtime(value))
+        elif mtype.class_ == TIME:                 return strftime("%H:%M",localtime(value))
+        elif mtype.class_ == DATETIME:             return strftime("%Y-%m-%d %H:%M",localtime(value))
+        elif mtype.class_ == FILESIZE:
+            for x in ['bytes','KB','MB','GB','TB']:
+                if value < 1024.0: return "%3.1f %s" % (value, x)
+                value /= 1024.0
+
+        elif mtype.class_
+
+        else: return value
+
+
+
 meta_types = MetaTypes()
-
-
 
 class AssetPrototype(object):
     def __init__(self,id_asset=False,db=False):
@@ -82,8 +110,7 @@ class AssetPrototype(object):
         self.db = db
         self.meta = {}
         if self.id_asset == -1: #id_asset==-1 is reserved for live events
-            self["title/en-US"]  = "Live"
-            self["title/cs-CZ"]  = "Živě"
+            self["title"]  = "Live"
             self["media_type"]   = VIRTUAL
             self["content_type"] = VIDEO
         elif self.id_asset:
@@ -154,7 +181,7 @@ class AssetPrototype(object):
     def __getitem__(self,key):
         key = key.lower().strip()
         if not key in self.meta:
-            return False
+            return meta_types.format_default(key)
         return self.meta[key]
 
     def __setitem__(self,key,value):

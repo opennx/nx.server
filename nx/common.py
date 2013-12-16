@@ -255,11 +255,19 @@ if config["cache_driver"] == "memcached":
 else:
     class Cache():
         def __init__(self):
-            self.data = {}   
+            self.cachename = ".cache"
         def load(self,key):
-            return self.data.get(key,False)
+            try:
+                return json.loads(open(self.cachename).read())[key]
+            except:
+                return False
+
         def save(self,key,value):
-            self.data[key] = value
+            data = json.loads(open(self.cachename).read())
+            data[key] = value
+            f = open(self.cachename,"w")
+            f.write(json.dumps(data))
+            f.close()
 
 ## Cache
 ########################################################################

@@ -30,7 +30,7 @@ if __name__ == "__main__":
             critical_error("Malformed settings XML")
 
 
-    _module = __import__("services.%s"%agent, globals(), locals(), ["Service"], -1)
+    _module = __import__("services.%s" % agent, globals(), locals(), ["Service"], -1)
     Service = _module.Service
     
     service = Service(id_service, settings)

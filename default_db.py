@@ -23,6 +23,7 @@ SQLITE_TPL = [
     "editable" integer NOT NULL, 
     "searchable" integer NOT NULL, 
     "class" integer NOT NULL, 
+    "default" text NOT NULL, 
     "settings" text NOT NULL,  
     PRIMARY KEY ("tag")
 );""",

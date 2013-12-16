@@ -1,3 +1,5 @@
 *.pyc
 *.db
 storages/*
+opennx.sublime-project
+opennx.sublime-workspace

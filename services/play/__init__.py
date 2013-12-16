@@ -2,6 +2,18 @@
 # -*- coding: utf-8 -*-
 
 
+
+#
+# CasparCG Playout server ctrl
+#
+#
+#
+#
+#
+#
+
+
+
 from nx import *
 from caspar import Caspar
 
@@ -33,7 +45,6 @@ class ControlHandler(BaseHTTPRequestHandler):
     def error(self,response):
         self._do_headers(response=response)
 
-      
     def do_GET(self):
         self.result("Hello :-)")
 

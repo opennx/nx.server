@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 ########################################################################
 ## Constants
 
@@ -59,6 +62,12 @@ PENDING   = -1
 COMPLETED = -2
 FAILED    = -3
 ABORTED   = -4
+
+# Channel types
+
+PLAYOUT   = 0
+INGEST    = 1
+CAMPAIGN  = 2
 
 
 ## Constants
