@@ -122,7 +122,8 @@ elif config['db_driver'] == 'sqlite':
             self.cur.execute(q,*args)
 
         def sanit(self, instr):
-            return str(instr).replace("''","'").replace("'","''")
+            try: return str(instr).replace("''","'").replace("'","''").decode("utf-8")
+            except: return instr.replace("''","'").replace("'","''")
 
         def fetchall(self):
             return self.cur.fetchall()
@@ -187,7 +188,10 @@ class Logging():
 
     def _send(self,msgtype,message):
         messaging.send("LOG",[config['user'], msgtype, message])
-        print msgtype.ljust(10), config['user'].ljust(15), message
+        try:
+            print msgtype.ljust(10), config['user'].ljust(15), message
+        except:
+            print message.encode("utf-8")
 
     def debug   (self,msg): self._send("DEBUG",msg) 
     def info    (self,msg): self._send("INFO",msg) 
@@ -263,11 +267,15 @@ else:
                 return False
 
         def save(self,key,value):
-            data = json.loads(open(self.cachename).read())
+            if os.path.exists(self.cachename):
+                data = json.loads(open(self.cachename).read())
+            else:
+                data = {}
             data[key] = value
             f = open(self.cachename,"w")
             f.write(json.dumps(data))
             f.close()
+            return True
 
 ## Cache
 ########################################################################

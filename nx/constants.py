@@ -17,6 +17,13 @@ VIDEO    = 1           # Moving images. Whooooo
 AUDIO    = 2           # Noise
 IMAGE    = 3           # Static porn
 
+CONTENT_TYPES = {
+    "TEXT"  : TEXT,
+    "VIDEO" : VIDEO,
+    "AUDIO" : AUDIO,
+    "IMAGE" : IMAGE
+}
+
 # media_type
 FILE     = 0           # There is (or should be) physical file specified by 'storage' and 'path' metadata
 VIRTUAL  = 1           # Asset exists only as DB record (macro, text...)
@@ -40,14 +47,18 @@ TIMECODE     = 7       # Timecode information, stored as float(seconds), present
 DURATION     = 8       # Similar to TIMECODE, Marks and subclips are visualized 
 REGION       = 9       # Single time region stored as ///// TBD
 REGIONS      = 10      # Multiple time regions stored as json {"region_name":(float(start_second),float(end_second), "second_region_name":(float(start_second),float(end_second)}
-SELECT       = 11      # Select box
-ISELECT      = 12      # Select box with integer value
-COMBO        = 13      # Similar to SELECT. Free text can be also provided instead of predefined options
-FOLDER       = 14      # Folder selector. Stored as int(id_folder), Represented as text / select. including color etc.
-STATUS       = 15      # Asset status representation (with colors or icons). stored as int
-STATE        = 16      # Asset approval state representation. stored as int
-FILESIZE     = 17      # Stored as int, displayed as K, M... etc.
-MULTISELECT  = 18      # Stored as json list. config is simialar to select
+SELECT       = 11      # Select box ops stored as {'value':'title', 'another_value':'another title'}
+ISELECT      = 12      # Select box with integer value {0:'title',1:'another title'}
+LIST         = 13      # Similar to SELECT, but /w value=title ... ops stored as list [value1, value2, value3]
+COMBO        = 14      # Similar to LIST. Free text can be also provided instead of predefined options
+FOLDER       = 15      # Folder selector. Stored as int(id_folder), Represented as text / select. including color etc.
+STATUS       = 16      # Asset status representation (with colors or icons). stored as int
+STATE        = 17      # Asset approval state representation. stored as int
+FILESIZE     = 18      # Stored as int, displayed as K, M... etc.
+MULTISELECT  = 19      # Stored as json list. config is simialar to select
+PART         = 20      # Part X of Y. Stored as (X,Y) JSON tuple, where X and Y are integers
+BOOLEAN      = 22      # 1/0 checkbox
+STAR         = 21      # Same as boolean, but representated as shiny star in browser.
 
 # storage types
 

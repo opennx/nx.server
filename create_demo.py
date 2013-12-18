@@ -22,22 +22,48 @@ SITE_SETTINGS = [
 
 ## id_folder, title, color
 FOLDERS = [
-(1, "Music videos", 0xe34931),
+(1, "Music"       , 0xe34931),
 (2, "Movies"      , 0x019875),
-(3, "Jingles"     , 0xeec050)
+(3, "Jingles"     , 0xeec050),
+(4, "Templates"   , 0x5b5da7),
+(5, "Trailers"    , 0x9c2336),
 ]
 
 
 ## agent, title, host, autostart, loop_delay, settings
 SERVICES = [
-("watch", "Watch", HOSTNAME, 1, 10,"""<settings><mirror><id_storage>1</id_storage><path>Jingles</path><recursive>0</recursive><meta tag='origin'>Library</meta><post>asset["id_folder"] = 3</post></mirror></settings>"""),
-("meta" , "Meta" , HOSTNAME, 1, 5,"""<settings></settings>""")
+("meta" , "Meta"  , HOSTNAME, 1, 5 ,"""<settings></settings>"""),
+("admin", "Admin" , HOSTNAME, 1, 5 ,"""<settings></settings>"""),
+("watch", "Watch" , HOSTNAME, 1, 10,
+"""
+<settings>
+    <mirror>
+         <id_storage>1</id_storage>
+         <path>Acquisition/Music</path>
+         <recursive>1</recursive>
+         <filters>
+              <filter>audio</filter>
+         </filters> 
+         <meta tag='origin'>Acquisition</meta>
+         <meta tag='id_folder'>1</meta>
+     </mirror>
+
+    <mirror>
+        <id_storage>1</id_storage>
+        <path>Library/Jingles</path>
+        <recursive>0</recursive>
+        <meta tag='origin'>Library</meta>
+        <meta tag='id_folder'>3</meta>
+    </mirror>
+</settings>
+""")
+
 ]
 
 
 ## id_storage, title, protocol, path, login, password
 STORAGES = [
-(1, "Test", LOCAL, "c:\\martas\\opennx\\", "", ""),
+(1, "Test", LOCAL, "c:\\martas\\nxstor\\", "", ""),
 (2, "Playout", LOCAL, "c:\\martas\\opt\\Caspar\\media", "", "")
 ]
 
@@ -46,7 +72,7 @@ STORAGES = [
 
 
 
-##############################################################
+##############################################################  
 ## create db structure
 
 if os.path.exists(config["db_host"]):
@@ -62,11 +88,16 @@ db.commit()
 ##############################################################
 ## metadata set
 
-for ns, tag, editable, searchable, class_, settings in BASE_META_SET:
+for ns, tag, editable, searchable, class_, default, settings in BASE_META_SET:
     print "%s/%s"%(ns,tag)
-    q = """INSERT INTO nx_meta_types (namespace, tag, editable, searchable, class, settings) VALUES ('%s' ,'%s', %d, %d, %d, '%s')""" % \
-           (ns, tag, editable, searchable, class_, json.dumps(settings))
+    q = """INSERT INTO nx_meta_types (namespace, tag, editable, searchable, class, default_value, settings) VALUES ('%s' ,'%s', %d, %d, %d, '%s', '%s')""" % \
+           (ns, tag, editable, searchable, class_, default, json.dumps(settings))
     db.query(q)
+
+for tag, lang, alias in META_ALIASES:
+    q = """INSERT INTO nx_meta_aliases (tag, lang, alias) VALUES ('%s' ,'%s', '%s')""" % (tag, lang, alias)
+    db.query(q)
+    
 db.commit()
 
 ## metadata set

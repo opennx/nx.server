@@ -18,8 +18,20 @@ def get_files(basepath,recursive=False,hidden=False):
             if S_ISDIR(os.stat(filepath)[ST_MODE]) and recursive: 
                 for f in get_files(filepath,recursive=recursive,hidden=hidden): yield f
 
-def file_to_title(fname):
-    return os.path.basename(os.path.splitext(fname)[0]).replace("_"," ")
+
+def file_to_title(fname): # This sucks, but it's based on best practices :-)
+    base = os.path.basename(os.path.splitext(fname)[0])
+    base = base.replace("_"," ").replace("-"," - ").strip()
+    elms = []
+    capd = False
+    for i, elm in enumerate(base.split(" ")):
+        if not elm: continue
+        if not capd and not (elm.isdigit() or elm.upper()==elm):
+            elm = elm.capitalize()
+            capd = True
+        elms.append(elm)
+    return " ".join(elms)
+
 
 class Service(ServicePrototype):
     def onInit(self):
@@ -35,13 +47,9 @@ class Service(ServicePrototype):
             mstorage = int(mirror.find("id_storage").text)
             mpath    = mirror.find("path").text
             stpath   = storages[mstorage].get_path()
-           
-
-            filters = []
+        
             try:    filters = mirror.find("filters").findall("filter")
-            except: filtered = True
-            else:   filtered = False
-
+            except: filters = []
 
             try:    mrecursive = int(mirror.find("recursive").text)
             except: mrecursive = 0
@@ -52,17 +60,28 @@ class Service(ServicePrototype):
             ## Mirror settings
             ###################
 
-
             for f in get_files(os.path.join(stpath,mpath),recursive=mrecursive,hidden=mhidden):
 
                 apath = os.path.normpath(f.replace(stpath,""))
                 apath = apath.lstrip("/")  
                 if apath == "": continue 
          
-                try:    filetype = FILETYPES[os.path.splitext(f)[1][1:].lower()]
-                except: continue
-   
-            
+                try:    
+                    filetype = FILETYPES[os.path.splitext(f)[1][1:].lower()]
+                except: 
+                    continue
+
+
+                if filters:
+                    for f in filters:
+                        if CONTENT_TYPES.get(f.text.upper(), "blah blah") == filetype:
+                          break
+                    else:
+                        continue
+
+                db.query("SELECT count(id_asset) FROM nx_assets")
+                
+                #if db.fetchall()[0][0] > 1000: break # for debug only :-)
                 if asset_by_path(mstorage,apath,db=db): continue 
 
                 asset = Asset() 
@@ -74,29 +93,24 @@ class Service(ServicePrototype):
                 asset["status"]        = CREATING
 
                 for mt in mirror.findall("meta"):
-                  try:
-                   if mt.attrib["type"] == "script":
-                    exec "asset[mt.attrib[\"tag\"]] = %s"% (mt.text or "")
-                   else: raise Exception
-                  except:
-                   asset[mt.attrib["tag"]] = mt.text or ""
-               
-           
-                try:
-                  killoffset = int(mirror.find("kill_offset").text)
-                  asset.SetMeta("Kill date", str(int(time())+killoffset))
-                except:
-                  pass
+                    try:
+                        if mt.attrib["type"] == "script":
+                            exec "asset[mt.attrib[\"tag\"]] = %s"% (mt.text or "")
+                        else: 
+                            raise Exception
+                    except:
+                        asset[mt.attrib["tag"]] = mt.text or ""
+                 
                 
                 failed = False
                 for post_script in mirror.findall("post"):
-                  try:
-                   exec(post_script.text)
-                  except:
-                   self.logging.error("Error executing post-script \"%s\" on %s" % (post_script.text, asset))
-                   self.logging.error(str(sys.exc_info()))
-                   failed = True
-             
+                    try:
+                        exec(post_script.text)
+                    except:
+                        self.logging.error("Error executing post-script \"%s\" on %s" % (post_script.text, asset))
+                        self.logging.error(str(sys.exc_info()))
+                        failed = True
+               
                 if not failed:
                     asset.save()
                     logging.info("Created new %s from %s"%(asset, apath))

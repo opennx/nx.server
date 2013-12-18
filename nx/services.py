@@ -25,8 +25,13 @@ class ServicePrototype(object):
     def onMain(self):
         pass        
 
+    def soft_stop(self):
+        db = DB()
+        db.query("UPDATE nx_services SET state=3 WHERE id_service=%d"%self.id_service)
+        db.commit()
+
     def shutdown(self):
-        db = Db()
+        db = DB()
         db.query("UPDATE nx_services SET autostart=0 WHERE id_service=%d"%self.id_service)
         db.commit()
         sys.exit(-1)

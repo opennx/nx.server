@@ -9,11 +9,11 @@
 import os
 import sys
 import subprocess
-
-from nx import *
-
+import thread
 
 from time import *
+from nx import *
+
 
 NX_ROOT = os.path.split(sys.argv[0])[0]
 
@@ -34,9 +34,9 @@ class ServiceMonitor():
                 self.Kill(r[1])
         db.query("UPDATE nx_services SET state = 0 WHERE host='%s'" % HOSTNAME)
         db.commit()
+
+        thread.start_new_thread(self._run,())
         
-
-
     def get_running_services(self):
         result = []
         for id_service in self.services.keys():
@@ -48,7 +48,7 @@ class ServiceMonitor():
     def _run(self):
         while True:
             self._main()
-            sleep(2)
+            sleep(1)
 
 
     def _main(self):
@@ -106,9 +106,14 @@ class ServiceMonitor():
 
 
 
-service_monitor = ServiceMonitor()
 
+
+
+
+
+
+
+
+service_monitor = ServiceMonitor()
 while True:
-    service_monitor._main()
     sleep(1)
-    

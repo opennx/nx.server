@@ -3,18 +3,14 @@
 
 from common import *
 
-#
-# Asset is ... 
-#
-#
-
 __all__ = ["meta_types", "Asset", "asset_by_path", "asset_by_full_path", "meta_exists", "browse"]
 
-
 class MetaType(object):
+    namespace  = "site"
     editable   = False
     searchable = False
     class_     = TEXT
+    default    = False
     settings   = False
 
 class MetaTypes(dict):
@@ -24,7 +20,7 @@ class MetaTypes(dict):
 
     def _load(self):
         db = DB()
-        db.query("SELECT namespace, tag, editable, searchable, class, default,  settings FROM nx_meta_types")
+        db.query("SELECT namespace, tag, editable, searchable, class, default_value,  settings FROM nx_meta_types")
         for ns, tag, editable, searchable, class_, default, settings in db.fetchall():
             meta_type = MetaType()
             meta_type.namespace  = ns
@@ -48,7 +44,7 @@ class MetaTypes(dict):
     def __getitem__(self, key):
         return self.get(key, self._default())
 
-    def format_default(key):
+    def format_default(self, key):
         if not key in self:
             return False
         else:
@@ -73,12 +69,16 @@ class MetaTypes(dict):
         elif mtype.class_ == REGIONS:     return json.loads(value)
         elif mtype.class_ == SELECT:      return value.strip()
         elif mtype.class_ == ISELECT:     return int(value)
+        elif mtype.class_ == LIST:        return value.strip()
         elif mtype.class_ == COMBO:       return value.strip()
         elif mtype.class_ == FOLDER:      return int(value)
         elif mtype.class_ == STATUS:      return int(value)
         elif mtype.class_ == STATE:       return int(value)
         elif mtype.class_ == FILESIZE:    return int(value)
         elif mtype.class_ == MULTISELECT: return json.loads(value)
+        elif mtype.class_ == PART:        return json.loads(value)
+        elif mtype.class_ == BOOLEAN:     return int(value)
+        elif mtype.class_ == STAR:        return int(value)
 
     def read_format(self, key, value):
         """ Human readable representation. Value must be formated first using format"""
@@ -95,9 +95,6 @@ class MetaTypes(dict):
             for x in ['bytes','KB','MB','GB','TB']:
                 if value < 1024.0: return "%3.1f %s" % (value, x)
                 value /= 1024.0
-
-        elif mtype.class_
-
         else: return value
 
 
@@ -200,9 +197,13 @@ class AssetPrototype(object):
         del self.meta[key]
 
     def __repr__(self):
-        title = self.meta.get("title","")
-        if title: title = " (%s)" % title
-        return ("Asset ID:%d%s"%(self.id_asset,title))
+        try:
+            title = self.meta.get("title","")
+            if title: 
+                title = " (%s)" % title
+            return ("Asset ID:%d%s"%(self.id_asset,title))
+        except:
+            return("Asset ID:%d"%self.id_asset)
 
 
 class Asset(AssetPrototype):
@@ -221,13 +222,13 @@ class Asset(AssetPrototype):
             logging.error("Unable to load Asset ID %d" % id_asset)
             return False
 
-        self.id_asset = id_asset
+        self["id_asset"] = self.id_asset = id_asset
         db.query("SELECT tag, value FROM nx_meta WHERE id_asset = %d" % id_asset)
         for tag, value in db.fetchall():
             self[tag] = value
 
     def _save_to_cache(self):
-        return True
+        return cache.save("A%d"%self.id_asset, json.dumps(self.meta))
 
     def _save(self):
         if not self.db:
@@ -264,13 +265,14 @@ class Asset(AssetPrototype):
 ## Miscelaneous asset related utilities
 
 
+
 def asset_by_path(id_storage, path, db=False):
     if not db: db = DB()
     db.query("""SELECT id_asset FROM nx_meta 
                 WHERE tag='id_storage' 
                 AND value='%s' 
                 AND id_asset IN (SELECT id_asset FROM nx_meta WHERE tag='path' and value='%s')
-                """ % (id_storage, path))
+                """ % (id_storage, db.sanit(path)))
     try:
         return db.fetchall()[0][0]
     except: 
@@ -296,7 +298,6 @@ def meta_exists(tag, value, db=False):
         return res[0][0]
     except:
         return False
-
 
 def browse(query={}):
     if "fulltext" in query:

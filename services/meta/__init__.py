@@ -4,6 +4,9 @@
 from nx import *
 from nx.assets import *
 
+from probes import probes
+
+
 class Service(ServicePrototype):
     def onInit(self):
         filters = []
@@ -60,10 +63,24 @@ class Service(ServicePrototype):
                 asset.save(set_mtime=False)
             else:
                 logging.debug("Updating metadata %s" % asset)
+
+                for key in asset.meta:
+                    if meta_types[key].namespace in ("fmt", "qc"):
+                        del (asset.meta[key])
+
                 asset["file/size"]  = fsize
                 asset["file/mtime"] = fmtime
             
-                ################## PROBING WILL BE HERE
+                #########################################
+                ## PROBE
+
+                for probe in probes:
+                    if probe.accepts(asset):
+                        logging.debug("Probing %s using %s" % (asset, probe))
+                        asset = probe.work(asset)
+
+                ## PROBE
+                #########################################
 
                 if asset["status"] == RESET:
                     asset["status"] = ONLINE

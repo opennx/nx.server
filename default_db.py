@@ -1,4 +1,5 @@
 SQLITE_TPL = [
+
 """CREATE TABLE "nx_assets" ( 
     "id_asset" integer primary key NOT NULL, 
     "media_type" integer NOT NULL, 
@@ -11,10 +12,17 @@ SQLITE_TPL = [
     "status" integer NOT NULL
 )""",
 
-"""CREATE TABLE "nx_settings" ( 
-    "key" text NOT NULL, 
+"""CREATE TABLE "nx_folders" ( 
+    "id_folder" integer primary key NOT NULL, 
+    "title" text NOT NULL, 
+    "color" integer NOT NULL
+);""",
+
+"""CREATE TABLE "nx_meta" ( 
+    "id_asset" integer NOT NULL, 
+    "tag" text NOT NULL, 
     "value" text NOT NULL,  
-    PRIMARY KEY ("key")
+    PRIMARY KEY ("id_asset", "tag")
 );""",
 
 """CREATE TABLE "nx_meta_types" ( 
@@ -23,16 +31,35 @@ SQLITE_TPL = [
     "editable" integer NOT NULL, 
     "searchable" integer NOT NULL, 
     "class" integer NOT NULL, 
-    "default" text NOT NULL, 
+    "default_value" text NOT NULL, 
     "settings" text NOT NULL,  
     PRIMARY KEY ("tag")
 );""",
 
-"""CREATE TABLE "nx_meta" ( 
-    "id_asset" integer NOT NULL, 
+"""CREATE TABLE "nx_meta_aliases" ( 
     "tag" text NOT NULL, 
+    "lang" text NOT NULL, 
+    "alias" text NOT NULL,  
+    PRIMARY KEY ("tag", "lang")
+);""",
+
+
+
+
+
+"""CREATE TABLE "nx_settings" ( 
+    "key" text NOT NULL, 
     "value" text NOT NULL,  
-    PRIMARY KEY ("id_asset", "tag")
+    PRIMARY KEY ("key")
+);""",
+
+"""CREATE TABLE "nx_storages" ( 
+    "id_storage" integer primary key NOT NULL, 
+    "title" text NOT NULL, 
+    "protocol" integer NOT NULL, 
+    "path" text NOT NULL, 
+    "login" text NOT NULL, 
+    "password" text NOT NULL
 );""",
 
 """CREATE TABLE "nx_services" ( 
@@ -48,20 +75,8 @@ SQLITE_TPL = [
     "last_seen" integer NOT NULL
 );""",
 
-"""CREATE TABLE "nx_folders" ( 
-    "id_folder" integer primary key NOT NULL, 
-    "title" text NOT NULL, 
-    "color" integer NOT NULL
-);""",
 
-"""CREATE TABLE "nx_storages" ( 
-    "id_storage" integer primary key NOT NULL, 
-    "title" text NOT NULL, 
-    "protocol" integer NOT NULL, 
-    "path" text NOT NULL, 
-    "login" text NOT NULL, 
-    "password" text NOT NULL
-);""",
+
 
 
 """CREATE TABLE "nx_jobs" ( 
