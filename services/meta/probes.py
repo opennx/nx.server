@@ -65,9 +65,11 @@ class FFProbe(Probe):
             for tag in format["tags"]:
                 value = format["tags"][tag]
                 if tag in tag_mapping:
-                    asset[tag_mapping[tag]] = value
+                    if not tag_mapping[tag] in asset.meta or tag == "title": # Only title should be overwriten if exists. There is a reason
+                        asset[tag_mapping[tag]] = value
                 elif tag in ["track","disc"]:
-                    asset["album/%s"%tag] = value.split("/")[0]
+                    if not "album/%s"%tag in asset.meta: 
+                        asset["album/%s"%tag] = value.split("/")[0]
                 elif tag == "genre":
                     # Ultra mindfuck
                     from nx.cs import NX_MUSIC_GENRES
@@ -79,10 +81,12 @@ class FFProbe(Probe):
                                 continue
                             break
                         else:
-                            asset["genre/music"] = genre
+                            if not "genre/music" in asset.meta:
+                                asset["genre/music"] = genre
                             break
                     else:
-                        asset["genre/music"] = value
+                        if not "genre/music" in asset.meta:
+                            asset["genre/music"] = value
             asset["meta_probed"] = 1
 
         ## TAGS

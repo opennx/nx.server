@@ -100,6 +100,20 @@ class Service(ServicePrototype):
                             raise Exception
                     except:
                         asset[mt.attrib["tag"]] = mt.text or ""
+
+
+                # Loading metadata from sidecar JSON file
+                path_elms = asset.get_file_path().split("/")
+                for i in range(len(path_elms)):
+                    nxmeta_name = reduce(os.path.join,path_elms[:i]+[".%s.nxmeta"%path_elms[i]])
+                    if os.path.exists(nxmeta_name):
+                        try:
+                            asset.meta.update(json.loads(open(nxmeta_name).read()))
+                        except:
+                            logging.warning("Unable to parse %s" % nxmeta_name)
+                        else:
+                            logging.debug("Applied meta from template %s" % nxmeta_name)
+
                  
                 
                 failed = False

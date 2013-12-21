@@ -69,11 +69,13 @@ STORAGES = [
 
 
 
-
-
-
 ##############################################################  
 ## create db structure
+
+
+if os.path.exists(".cache"):
+    try:    os.remove(".cache")
+    except: pass
 
 if os.path.exists(config["db_host"]):
     try:    os.remove(config["db_host"])

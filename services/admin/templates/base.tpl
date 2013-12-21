@@ -9,7 +9,7 @@
     <link rel="shortcut icon" href="static/favicon.png">
     
 
-    <title>{0[title]}</title>
+    <title>$title</title>
 
     <link href="static/css/bootstrap.min.css" rel="stylesheet">
     <link href="static/css/basic.css" rel="stylesheet">
@@ -36,7 +36,7 @@
         </div>
         <div class="collapse navbar-collapse">
           <ul class="nav navbar-nav">
-            {0[menu]}
+            $menu
           </ul>
         </div><!--/.nav-collapse -->
       </div>
@@ -44,14 +44,14 @@
 
     <div class="container">
       <div class="starter-template">
-        <h1>{0[header]}</h1>
-          {0[content]}
+        <h1>$header</h1>
+          $content
       </div>
     </div><!-- /.container -->
 
     <div id="footer">
       <div class="container">
-        <a href="/shutdown">Restart admin</a>
+        <a href="/restart">Restart admin</a>
       </div>
     </div>
 

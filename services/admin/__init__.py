@@ -7,7 +7,7 @@ from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 import cgi
 import thread
 
-from collections import defaultdict
+from string import Template
 
 ########################################################################################################
 ## Override Metatypes human-readable formating
@@ -32,7 +32,7 @@ class MetaTypes(MT):
                     '<span class="label label-success">Approved</span>',
                     '<span class="label label-danger">Declined</span>'][value]
 
-        elif mtype.class_ in [TEXT, BLOB]:         return value.encode("utf-8")
+        elif mtype.class_ in [TEXT, BLOB]:         return value
         elif mtype.class_ in [INTEGER, NUMERIC]:   return ["%.3f","%d"][float(value).is_integer()] % value
         elif mtype.class_ == DATE:                 return strftime("%Y-%m-%d",localtime(value))
         elif mtype.class_ == TIME:                 return strftime("%H:%M",localtime(value))
@@ -42,7 +42,7 @@ class MetaTypes(MT):
                 if value < 1024.0: return "%3.1f&nbsp;%s" % (value, x)
                 value /= 1024.0
 
-        else: return "<i>%s</i>"%value.encode("utf-8")
+        else: return "<i>%s</i>"%value
 
 meta_types = MetaTypes()
 
@@ -56,58 +56,64 @@ MENU_ITEMS = [("dashboard","Dashboard"),
               ("porn","Porn")
              ]
 
+
+
 class View():
-    def __init__(self):
-        pass
+    def __init__(self, template_dir='', lang='en-US'):
+        self.template_dir = template_dir
+        self.template = "base.tpl"
+        self.lang = lang
+        self.data = {}
+        self["header"] = "Something"
 
-    def browser(self):
-        start_time = time()
-        cols = ["id_asset","title", "role/performer", "album", "genre/music", "status",]
-
-        main = "<tr><th>&nbsp</th>%s</tr>\n" % "".join("<th>%s</th>" % col for col in cols)
-
-        db = DB()
-        db.query("SELECT id_asset FROM nx_assets")
-        for id_asset, in db.fetchall():
-            asset = Asset(id_asset)
-            main += "<tr><td>%s</td>%s</tr>\n" % ("<i class='fa fa-%s'></i>" % ["file-text-o", "video-camera", "volume-up", "picture-o"][asset["content_type"]], "".join("<td>%s</td>" % meta_types.read_format(col,asset[col]) for col in cols))
-        
-        return "<table class='table table-striped table-condensed table-responsive'>\n%s</table><br> Generated in %.3f seconds" % (main, time()-start_time)
-
-
-
-    def services(self):
-        cols = ["id_service", "agent", "title", "host"]
-
-        main = "<tr>%s</tr>\n" % "".join("<th>%s</th>"%col for col in cols)
-
-        db = DB()
-        db.query("SELECT id_service, agent, title, host, autostart, loop_delay, settings, state, pid, last_seen FROM nx_services")
-        for id_service, agent, title, host, autostart, loop_delay, settings, state, pid, last_seen in db.fetchall():
-            main += "<tr>%s</tr>\n" % "".join("<td>%s</td>" % col for col in  [id_service, agent, title, host])
-
-        return "<table class='table table-striped table-condensed table-responsive'>%s</table>" % main
-
-
-
-
-class Templater(object):
-    def __init__(self, template_name):
-        self.template = open(template_name).read()
-        self.data = defaultdict(str)
-
-    def __setitem__(self,key, value):
-        self.data[key] = value
+    def __setitem__(self, key, value):
+        self.data[key] = value.encode("utf-8")
 
     def __getitem__(self,key):
         return self.data[key]
 
-    def result(self):
-        self["title"] = "OpenNX Admin (%s)" % config["site_name"]
-        if "header" in self.data:
-            self["title"] = "%s - %s" % (self["header"], self["title"])
+    def render(self):
+        self["title"] =  "%s - OpenNX (%s)" % (self["header"], config["site_name"])
+        template = Template(open(os.path.join(self.template_dir,self.template)).read())
+        return template.safe_substitute(self.data)
 
-        return self.template.format(self.data)
+    def restart(self):
+        self["title"] = ""
+        self.template = "redirect_home.tpl"
+
+    def dashboard(self):
+        self["header"]  = "Dashboard"
+        self["content"] = "here will be something"
+
+    def browser(self):
+        self["header"] = "Browser"
+        start_time = time()
+        cols = ["id_asset", "title", "role/performer", "album", "genre/music", "rights", "status"]
+        main = "<tr><th>&nbsp</th>%s</tr>\n" % "".join("<th>%s</th>" % meta_types[col].alias(self.lang) for col in cols)
+        db = DB()
+        db.query("SELECT id_asset FROM nx_assets")
+        for id_asset, in db.fetchall():
+            asset = Asset(id_asset)
+            main += "<tr><td>%s</td>%s</tr>\n" % (
+                    "<i class='fa fa-%s'></i>" % ["file-text-o", "video-camera", "volume-up", "picture-o"][asset["content_type"]], 
+                    "".join("<td>%s</td>" % meta_types.read_format(col,asset[col]) for col in cols)
+                    )
+        self["content"] = "<table class='table table-striped table-condensed table-responsive'>\n%s</table><br> Generated in %.3f seconds" % (main, time()-start_time)
+
+    def services(self):
+        cols = ["id_service", "agent", "title", "host"]
+        main = "<tr>%s</tr>\n" % "".join("<th>%s</th>"%col for col in cols)
+        db = DB()
+        db.query("SELECT id_service, agent, title, host, autostart, loop_delay, settings, state, pid, last_seen FROM nx_services")
+        for id_service, agent, title, host, autostart, loop_delay, settings, state, pid, last_seen in db.fetchall():
+            main += "<tr>%s</tr>\n" % "".join("<td>%s</td>" % col for col in  [id_service, agent, title, host])
+        self["content"] = "<table class='table table-striped table-condensed table-responsive'>%s</table>" % main
+
+
+
+
+
+
 
 
 class AdminHandler(BaseHTTPRequestHandler):
@@ -126,9 +132,9 @@ class AdminHandler(BaseHTTPRequestHandler):
     def _echo(self,istring):
         self.wfile.write(istring)
 
-    def result(self,obj):
+    def result(self, obj):
         self._do_headers()
-        if type(obj) == str:
+        if type(obj) in [str, unicode]:
             self._echo(obj)
         elif type(obj) in (dict, list):
             self._echo(json.dumps(obj))
@@ -146,8 +152,8 @@ class AdminHandler(BaseHTTPRequestHandler):
             fname = os.path.join(service.root_path, path) # this is very secure :-).... FIXME FIXME FIXME FIXME!!!!
             fname = fname.split("?")[0]
             if not os.path.exists(fname): 
-                print fname
                 self.error(404)
+                return
             else:
                 mimes = {
                         ".png":"image/png",
@@ -160,39 +166,35 @@ class AdminHandler(BaseHTTPRequestHandler):
                 self._echo(open(fname).read())
                 return
 
+        view = View(template_dir = os.path.join(service.root_path,"templates"))
 
-        elif path == "shutdown":
-            tpl = Templater(os.path.join(service.root_path,"templates","redirect_home.tpl"))                                 
+        menu_item_base =  '<li class="{cls}"><a href="/{p}">{t}</a></li>'
+        view["menu"]   = "".join(menu_item_base.format(cls="",p=item[0], t=item[1]) for item in MENU_ITEMS)
+
+
+        if path == "restart":
+            view.restart()                             
             service.soft_stop()
             
         elif path.startswith("browser"):
-            tpl = Templater(os.path.join(service.root_path,"templates","base.tpl"))
-            view = View()
-            tpl["header"]  = "Browser"
-            tpl["content"] = view.browser()
-
+            view.browser()
+            
         elif path.startswith("services"):
-            tpl = Templater(os.path.join(service.root_path,"templates","base.tpl"))
-            view = View()
-            tpl["header"]  = "Services"
-            tpl["content"] = view.services()
+            view.services()
 
         elif path in ["","dashboard"]:
-            tpl = Templater(os.path.join(service.root_path,"templates","base.tpl"))
-            tpl["header"]  = "Dashboard"
+            view.dashboard()
 
         else:
-            tpl = Templater(os.path.join(service.root_path,"templates","base.tpl"))
-            content = "nic tu neni"
+            self.error(404)  
+            return  
         
-        
-        
-        
-        menu_item_base =  '<li class="{cls}"><a href="/{p}">{t}</a></li>'
-        tpl["menu"]   = "".join(menu_item_base.format(cls="",p=item[0], t=item[1]) for item in MENU_ITEMS)
                                  
-        self.result(tpl.result())
+        self.result(view.render())
         print "Request done in %.3f seconds" % (time() - start_time)
+
+
+
 
 
 
@@ -200,7 +202,6 @@ class AdminHandler(BaseHTTPRequestHandler):
 class Service(ServicePrototype):
     def onInit(self):
         self.root_path = os.path.join(__path__[0])
-
         self.server = HTTPServer(('',8080), AdminHandler)
         self.server.service = self
         thread.start_new_thread(self.server.serve_forever,())

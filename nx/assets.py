@@ -6,12 +6,19 @@ from common import *
 __all__ = ["meta_types", "Asset", "asset_by_path", "asset_by_full_path", "meta_exists", "browse"]
 
 class MetaType(object):
-    namespace  = "site"
-    editable   = False
-    searchable = False
-    class_     = TEXT
-    default    = False
-    settings   = False
+    def __init__(self, title):
+        self.title      = title
+        self.namespace  = "site"
+        self.editable   = False
+        self.searchable = False
+        self.class_     = TEXT
+        self.default    = False
+        self.settings   = False
+        self.aliases    = {}
+
+    def alias(self, lang='en-US'):
+        return self.aliases.get(lang, self.title)
+
 
 class MetaTypes(dict):
     def __init__(self):
@@ -22,17 +29,20 @@ class MetaTypes(dict):
         db = DB()
         db.query("SELECT namespace, tag, editable, searchable, class, default_value,  settings FROM nx_meta_types")
         for ns, tag, editable, searchable, class_, default, settings in db.fetchall():
-            meta_type = MetaType()
+            meta_type = MetaType(tag)
             meta_type.namespace  = ns
             meta_type.editable   = bool(editable)
             meta_type.searchable = bool(searchable)
             meta_type.class_     = class_
             meta_type.default    = default
             meta_type.settings   = settings
+            db.query("SELECT lang, alias FROM nx_meta_aliases WHERE tag='%s'" % tag)
+            for lang, alias in db.fetchall():
+                meta_type.aliases[lang] = alias
             self[tag] = meta_type
 
     def _default(self):
-        meta_type = MetaType()
+        meta_type = MetaType("Unknown")
         meta_type.namespace  = "site"
         meta_type.editable   = 0
         meta_type.searchable = 0
@@ -50,13 +60,19 @@ class MetaTypes(dict):
         else:
             return self.format(key, self[key].default)
 
+    def col_alias(self, key, lang):
+        if not key in self: 
+            return self[key].aliases.get(lang,key)
+
     def format(self, key, value):
         if not key in self:
             return value
         mtype = self[key]
 
         ## PLEASE REFACTOR ME.
-        if   mtype.class_ == TEXT:        return value.strip()
+        if  key == "path":                return value.replace("\\","/")
+
+        elif mtype.class_ == TEXT:        return value.strip()
         elif mtype.class_ == INTEGER:     return int(value)
         elif mtype.class_ == NUMERIC:     return float(value)
         elif mtype.class_ == BLOB:        return value.strip()
@@ -272,7 +288,7 @@ def asset_by_path(id_storage, path, db=False):
                 WHERE tag='id_storage' 
                 AND value='%s' 
                 AND id_asset IN (SELECT id_asset FROM nx_meta WHERE tag='path' and value='%s')
-                """ % (id_storage, db.sanit(path)))
+                """ % (id_storage, db.sanit(path.replace("\\","/"))))
     try:
         return db.fetchall()[0][0]
     except: 
