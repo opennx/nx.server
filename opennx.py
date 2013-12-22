@@ -14,16 +14,6 @@ import thread
 from time import *
 from nx import *
 
-
-NX_ROOT = os.path.split(sys.argv[0])[0]
-
-if not NX_ROOT in sys.path:
-    sys.path.append(NX_ROOT)
-
-if NX_ROOT != os.getcwd():
-    os.chdir(NX_ROOT)
-
-
 class ServiceMonitor():
     def __init__(self):
         self.services = {}
@@ -49,7 +39,6 @@ class ServiceMonitor():
         while True:
             self._main()
             sleep(1)
-
 
     def _main(self):
         db = DB()
@@ -109,11 +98,15 @@ class ServiceMonitor():
 
 
 
+if __name__ == "__main__":
+    NX_ROOT = os.path.split(sys.argv[0])[0]
+    
+    if not NX_ROOT in sys.path:
+        sys.path.append(NX_ROOT)
+    
+    if NX_ROOT != os.getcwd():
+        os.chdir(NX_ROOT)
 
-
-
-
-
-service_monitor = ServiceMonitor()
-while True:
-    sleep(1)
+    service_monitor = ServiceMonitor()
+    while True:
+        sleep(1)

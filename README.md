@@ -12,8 +12,7 @@ _Early pre-alpha version - Only to be used in presence of developers._
 * Simplified HTTPS-Based API 
 * FIMS Compliant
 * Multilanguage support for UI and metadata
-* Hive-side seismic message queue for outsiders
-* Metadata tags aliases and grouping (genre for music and movies in one column)
+* Hive-side seismic message queue
 
 ### Oldies but goldies
 * PostgreSQL Database
@@ -49,7 +48,6 @@ Hive can also serve as playout control proxy (optional).
 * `501` - Not implemented
 
 ### Methods
-
 
 #### browse
 returns

@@ -4,6 +4,7 @@ from nx import *
 from nx.assets import *
 
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+import ssl
 import cgi
 import thread
 
@@ -202,7 +203,13 @@ class AdminHandler(BaseHTTPRequestHandler):
 class Service(ServicePrototype):
     def onInit(self):
         self.root_path = os.path.join(__path__[0])
+        cert_name = os.path.join(self.root_path,"cert","server.pem")
+        use_ssl = os.path.exists(cert_name)
+        
         self.server = HTTPServer(('',8080), AdminHandler)
+        if use_ssl:
+            self.server.socket = ssl.wrap_socket (self.server.socket, certfile=cert_name, server_side=True)
+        
         self.server.service = self
         thread.start_new_thread(self.server.serve_forever,())
 

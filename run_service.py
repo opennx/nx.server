@@ -34,8 +34,6 @@ if __name__ == "__main__":
     Service = _module.Service
     
     service = Service(id_service, settings)
-    service.onInit()
-
 
     while True:
         service.onMain()

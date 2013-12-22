@@ -6,7 +6,6 @@ import json
 from nx.constants import *
 from nx.shell import shell
 
-
 class Probe(object):
     title = "Generic Probe"
     def __init__(self):
@@ -20,7 +19,6 @@ class Probe(object):
 
     def work(self, asset):
         return asset
-
 
 ###############################################################################################
 
@@ -149,11 +147,11 @@ class FFProbe(Probe):
         return asset
 
 
+class YTProbe(Probe):
+    pass
 
-
-
-        
-
+class VimeoProbe(Probe):
+    pass
 
 ###############################################################################################
 
