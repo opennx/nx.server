@@ -11,7 +11,6 @@ import sys
 import subprocess
 import thread
 
-from time import *
 from nx import *
 
 class ServiceMonitor():
@@ -38,7 +37,7 @@ class ServiceMonitor():
     def _run(self):
         while True:
             self._main()
-            sleep(1)
+            time.sleep(1)
 
     def _main(self):
         db = DB()
@@ -107,6 +106,7 @@ if __name__ == "__main__":
     if NX_ROOT != os.getcwd():
         os.chdir(NX_ROOT)
 
+
     service_monitor = ServiceMonitor()
     while True:
-        sleep(1)
+        time.sleep(1)

@@ -5,12 +5,10 @@ import os
 import sys
 import socket
 import json
+import time
 
-from time import *
 from xml.etree import ElementTree as ET
-
 from constants import *
-
 
 if __name__ == "__main__":
     sys.exit(-1)
@@ -24,14 +22,12 @@ else:
 
 HOSTNAME = socket.gethostname()
 
-
 def critical_error(message):
     try: 
         logging.error(message)
     except: 
         print "CRITICAL ERROR: %s" % message
     sys.exit(-1)
-
 
 ########################################################################
 ## Config
@@ -52,111 +48,13 @@ class Config(dict):
         return self.get(key,False)
 
     def load_site_settings(self):
-        """Should be called after db initialisation"""
-        try:
-            db = DB()
-            db.query("SELECT key, value FROM nx_settings")
-            for key, value in db.fetchall():
-                self[key] = value
-        except:
-            print "Unable to load local settings. Nothing will work."
-
+        pass
 
 config = Config()
 
 
+
 ## Config
-########################################################################
-## Database
-
-if config['db_driver'] == 'postgres': 
-    import psycopg2
-    class DB():
-        def __init__(self):
-            self._connect()
-
-        def _connect(self):  
-            self.conn = psycopg2.connect(database = config['db_name'], 
-                                         host     = config['db_host'], 
-                                         user     = config['db_user'],
-                                         password = config['db_pass']
-                                         ) 
-            self.cur = self.conn.cursor()
-
-        def query(self,q,*args):
-            self.cur.execute(q,*args)
-
-        def sanit(self, instr):
-            #TODO: THIS SHOULD BE HEEEEAAAVILY MODIFIED
-            try: return str(instr).replace("''","'").replace("'","''").decode("utf-8")
-            except: return instr.replace("''","'").replace("'","''")
-
-        def fetchall(self):
-            return self.cur.fetchall()
-       
-        def lastid (self):
-            self.query("select lastval()")
-            return self.fetchall()[0][0]
-
-        def commit(self):
-            self.conn.commit()
-
-        def rollback(self):
-            self.conn.rollback()
-
-
-elif config['db_driver'] == 'sqlite':
-    import sqlite3
-    class DB():
-        def __init__(self):
-            self._connect()
-
-        def _connect(self):
-            try:
-                self.conn = sqlite3.connect(config["db_host"]) 
-                self.cur = self.conn.cursor()
-            except:
-                raise Exception, "Unable to connect database."
-
-        def query(self,q,*args):
-            self.cur.execute(q,*args)
-
-        def sanit(self, instr):
-            try: return str(instr).replace("''","'").replace("'","''").decode("utf-8")
-            except: return instr.replace("''","'").replace("'","''")
-
-        def fetchall(self):
-            return self.cur.fetchall()
-          
-        def lastid(self):
-            r = self.cur.lastrowid
-            return r
-          
-        def commit(self):
-            self.conn.commit()
-
-        def rollback(self):
-            self.conn.rollback()
-         
-        def close(self):
-            self.conn.close()
-
-
- 
-elif config['db_driver'] == 'null':
-    class DB():
-        # For testing purposes only. To be removed
-        pass
-
-else:
-    critical_error("Unknown DB Driver. Exiting.")
-
- 
-## Now it's time to load rest of the settings
-config.load_site_settings()
-
- 
-## Database
 ########################################################################
 ## Messaging
 #
@@ -164,18 +62,26 @@ config.load_site_settings()
 # It's useful for logging, updating client views, configurations etc.
 #
 
+
+
 class Messaging():
     def __init__(self):
+        self.init()
+
+    def init(self):
         self.MCAST_ADDR = config["seismic_addr"]
         self.MCAST_PORT = int(config["seismic_port"])
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 255)
+
   
     def send(self, method, data=None):
         """
         message = [timestamp, site_name, host, method, DATA] 
-        """
-        self.sock.sendto(json.dumps([time(), config["site_name"], config["host"], method, data]), (self.MCAST_ADDR,self.MCAST_PORT) )
+        """        
+        self.sock.sendto(json.dumps([time.time(), config["site_name"], config["host"], method, data]), (self.MCAST_ADDR,self.MCAST_PORT) )
+
+
 
 ## Messaging
 ########################################################################
@@ -187,11 +93,11 @@ class Logging():
         pass
 
     def _send(self,msgtype,message):
-        messaging.send("LOG",[config['user'], msgtype, message])
         try:
             print msgtype.ljust(10), config['user'].ljust(15), message
         except:
             print message.encode("utf-8")
+        messaging.send("LOG",[config['user'], msgtype, message])
 
     def debug   (self,msg): self._send("DEBUG",msg) 
     def info    (self,msg): self._send("INFO",msg) 
@@ -200,122 +106,21 @@ class Logging():
     def goodnews(self,msg): self._send("GOOD NEWS",msg) 
 
 
-
 ## Logging
-########################################################################
-## Cache
-
-if config["cache_driver"] == "memcached":
-    import pylibmc
-
-    class Cache():
-        def __init__(self):
-            self.site = config["site_name"]
-            self.host = config["cache_host"]
-            self.port = config["cache_port"]
-            self.cstring = '%s:%s'%(self.host,self.port)
-
-        def _conn(self):
-            return pylibmc.Client([self.cstring])
-
-        def load(self,key):
-            try:
-                conn = self._conn()
-                return conn.get("%s_%s"%(self.site,key))
-            except:
-                return False
-
-        def save(self,key,value):
-            for i in range(10):
-                try:
-                    conn = self._conn()
-                    val = conn.set("%s_%s"%(self.site,key),value)
-                    break
-                except:  
-                    print "MEMCACHE SAVE FAILED %s" % key
-                    print str(sys.exc_info())
-                    sleep(1)
-                else:
-                    critical_error ("Memcache save failed. This should never happen. Check MC server")
-                    sys.exit(-1)
-            return val
-
-        def delete(self,key):
-            for i in range(10):
-                try:
-                    conn = self._conn()
-                    conn.delete("%s_%s"%(self.site,key))
-                    break
-                except: 
-                    print "MEMCACHE DELETE FAILED %s" % key
-                    print str(sys.exc_info())
-                    sleep(1)
-                else:
-                    critical_error ("Memcache delete failed. This should never happen. Check MC server")
-                    sys.exit(-1)
-            return True
-
-
-else:
-    class Cache():
-        def __init__(self):
-            self.cachename = ".cache"
-        def load(self,key):
-            try:
-                return json.loads(open(self.cachename).read())[key]
-            except:
-                return False
-
-        def save(self,key,value):
-            if os.path.exists(self.cachename):
-                data = json.loads(open(self.cachename).read())
-            else:
-                data = {}
-            data[key] = value
-            f = open(self.cachename,"w")
-            f.write(json.dumps(data))
-            f.close()
-            return True
-
-## Cache
 ########################################################################
 ## Filesystem
 
 class Storage():
-    def __init__(self): 
-        pass
-    def get_path(self,rel=False):
-        if self.protocol == LOCAL:
-            return self.path
+    pass
 
 class Storages(dict):
     def __init__(self):
         super(Storages, self).__init__()
-        self.refresh()
  
-    def refresh(self):
-        try:
-            db = DB()
-            db.query("SELECT id_storage, title, protocol, path, login, password FROM nx_storages")
-        except:
-            print "Unable to load storages information."
-            return
-            
-        for id_storage, title, protocol, path, login, password in db.fetchall():
-            storage = Storage()
-            storage.id_storage = id_storage
-            storage.title      = title
-            storage.protocol   = protocol
-            storage.path       = path
-            storage.login      = login
-            storage.password   = password
-            self[id_storage] = storage
-            
 ## Filesystem
 ########################################################################
 ## Init global objects
 
 messaging = Messaging()
 logging   = Logging()  
-cache     = Cache()
 storages  = Storages()

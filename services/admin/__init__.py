@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 
 from nx import *
 from nx.assets import *
@@ -11,41 +13,36 @@ import thread
 from string import Template
 
 ########################################################################################################
-## Override Metatypes human-readable formating
 
-from nx.assets import MetaTypes as MT
+def meta_format(key, value):
+    if not key in meta_types:
+        return value
+    mtype = meta_types[key]
 
-class MetaTypes(MT):
-    def read_format(self, key, value):
-        if not key in self:
-            return value
-        mtype = self[key]
+    if key == "status":
+        return ['<span class="label label-danger">Offline</span>',
+                '<span class="label label-info">Online</span>',
+                '<span class="label label-warning">Creating</span>',
+                '<span class="label label-default">Trashed</span>',
+                '<span class="label label-warning">Reset</span>'][value]
 
-        if key == "status":
-            return ['<span class="label label-danger">Offline</span>',
-                    '<span class="label label-info">Online</span>',
-                    '<span class="label label-warning">Creating</span>',
-                    '<span class="label label-default">Trashed</span>',
-                    '<span class="label label-warning">Reset</span>'][value]
+    if key == "state":
+        return ['<span class="label label-warning">New</span>',
+                '<span class="label label-success">Approved</span>',
+                '<span class="label label-danger">Declined</span>'][value]
 
-        if key == "state":
-            return ['<span class="label label-warning">New</span>',
-                    '<span class="label label-success">Approved</span>',
-                    '<span class="label label-danger">Declined</span>'][value]
+    elif mtype.class_ in [TEXT, BLOB]:         return value
+    elif mtype.class_ in [INTEGER, NUMERIC]:   return ["%.3f","%d"][float(value).is_integer()] % value
+    elif mtype.class_ == DATE:                 return time.strftime("%Y-%m-%d",time.localtime(value))
+    elif mtype.class_ == TIME:                 return time.strftime("%H:%M",time.localtime(value))
+    elif mtype.class_ == DATETIME:             return time.strftime("%Y-%m-%d %H:%M",time.localtime(value))
+    elif mtype.class_ == FILESIZE:
+        for x in ['bytes','KB','MB','GB','TB']:
+            if value < 1024.0: return "%3.1f&nbsp;%s" % (value, x)
+            value /= 1024.0
 
-        elif mtype.class_ in [TEXT, BLOB]:         return value
-        elif mtype.class_ in [INTEGER, NUMERIC]:   return ["%.3f","%d"][float(value).is_integer()] % value
-        elif mtype.class_ == DATE:                 return strftime("%Y-%m-%d",localtime(value))
-        elif mtype.class_ == TIME:                 return strftime("%H:%M",localtime(value))
-        elif mtype.class_ == DATETIME:             return strftime("%Y-%m-%d %H:%M",localtime(value))
-        elif mtype.class_ == FILESIZE:
-            for x in ['bytes','KB','MB','GB','TB']:
-                if value < 1024.0: return "%3.1f&nbsp;%s" % (value, x)
-                value /= 1024.0
-
-        else: return "<i>%s</i>"%value
-
-meta_types = MetaTypes()
+    else: 
+        return "<i>%s</i>"%value
 
 
 ########################################################################################################
@@ -56,7 +53,6 @@ MENU_ITEMS = [("dashboard","Dashboard"),
               ("services","Services"),
               ("porn","Porn")
              ]
-
 
 
 class View():
@@ -88,7 +84,7 @@ class View():
 
     def browser(self):
         self["header"] = "Browser"
-        start_time = time()
+        start_time = time.time()
         cols = ["id_asset", "title", "role/performer", "album", "genre/music", "rights", "status"]
         main = "<tr><th>&nbsp</th>%s</tr>\n" % "".join("<th>%s</th>" % meta_types[col].alias(self.lang) for col in cols)
         db = DB()
@@ -97,9 +93,9 @@ class View():
             asset = Asset(id_asset)
             main += "<tr><td>%s</td>%s</tr>\n" % (
                     "<i class='fa fa-%s'></i>" % ["file-text-o", "video-camera", "volume-up", "picture-o"][asset["content_type"]], 
-                    "".join("<td>%s</td>" % meta_types.read_format(col,asset[col]) for col in cols)
+                    "".join("<td>%s</td>" % meta_format(col,asset[col]) for col in cols)
                     )
-        self["content"] = "<table class='table table-striped table-condensed table-responsive'>\n%s</table><br> Generated in %.3f seconds" % (main, time()-start_time)
+        self["content"] = "<table class='table table-striped table-condensed table-responsive'>\n%s</table><br> Generated in %.3f seconds" % (main, time.time()-start_time)
 
     def services(self):
         cols = ["id_service", "agent", "title", "host"]
@@ -146,7 +142,6 @@ class AdminHandler(BaseHTTPRequestHandler):
 
 
     def do_GET(self):
-        start_time = time()
         service = self.server.service
         path = self.path[1:]
         if path.startswith("static"):
@@ -189,10 +184,8 @@ class AdminHandler(BaseHTTPRequestHandler):
         else:
             self.error(404)  
             return  
-        
-                                 
+                            
         self.result(view.render())
-        print "Request done in %.3f seconds" % (time() - start_time)
 
 
 

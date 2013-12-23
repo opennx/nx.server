@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from common import *
+from server import *
 
 
 class Job():
@@ -25,7 +25,7 @@ class Job():
       else:
        db.query("UPDATE nebula_asset_states SET id_service = %s, reason='Job in progress' WHERE id_asset=%s AND id_state=%s"%(service.id_service,id_asset,id_state))
        db.commit()
-       sleep(random.random()) # TODO: pokud tohle nezabrani tomu, aby se spustily dva stejny joby naraz, tak zrusit
+       time.sleep(random.random()) # TODO: pokud tohle nezabrani tomu, aby se spustily dva stejny joby naraz, tak zrusit
        db.query("SELECT id_service FROM nebula_asset_states WHERE id_asset=%s AND id_state=%s"%(id_asset,id_state))
 
        r = db.fetchall()[0][0]

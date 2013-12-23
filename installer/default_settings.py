@@ -10,7 +10,6 @@ if DEBUG:
 from nx.constants import *
 
 
-
 ## key, value
 SITE_SETTINGS = [
     ("seismic_addr" , "224.168.2.8"),

@@ -7,8 +7,7 @@ import sys
 import json
 import uuid
 import tempfile
-
-from time import sleep
+import time
 
 #
 # Please rewrite me!
@@ -33,7 +32,7 @@ class shell():
     def _exec(self, cmd):
         proc = subprocess.Popen(cmd, shell=True)
         while proc.poll() == None:
-            sleep(.1)
+            time.sleep(.1)
         return proc.poll()
 
     def stdout(self):   
@@ -63,21 +62,3 @@ def audio_analyze(fname):
     f = open ("loud","w")
     f.write("\n".join(ms))
     f.close()
-
-
-
-
-
-
-
-if __name__ == "__main__":
-    data = ffprobe("c:\\martas\\tears_of_steel.mpg")#["streams"]
-    print data
-
-    #for stream in data:
-    #    for tag in sorted(stream):
-    #        print tag.ljust(20), stream[tag]
-    #    print "*"*20
-
-#    audio_analyze("c:\\martas\\tears_of_steel.mpg")
-#    audio_analyze("c:\\martas\\dmo.wav")

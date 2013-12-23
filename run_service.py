@@ -38,4 +38,4 @@ if __name__ == "__main__":
     while True:
         service.onMain()
         service.heartbeat()
-        sleep(loop_delay)
+        time.sleep(loop_delay)

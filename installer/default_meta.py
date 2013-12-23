@@ -70,6 +70,7 @@ BASE_META_SET = [
 ("ebu", "rights",               1, 1, BLOB,        "",       {"syntax":"off"}),
 ("ebu", "version",              1, 1, TEXT,        "",       False),
 ("ebu", "source",               0, 1, TEXT,        "",       False),
+("ebu", "source/url",           0, 1, TEXT,        "",       False),
 
 # EBUCore "creators/compositors". Coma delimited names if there is more than one person for role"
 ("ebu", "role/director",        1, 1, TEXT,        "",       False),              # ebu_RoleCode 20.16
