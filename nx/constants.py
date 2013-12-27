@@ -80,5 +80,25 @@ PLAYOUT   = 0
 INGEST    = 1
 CAMPAIGN  = 2
 
+
+
+
+SUCCESS_OK                = 200
+SUCCESS_CREATED           = 201
+SUCCESS_ACCEPTED          = 202
+SUCCESS_NOCONTENT         = 204
+SUCCESS_PARTIAL           = 206
+
+ERROR_BAD_REQUEST         = 400
+ERROR_UNAUTHORISED        = 401
+ERROR_NOT_FOUND           = 404
+
+ERROR_INTERNAL            = 500
+ERROR_NOT_IMPLEMENTED     = 503
+ERROR_TIMEOUT             = 504
+ERROR_SERVICE_UNAVAILABLE = 503
+
+
+
 ## Constants
 ########################################################################

@@ -32,6 +32,7 @@ FOLDERS = [
 SERVICES = [
 ("meta" , "Meta"  , HOSTNAME, 1, 5 ,"""<settings></settings>"""),
 ("admin", "Admin" , HOSTNAME, 1, 5 ,"""<settings></settings>"""),
+("hive",  "Hive"  , HOSTNAME, 1, 5 ,"""<settings></settings>"""),
 ("watch", "Watch" , HOSTNAME, 1, 10,
 """
 <settings>

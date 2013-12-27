@@ -90,7 +90,7 @@ class Service(ServicePrototype):
                 asset.save()
         
    
-        if asset["status"] == CREATING and asset["mtime"] + 15 > timeself.time(): 
+        if asset["status"] == CREATING and asset["mtime"] + 15 > time.time(): 
             logging.debug("Waiting for %s completion assurance." % asset)
             asset.save(set_mtime=False)
 

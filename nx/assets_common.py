@@ -17,6 +17,19 @@ class MetaType(object):
     def alias(self, lang='en-US'):
         return self.aliases.get(lang, self.title)
 
+    def pack(self):
+        return {
+                "title" : self.title,
+                "namespace": self.namespace,
+                "editable" : self.editable,
+                "searchable" : self.searchable,
+                "class" : self.class_,
+                "default" : self.default,
+                "settings" : self.settings,
+                "aliases" : self.aliases
+                }
+
+
 class MetaTypes(dict):
     def __init__(self):
         super(MetaTypes, self).__init__()
@@ -80,25 +93,6 @@ class MetaTypes(dict):
         elif mtype.class_ == PART:        return json.loads(value)
         elif mtype.class_ == BOOLEAN:     return int(value)
         elif mtype.class_ == STAR:        return int(value)
-
-    
-    # def read_format(self, key, value):
-    #     """ Human readable representation. Value must be formated first using format"""
-    #     if not key in self:
-    #         return value
-    #     mtype = self[key]
-
-    #     if   mtype.class_ in [TEXT, BLOB]:         return value
-    #     elif mtype.class_ in [INTEGER, NUMERIC]:   return ["%.3f","%d"][float(value).is_integer()] % value
-    #     elif mtype.class_ == DATE:                 return time.strftime("%Y-%m-%d",time.localtime(value))
-    #     elif mtype.class_ == TIME:                 return time.strftime("%H:%M",time.localtime(value))
-    #     elif mtype.class_ == DATETIME:             return time.strftime("%Y-%m-%d %H:%M",time.localtime(value))
-    #     elif mtype.class_ == FILESIZE:
-    #         for x in ['bytes','KB','MB','GB','TB']:
-    #             if value < 1024.0: return "%3.1f %s" % (value, x)
-    #             value /= 1024.0
-    #     else: return value
-
 
 meta_types = MetaTypes()
 

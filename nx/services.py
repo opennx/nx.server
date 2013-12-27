@@ -8,6 +8,8 @@ class ServicePrototype(object):
         logging.info("Initialising service")
         self.id_service = id_service
         self.settings   = settings
+        self.onInit()
+
         try:
             self.onInit()
         except:
@@ -31,9 +33,9 @@ class ServicePrototype(object):
         db.commit()
 
     def shutdown(self):
-        db = DB()
-        db.query("UPDATE nx_services SET autostart=0 WHERE id_service=%d"%self.id_service)
-        db.commit()
+        #db = DB()
+        #db.query("UPDATE nx_services SET autostart=0 WHERE id_service=%d" % self.id_service)
+        #db.commit()
         sys.exit(-1)
 
     def heartbeat(self):

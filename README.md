@@ -52,8 +52,8 @@ Hive can also serve as playout control proxy (optional).
 #### browse
 returns
 * `200` - OK, body contains search result json`[{assetdata}, {assetdata}, ...]`
-* `203` - OK, partial information. There are more matching assets than can be displayed.
 * `204` - OK, no result, no body sent
+* `206` - OK, partial information. There are more matching assets than can be displayed.
 
 #### asset_detail
 returns

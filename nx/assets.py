@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 from server import *
-from assets_common import MetaType, Asset
+from assets_common import MetaType, AssetPrototype
 from assets_common import meta_types
 
-__all__ = ["meta_types", "AssetPrototype", "asset_by_path", "asset_by_full_path", "meta_exists", "browse"]
+__all__ = ["meta_types", "Asset", "asset_by_path", "asset_by_full_path", "meta_exists", "browse"]
 
 
 def load_meta_types():
