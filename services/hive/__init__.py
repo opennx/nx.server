@@ -45,6 +45,7 @@ class AdminHandler(BaseHTTPRequestHandler):
             length = int(self.headers.getheader('content-length'))
             postvars = cgi.parse_qs(self.rfile.read(length), keep_blank_values=1)
         else:
+            logging.error("No post data")
             self.result(ERROR_BAD_REQUEST)
             return
           
@@ -52,6 +53,7 @@ class AdminHandler(BaseHTTPRequestHandler):
             method   = postvars["method"][0]
             auth_key = postvars["auth_key"][0]
         except:
+            logging.error("No method/auth")
             self.result(ERROR_BAD_REQUEST)
             return
      
@@ -66,6 +68,7 @@ class AdminHandler(BaseHTTPRequestHandler):
             response, data = methods[method](auth_key, params)
             self.result(response, json.dumps(data))
         else:                    
+            logging.error("%s not implemented" % method)
             self.result(ERROR_NOT_IMPLEMENTED,False)
             return
 

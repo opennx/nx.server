@@ -29,7 +29,6 @@ class MetaType(object):
                 "aliases" : self.aliases
                 }
 
-
 class MetaTypes(dict):
     def __init__(self):
         super(MetaTypes, self).__init__()

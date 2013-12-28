@@ -8,7 +8,6 @@ class ServicePrototype(object):
         logging.info("Initialising service")
         self.id_service = id_service
         self.settings   = settings
-        self.onInit()
 
         try:
             self.onInit()
