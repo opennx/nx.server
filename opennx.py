@@ -106,7 +106,6 @@ if __name__ == "__main__":
     if NX_ROOT != os.getcwd():
         os.chdir(NX_ROOT)
 
-
     service_monitor = ServiceMonitor()
     while True:
         time.sleep(1)

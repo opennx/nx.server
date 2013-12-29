@@ -181,7 +181,7 @@ META_ALIASES = [
 ('genre'                , 'cs-CZ', 'Žánr'),
 ('description'          , 'cs-CZ', 'Popis'),        
 ('rights'               , 'cs-CZ', 'Práva'),   
-('version'              , 'cs-CZ', ''),    
+('version'              , 'cs-CZ', 'Verze'),    
 ('file/mtime'           , 'cs-CZ', 'Soubor změněn'),       
 ('file/size'            , 'cs-CZ', 'Velikost'),      
 ('format'               , 'cs-CZ', 'Formát'),   

@@ -9,9 +9,6 @@ import ssl
 import cgi
 import thread
 
-
-
-
 class AdminHandler(BaseHTTPRequestHandler):
     def log_request(self, code='-', size='-'): 
         pass 
@@ -75,7 +72,6 @@ class AdminHandler(BaseHTTPRequestHandler):
         logging.debug("Query %s completed in %.03f seconds" % (method, time.time()-start_time))
 
 
-
 import hive_assets, hive_settings
 
 class Service(ServicePrototype):
@@ -93,7 +89,6 @@ class Service(ServicePrototype):
                 method_title = method.lstrip("hive_")
                 module_name  = module.__name__.split(".")[-1] 
                 exec ("self.methods['%s'] = %s.%s" % (method_title, module_name, method ))
-
         try:
             port = int(self.config.find("port").text)
         except:
