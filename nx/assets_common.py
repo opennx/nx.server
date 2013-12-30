@@ -19,14 +19,14 @@ class MetaType(object):
 
     def pack(self):
         return {
-                "title" : self.title,
-                "namespace": self.namespace,
-                "editable" : self.editable,
+                "title"      : self.title,
+                "namespace"  : self.namespace,
+                "editable"   : self.editable,
                 "searchable" : self.searchable,
-                "class" : self.class_,
-                "default" : self.default,
-                "settings" : self.settings,
-                "aliases" : self.aliases
+                "class"      : self.class_,
+                "default"    : self.default,
+                "settings"   : self.settings,
+                "aliases"    : self.aliases
                 }
 
 class MetaTypes(dict):
@@ -57,8 +57,9 @@ class MetaTypes(dict):
             return self.format(key, self[key].default)
 
     def col_alias(self, key, lang):
-        if not key in self: 
+        if key in self: 
             return self[key].aliases.get(lang,key)
+        return key
 
     def format(self, key, value):
         if not key in self:

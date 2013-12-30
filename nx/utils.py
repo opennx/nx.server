@@ -22,7 +22,7 @@ def s2time(secs):
 
 
 def f2tc(f,base=25):
-    """Converts frame number to timecode"""
+    """Converts frames to timecode"""
     try:
         f = int(f)
     except:

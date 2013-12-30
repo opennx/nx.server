@@ -45,7 +45,7 @@ class AdminHandler(BaseHTTPRequestHandler):
             logging.error("No post data")
             self.result(ERROR_BAD_REQUEST)
             return
-          
+                
         try:
             method   = postvars["method"][0]
             auth_key = postvars["auth_key"][0]
