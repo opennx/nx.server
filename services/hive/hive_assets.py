@@ -2,11 +2,22 @@ from nx import *
 from nx.assets import *
 
 def hive_browse(auth_key, params):
-    
-    query = "SELECT id_asset FROM nx_assets"
+
+    db = DB()
+    conds = []
+
+    if "fulltext" in params:
+        cond = "id_asset IN (SELECT id_asset FROM nx_meta WHERE value LIKE '%%%s%%')" % db.sanit(params["fulltext"])
+        conds.append(cond)
+
+    if conds:
+        qcon += " WHERE %s" % " AND ".join(conds)
+    else:
+        qcon = ""
+
+    query = "SELECT id_asset FROM nx_assets%s" % qcon
 
     asset_data = []
-    db = DB()
     db.query(query)
     for id_asset, in db.fetchall():
         asset = Asset(id_asset)
