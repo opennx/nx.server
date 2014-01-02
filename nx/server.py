@@ -188,6 +188,9 @@ class Storage():
     def get_path(self,rel=False):
         if self.protocol == LOCAL:
             return self.path
+        elif:
+            if platform == "linux":
+                return os.path.join ("/mnt","nx%02d"%self.id_storage)
 
 def load_storages():
     try:
