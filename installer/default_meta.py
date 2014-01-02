@@ -9,11 +9,15 @@ from nx.cs import *
 # Feel free to adjust origin, language and state configuration according to your needs
 #
 
+
 BASE_META_SET = [
+
+
+# NAMESPACE  TAG         EDITABLE SEARCHABLE CLASS   DEFAULT   SETTINGS
 
 #
 # "A" name space:
-# Asset data.
+# Asset data. Stored in nx_assets db table
 #
 
 ("a",  "id_asset",              0, 0, INTEGER,    0,         False),
@@ -50,15 +54,16 @@ BASE_META_SET = [
 ("nx", "article",               1, 1, BLOB,       "",        {"syntax":"md"}),
 ("nx", "promoted",              1, 0, STAR,       0,         False),              # Asset "promotion". It's hit, important, favourite,....
 ("nx", "meta_probed",           0, 0, BOOLEAN,    0,         False),              # If true, meta_probes would not overwrite non-technical metadata during update
-#
-# "EBU" name space:
-# 
-#
+
+
+
+
 ("ebu", "title",                1, 1, TEXT,        "",       False),
 ("ebu", "alternativeTitle",     1, 1, TEXT,        "",       False),
 ("ebu", "identifier/main",      1, 1, TEXT,        "",       False),              # Primary unique indentifier (IDEC, GUID...)
 ("ebu", "identifier/youtube",   0, 1, TEXT,        "",       False),              # Youtube ID if exists
 ("ebu", "identifier/vimeo",     0, 1, TEXT,        "",       False),              # Vimeo ID if exists
+("ebu", "identifier/imdb"       1, 1, TEXT,        "",       False),
 ("ebu", "language",             1, 0, SELECT,      "cs-CZ",  {"cs-CZ":"Czech",
                                                               "en-US":"English"
                                                              }),
@@ -66,17 +71,16 @@ BASE_META_SET = [
 ("ebu", "genre",                1, 1, LIST,        "",       NX_GENRES),
 ("ebu", "genre/music",          1, 1, LIST,        "",       NX_MUSIC_GENRES), 
 ("ebu", "description",          1, 1, BLOB,        "",       {"syntax":"off"}),
-("ebu", "coverage",             1, 1, BLOB,        "",       {"syntax":"off"}), 
+("ebu", "coverage",             1, 1, BLOB,        "",       {"syntax":"off"}),
+("ebu", "subject",              1, 1, BLOB,        "",       {"syntax":"off"}),   # Keywords
 ("ebu", "rights",               1, 1, BLOB,        "",       {"syntax":"off"}),
 ("ebu", "version",              1, 1, TEXT,        "",       False),
 ("ebu", "source",               0, 1, TEXT,        "",       False),
 ("ebu", "source/url",           0, 1, TEXT,        "",       False),
 
-# EBUCore "creators/compositors". Coma delimited names if there is more than one person for role"
 ("ebu", "role/director",        1, 1, TEXT,        "",       False),              # ebu_RoleCode 20.16
 ("ebu", "role/composer",        1, 1, TEXT,        "",       False),              # ebu_RoleCode 17.1.7 (music)
 ("ebu", "role/performer",       1, 1, TEXT,        "",       False),              # ebu_RoleCode 17.2   (music)
-
 
 ("id3", "album",                1, 1, TEXT,        "",       False),
 ("id3", "album/track",          1, 0, INTEGER,     0,        False),
@@ -111,6 +115,7 @@ BASE_META_SET = [
                                                               2:"Rejected"        # Someone (QC human) checked the file and it was baaaad
                                                               }),
 ("qc", "qc/report",             1, 0, BLOB,        "",       False),              # Holds error report from QC Pass and/or rejection/approval message from QC humanoid
+("qc", "audio/bpm",             0, 0, FLOAT,       0,        False),
 ("qc", "audio/r128/i",          0, 0, NUMERIC,     0,        False),              # Integrated loudness (LUFS)
 ("qc", "audio/r128/t",          0, 0, NUMERIC,     0,        False),              # Integrated loudness threshold (LUFS)
 ("qc", "audio/r128/lra",        0, 0, NUMERIC,     0,        False),              # LRA (LU) 
