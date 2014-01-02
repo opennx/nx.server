@@ -63,7 +63,7 @@ BASE_META_SET = [
 ("ebu", "identifier/main",      1, 1, TEXT,        "",       False),              # Primary unique indentifier (IDEC, GUID...)
 ("ebu", "identifier/youtube",   0, 1, TEXT,        "",       False),              # Youtube ID if exists
 ("ebu", "identifier/vimeo",     0, 1, TEXT,        "",       False),              # Vimeo ID if exists
-("ebu", "identifier/imdb"       1, 1, TEXT,        "",       False),
+("ebu", "identifier/imdb",      1, 1, TEXT,        "",       False),
 ("ebu", "language",             1, 0, SELECT,      "cs-CZ",  {"cs-CZ":"Czech",
                                                               "en-US":"English"
                                                              }),
