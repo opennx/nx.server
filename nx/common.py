@@ -20,6 +20,8 @@ else:
     PLATFORM   = "linux"
     python_cmd = "python"
 
+    from posixpath import ismount  
+
 HOSTNAME = socket.gethostname()
 
 def critical_error(message):
