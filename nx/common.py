@@ -16,10 +16,13 @@ if __name__ == "__main__":
 if sys.platform == "win32":
     PLATFORM   = "windows"
     python_cmd = "c:\\python27\python.exe"
+
+    def ismount(path):
+        return True
+
 else:
     PLATFORM   = "linux"
     python_cmd = "python"
-
     from posixpath import ismount  
 
 HOSTNAME = socket.gethostname()
