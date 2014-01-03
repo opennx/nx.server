@@ -31,29 +31,34 @@ load_meta_types()
 class Asset(AssetPrototype):
     """ Server variant of Asset class"""
     def _load(self,id_asset):
-        if not self.db:
-            self.db = DB()
-        db = self.db
-
-        self.meta = {}
-
-        db.query("SELECT media_type, content_type, id_folder, ctime, mtime, origin, version_of, status FROM nx_assets WHERE id_asset = %d" % self.id_asset)
         try:
-            self["media_type"], self["content_type"], self["id_folder"], self["ctime"], self["mtime"], self["origin"], self["version_of"], self["status"] = db.fetchall()[0]
+            self.meta = json.loads(cache.load("A%d" % id_asset))
+            self["id_asset"] = self.id_asset = id_asset
         except:
-            logging.error("Unable to load Asset ID %d" % id_asset)
-            return False
+            if not self.db:
+                self.db = DB()
+            db = self.db
 
-        self["id_asset"] = self.id_asset = id_asset
-        db.query("SELECT tag, value FROM nx_meta WHERE id_asset = %d" % id_asset)
-        for tag, value in db.fetchall():
-            self[tag] = value
+            logging.debug("Loading asset %d from DB" % id_asset)
+            db.query("SELECT media_type, content_type, id_folder, ctime, mtime, origin, version_of, status FROM nx_assets WHERE id_asset = %d" % self.id_asset)
+            try:
+                self["media_type"], self["content_type"], self["id_folder"], self["ctime"], self["mtime"], self["origin"], self["version_of"], self["status"] = db.fetchall()[0]
+            except:
+                logging.error("Unable to load Asset ID %d" % id_asset)
+                return False
+
+            db.query("SELECT tag, value FROM nx_meta WHERE id_asset = %d" % id_asset)
+            for tag, value in db.fetchall():
+                self[tag] = value
+
+            self["id_asset"] = self.id_asset = id_asset
+            self._save_to_cache()
 
     def _save_to_cache(self):
         return cache.save("A%d"%self.id_asset, json.dumps(self.meta))
 
     def _save(self):
-     try:
+     #try:
         if not self.db:
             self.db = DB()
         db = self.db
@@ -82,9 +87,9 @@ class Asset(AssetPrototype):
         else:
             db.rollback()
             return False
-     except:
-        print self.meta
-        time.sleep(20)
+     #except:
+     #   print self.meta
+     #   time.sleep(20)
 
 
 #################################################

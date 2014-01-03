@@ -119,7 +119,7 @@ if config["cache_driver"] == "memcached":
         def load(self,key):
             try:
                 conn = self._conn()
-                return conn.get("%s_%s"%(self.site,key))
+                return conn.get(str("%s_%s"%(self.site,key)))
             except:
                 return False
 
@@ -127,7 +127,7 @@ if config["cache_driver"] == "memcached":
             for i in range(10):
                 try:
                     conn = self._conn()
-                    val = conn.set("%s_%s"%(self.site,key),value)
+                    val = conn.set(str("%s_%s"%(self.site,key)), str(value))
                     break
                 except:  
                     print "MEMCACHE SAVE FAILED %s" % key
