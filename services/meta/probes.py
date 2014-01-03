@@ -50,49 +50,9 @@ class FFProbe(Probe):
         asset["format"]   = format.get("format_name", "")
         asset["duration"] = format.get("duration", "")
 
-        ######################
-        ## TAGS
-
-        if "tags" in format.keys() and not "meta_probed" in asset.meta:
-            tag_mapping = {
-                            "title"   : "title",
-                            "artist"  : "role/performer",
-                            "composer": "role/composer",
-                            "album"   : "album",
-                          }
-            for tag in format["tags"]:
-                value = format["tags"][tag]
-                if tag in tag_mapping:
-                    if not tag_mapping[tag] in asset.meta or tag == "title": # Only title should be overwriten if exists. There is a reason
-                        asset[tag_mapping[tag]] = value
-                elif tag in ["track","disc"]:
-                    if not "album/%s"%tag in asset.meta: 
-                        asset["album/%s"%tag] = value.split("/")[0]
-                elif tag == "genre":
-                    # Ultra mindfuck
-                    from nx.cs import NX_MUSIC_GENRES
-
-                    for genre in NX_MUSIC_GENRES:
-                        genre_parts = genre.lower().split()
-                        for g in genre_parts:
-                            if value.lower().find(g) > -1:
-                                continue
-                            break
-                        else:
-                            if not "genre/music" in asset.meta:
-                                asset["genre/music"] = genre
-                            break
-                    else:
-                        if not "genre/music" in asset.meta:
-                            asset["genre/music"] = value
-            asset["meta_probed"] = 1
-
-        ## TAGS
-        ######################
         ## Streams
 
-        content_type = AUDIO   # Default (if no video track is found)
-        at_atrack  = 1       # Audio track identifier (A1, A2...)
+        at_atrack  = 1         # Audio track identifier (A1, A2...)
 
         for stream in streams:
             if stream["codec_type"] == "video":
@@ -100,19 +60,15 @@ class FFProbe(Probe):
                 asset["video/fps"]          = stream.get("r_frame_rate","")
                 asset["video/codec"]        = stream.get("codec_name","")
                 asset["video/pixel_format"] = stream.get("pix_fmt",   "")
-                
+              
                 if not asset["duration"]:
                     dur = float(stream.get("duration",0))
                     if dur:
-                        content_type = VIDEO
                         asset["duration"] = dur 
                     else:
                         if stream.get("nb_frames","FUCK").isnumeric(): 
-                            content_type = VIDEO
                             if asset["video/fps"]:
                                 asset["duration"] = int(stream["nb_frames"]) / asset[fps]
-                        else:
-                            content_type = IMAGE
     
                 ## Duration
                 ####################
@@ -137,12 +93,54 @@ class FFProbe(Probe):
                         else:
                             asset["video/aspect_ratio"] = guess_aspect(w, h)
 
-
             elif stream["codec_type"] == "audio":
                 asset["audio/codec"] == stream
 
-        asset["content_type"] = content_type
         ## Streams
+        ######################
+        ## TAGS
+
+        if "tags" in format.keys() and not "meta_probed" in asset.meta:
+            if content_type == AUDIO:
+                tag_mapping = {
+                                "title"   : "title",
+                                "artist"  : "role/performer",
+                                "composer": "role/composer",
+                                "album"   : "album",
+                              }
+            else:
+                tag_mapping = {
+                                "title" : "title"
+                                }
+
+            for tag in format["tags"]:
+                value = format["tags"][tag]
+                if tag in tag_mapping:
+                    if not tag_mapping[tag] in asset.meta or tag == "title": # Only title should be overwriten if exists. There is a reason
+                        asset[tag_mapping[tag]] = value
+                elif tag in ["track","disc"] and content_type == AUDIO:
+                    if not "album/%s"%tag in asset.meta: 
+                        asset["album/%s"%tag] = value.split("/")[0]
+                elif tag == "genre" and content_type == AUDIO:
+                    # Ultra mindfuck
+                    from nx.cs import NX_MUSIC_GENRES
+
+                    for genre in NX_MUSIC_GENRES:
+                        genre_parts = genre.lower().split()
+                        for g in genre_parts:
+                            if value.lower().find(g) > -1:
+                                continue
+                            break
+                        else:
+                            if not "genre/music" in asset.meta:
+                                asset["genre/music"] = genre
+                            break
+                    else:
+                        if not "genre/music" in asset.meta:
+                            asset["genre/music"] = value
+            asset["meta_probed"] = 1
+
+        ## TAGS
         ######################
         return asset
 
