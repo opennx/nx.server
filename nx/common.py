@@ -84,18 +84,27 @@ class Logging():
     def __init__(self):
         pass
 
+    def _msgtype(self, code):
+        return {
+            DEBUG      : "DEBUG",
+            INFO       : "INFO",
+            WARNING    : "WARNING",
+            ERROR      : "ERROR",
+            GOOD_NEWS  : "GOOD_NEWS"
+        }[code]
+
     def _send(self,msgtype,message):
         try:
-            print msgtype.ljust(10), config['user'].ljust(15), message
+            print self._msgtype(msgtype).ljust(10), config['user'].ljust(15), message
         except:
             print message.encode("utf-8")
         messaging.send("LOG",[config['user'], msgtype, message])
 
-    def debug   (self,msg): self._send("DEBUG",msg) 
-    def info    (self,msg): self._send("INFO",msg) 
-    def warning (self,msg): self._send("WARNING",msg) 
-    def error   (self,msg): self._send("ERROR",msg) 
-    def goodnews(self,msg): self._send("GOOD NEWS",msg) 
+    def debug   (self,msg): self._send(DEBUG,msg) 
+    def info    (self,msg): self._send(INFO,msg) 
+    def warning (self,msg): self._send(WARNING,msg) 
+    def error   (self,msg): self._send(ERROR,msg) 
+    def goodnews(self,msg): self._send(GOOD_NEWS,msg) 
 
 logging   = Logging()  
 

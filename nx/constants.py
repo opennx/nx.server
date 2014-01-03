@@ -80,7 +80,11 @@ PLAYOUT   = 0
 INGEST    = 1
 CAMPAIGN  = 2
 
-
+DEBUG       = 0
+INFO        = 1
+WARNING     = 2
+ERROR       = 3
+GOOD_NEWS   = 4
 
 
 SUCCESS_OK                = 200
