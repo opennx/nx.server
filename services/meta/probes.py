@@ -100,6 +100,7 @@ class FFProbe(Probe):
         ######################
         ## TAGS
 
+        content_type = asset["content_type"]
         if "tags" in format.keys() and not "meta_probed" in asset.meta:
             if content_type == AUDIO:
                 tag_mapping = {
