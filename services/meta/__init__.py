@@ -24,9 +24,9 @@ class Service(ServicePrototype):
             self._proc(id_asset, db)
 
     def _proc(self, id_asset, db):
-        asset = Asset(id_asset)
+        asset = Asset(id_asset, db = db)
         fname = asset.get_file_path()
-        logging.debug("Probing %s"%asset)
+        #logging.debug("Probing %s"%asset)
         
         if not os.path.exists(fname):
             if asset["status"] == ONLINE:

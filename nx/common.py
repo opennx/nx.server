@@ -93,7 +93,7 @@ class Logging():
             INFO       : "INFO",
             WARNING    : "WARNING",
             ERROR      : "ERROR",
-            GOOD_NEWS  : "GOOD_NEWS"
+            GOOD_NEWS  : "GOOD NEWS"
         }[code]
 
     def _send(self,msgtype,message):
