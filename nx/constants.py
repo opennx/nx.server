@@ -11,6 +11,15 @@ STARTING = 2           # Service start requested.
 STOPPING = 3           # Service graceful stop requested. It should shutdown itself after current iteration
 KILL     = 4           # Service force stop requested. Dispatch is about to kill -9 it
 
+
+OBJECT_TYPES = {
+ "asset"  : 0,
+ "item"   : 1,
+ "bin"    : 2,
+ "event"  : 3,
+ "user"   : 4
+ }
+
 # content_type
 TEXT     = 0           # Text is text... letters, words, sentenses. muhehe 
 VIDEO    = 1           # Moving images. Whooooo

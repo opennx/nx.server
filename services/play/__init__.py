@@ -7,12 +7,6 @@
 # CasparCG Playout server ctrl
 #
 #
-#
-#
-#
-#
-
-
 
 from nx import *
 from caspar import Caspar

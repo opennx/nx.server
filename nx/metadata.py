@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from common import *
+from connection import *
 
 class MetaType(object):
     def __init__(self, title):
@@ -29,6 +30,7 @@ class MetaType(object):
                 "aliases"    : self.aliases
                 }
 
+
 class MetaTypes(dict):
     def __init__(self):
         super(MetaTypes, self).__init__()
@@ -49,6 +51,14 @@ class MetaTypes(dict):
         meta_type.default    = ""
         meta_type.settings   = False
         return meta_type
+
+    def ns_tags(self, ns):
+        result = []
+        for tag in self:
+            if self[tag].namespace in ["o", ns]:
+                result.append(self[tag].title)
+        return result
+
 
     def format_default(self, key):
         if not key in self:
@@ -94,109 +104,27 @@ class MetaTypes(dict):
         elif mtype.class_ == BOOLEAN:     return int(value)
         elif mtype.class_ == STAR:        return int(value)
 
+
+
 meta_types = MetaTypes()
 
 
-class AssetPrototype(object):
-    def __init__(self,id_asset=False,db=False):
-        self.id_asset = id_asset
-        self.db = db
-        self.meta = {}
-        if self.id_asset == -1: #id_asset==-1 is reserved for live events
-            self["title"]  = "Live"
-            self["media_type"]   = VIRTUAL
-            self["content_type"] = VIDEO
-        elif self.id_asset:
-            self._load(self.id_asset)
-        else:
-            self._new()
+if connection_type == "server":
+    def load_meta_types():
+        db = DB()
+        db.query("SELECT namespace, tag, editable, searchable, class, default_value,  settings FROM nx_meta_types")
+        for ns, tag, editable, searchable, class_, default, settings in db.fetchall():
+            meta_type = MetaType(tag)
+            meta_type.namespace  = ns
+            meta_type.editable   = bool(editable)
+            meta_type.searchable = bool(searchable)
+            meta_type.class_     = class_
+            meta_type.default    = default
+            meta_type.settings   = settings
+            db.query("SELECT lang, alias FROM nx_meta_aliases WHERE tag='%s'" % tag)
+            for lang, alias in db.fetchall():
+                meta_type.aliases[lang] = alias
+            meta_types[tag] = meta_type
 
-    def _load(self,id_asset):
-        self.meta = {}
 
-    def _new(self):
-        self.meta = {
-            "id_asset"     : 0, 
-            "media_type"   : VIRTUAL, 
-            "content_type" : VIDEO, 
-            "id_folder"    : 0, 
-            "ctime"        : time.time(), 
-            "mtime"        : time.time(), 
-            "origin"      : "Library", 
-            "version_of"   : 0, 
-            "status"       : OFFLINE
-        }
-
-    def _save(self):
-        pass
-
-    def save(self, set_mtime=True):
-        if set_mtime:
-            self["mtime"] = time.time()
-        self._save()
-
-    ## Asset loading/creating
-    #######################################
-    ## Special Getters
-
-    def get_file_path(self):
-        return os.path.join(storages[self["id_storage"]].get_path(), self["path"])
-
-    def get_duration(self):
-        dur = float(self.meta.get("duration",0))
-        mki = float(self.meta.get("mark_in" ,0))
-        mko = float(self.meta.get("mark_out",0))
-        if not dur: return 0
-        if mko > 0: dur -= dur - mko
-        if mki > 0: dur -= mki
-        return dur
-
-    ## Special Getters
-    #######################################
-    ## Asset deletion
-
-    def trash(self):
-        pass
-
-    def untrash(self):
-        pass
-
-    def purge(self):
-        pass
-
-    def make_offline(self):
-        pass
-
-    ## Asset deletion
-    #######################################
-    ## Getter / setter
-
-    def __getitem__(self,key):
-        key = key.lower().strip()
-        if not key in self.meta:
-            return meta_types.format_default(key)
-        return self.meta[key]
-
-    def __setitem__(self,key,value):
-        key   = key.lower().strip()
-        if not value:
-            del self[key]
-            return True
-        self.meta[key] = meta_types.format(key,value)
-
-    def __delitem__(self,key):
-        key = key.lower().strip()
-        if key in meta_types and meta_types[key].namespace == "a": 
-            return
-        if not key in self.meta:
-            return
-        del self.meta[key]
-
-    def __repr__(self):
-        try:
-            title = self.meta.get("title","")
-            if title: 
-                title = " (%s)" % title
-            return ("Asset ID:%d%s"%(self.id_asset,title))
-        except:
-            return("Asset ID:%d"%self.id_asset)
+load_meta_types()

@@ -7,9 +7,9 @@ def hive_browse(auth_key, params):
 
     if params.get("fulltext", False): # I'll definitely go to hell
         if config["db_driver"] == "postgres":
-            conds.append("id_asset IN (SELECT id_asset FROM nx_meta WHERE %s)" % " AND ".join(["unaccent(LOWER(value)) LIKE unaccent('%%%s%%')"% db.sanit(elm.lower()) for elm in params["fulltext"].split()]))
+            conds.append("id_asset IN (SELECT id_object FROM nx_meta WHERE %s)" % " AND ".join(["unaccent(LOWER(value)) LIKE unaccent('%%%s%%')"% db.sanit(elm.lower()) for elm in params["fulltext"].split()]))
         else:
-            conds.append("id_asset IN (SELECT id_asset FROM nx_meta WHERE %s)" % " AND ".join(["LOWER(value) LIKE '%%%s%%'"% db.sanit(elm.lower()) for elm in params["fulltext"].split()]))
+            conds.append("id_asset IN (SELECT id_object FROM nx_meta WHERE %s)" % " AND ".join(["LOWER(value) LIKE '%%%s%%'"% db.sanit(elm.lower()) for elm in params["fulltext"].split()]))
 
     if conds:
         qcon = " WHERE %s" % " AND ".join(conds)

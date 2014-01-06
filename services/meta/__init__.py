@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from nx import *
-from nx.assets import *
+from nx.assets import Asset
+from nx.metadata import meta_types
 
 from probes import probes
 

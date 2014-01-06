@@ -85,7 +85,7 @@ class View():
     def browser(self):
         self["header"] = "Browser"
         start_time = time.time()
-        cols = ["id_asset", "title", "role/performer", "album", "genre/music", "rights", "status"]
+        cols = ["id_object", "title", "role/performer", "album", "genre/music", "rights", "status"]
         main = "<tr><th>&nbsp</th>%s</tr>\n" % "".join("<th>%s</th>" % meta_types[col].alias(self.lang) for col in cols)
         db = DB()
         db.query("SELECT id_asset FROM nx_assets")

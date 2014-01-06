@@ -60,7 +60,7 @@ class Service(ServicePrototype):
             ## Mirror settings
             ###################
 
-            for f in get_files(os.path.join(stpath,mpath),recursive=mrecursive,hidden=mhidden):
+            for f in get_files(os.path.join(stpath,mpath), recursive=mrecursive, hidden=mhidden):
 
                 apath = os.path.normpath(f.replace(stpath,""))
                 apath = apath.lstrip("/")  
@@ -79,9 +79,7 @@ class Service(ServicePrototype):
                     else:
                         continue
 
-                db.query("SELECT count(id_asset) FROM nx_assets")
-                
-                #if db.fetchall()[0][0] > 1000: break # for debug only :-)
+
                 if asset_by_path(mstorage,apath,db=db): continue 
 
                 asset = Asset() 
@@ -127,4 +125,4 @@ class Service(ServicePrototype):
                
                 if not failed:
                     asset.save()
-                    logging.info("Created new %s from %s"%(asset, apath))
+                    logging.info("Created %s from %s"%(asset, apath))

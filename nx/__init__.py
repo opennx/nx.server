@@ -1,5 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-from server import *
+from common import *
+from connection import *
 from services import *

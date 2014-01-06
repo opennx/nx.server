@@ -22,6 +22,7 @@ class StorageMonitor():
             self._main()
         else:    
             thread.start_new_thread(self._run,())
+            logging.info("Storage monitor started")
 
     def _run(self):
         while True:
@@ -96,6 +97,7 @@ class ServiceMonitor():
         db.commit()
 
         thread.start_new_thread(self._run,())
+        logging.info("Service monitor started")
         
     def get_running_services(self):
         result = []
