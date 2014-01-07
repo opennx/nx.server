@@ -19,7 +19,7 @@ class Service(ServicePrototype):
 
     def onMain(self):
         db = DB()
-        db.query("SELECT id_asset FROM nx_assets %s" % self.filters)
+        db.query("SELECT id_object FROM nx_assets %s" % self.filters)
         for id_asset, in db.fetchall():
             self._proc(id_asset, db)
 

@@ -115,10 +115,12 @@ class NXServerObject(NXBaseObject):
         db = self.db
      
         if self["id_object"]:
-            pass
-            #query = "UPDATE nx_assets SET media_type=%d, content_type=%d, id_folder=%d, ctime=%d, mtime=%d, origin='%s', version_of=%d, status=%d WHERE id_asset=%d" % \
-            #                            (self["media_type"], self["content_type"], self["id_folder"], self["ctime"], self["mtime"], self["origin"], self["version_of"], self["status"],   self.id_asset)
-            #db.query(query)
+            q = "UPDATE nx_%ss SET %s WHERE id_object = %d" % (self.object_type,
+                                                               ", ".join("%s = %%s" % tag for tag in self.ns_tags if tag != "id_object"),
+                                                               self["id_object"]
+                                                               )
+            v = [self[tag] for tag in self.ns_tags if tag != "id_object"]
+            db.query(q, v)
         else:
             q = "INSERT INTO nx_%ss (%s) VALUES (%s)" % ( self.object_type,  
                                                           ", ".join(tag for tag in self.ns_tags if tag != 'id_object'),
@@ -127,8 +129,6 @@ class NXServerObject(NXBaseObject):
             v = [self[tag] for tag in self.ns_tags if tag != "id_object"]
             db.query(q, v)
             self["id_object"] = db.lastid()
-
-
 
         db.query("DELETE FROM nx_meta WHERE id_object = %d and object_type = %d" % (self["id_object"], self.id_object_type()))
         for tag in self.meta:
