@@ -1,10 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from common import *
+import sys
+
+if sys.platform == "win32":
+    PLATFORM   = "windows"
+else:
+    PLATFORM   = "linux"
 
 
-class Machina:
+class MachinaLinux(object):
     def __init__(self):
         self._out = {}
         self._memFile    = "/proc/meminfo"
@@ -84,18 +89,37 @@ class Machina:
                 cpuStat['physicalCores'] = lk[1]
             elif lk[0].lower() == 'siblings': 
                 cpuStat['threadsInfo'] = lk[1]
-      self._out['cpuInfo'] = cpuStat
+        self._out['cpuInfo'] = cpuStat
       
     def status(self):
-        if PLATFORM == 'windows':
-            self._out['status'] =  'Error'
-            self._out['message'] = 'Unsupported OS'
-        else:
-            self._out['status'] = 'Ok'
-            self._out['message'] = 'Getting base HW info'
-            self._readUptime()
-            self._readLoad()
-            self._readCpu()
-            self._readMem()
-            self._readStat()
+        self._out['status'] = 'Ok'
+        self._out['message'] = 'Getting base HW info'
+        self._readUptime()
+        self._readLoad()
+        self._readCpu()
+        self._readMem()
+        self._readStat()
         return self._out
+
+
+
+
+
+class MachinaWindows(object):
+    def status(self):
+        return {}
+
+
+
+
+
+
+
+if PLATFORM == "windows":
+    Machina = object
+else:
+    Machina = MachinaLinux
+
+if __name__ == "__main__":
+    machina = Machina()
+    print machina.status()

@@ -55,11 +55,11 @@ class FFProbe(Probe):
         at_atrack  = 1         # Audio track identifier (A1, A2...)
 
         for stream in streams:
-            if stream["codec_type"] == "video":
+            if stream["codec_type"] == "video" and asset["content_type"] in [VIDEO, IMAGE]: # ignore mp3 album art etc.
 
                 asset["video/fps"]          = stream.get("r_frame_rate","")
                 asset["video/codec"]        = stream.get("codec_name","")
-                asset["video/pixel_format"] = stream.get("pix_fmt",   "")
+                asset["video/pixel_format"] = stream.get("pix_fmt", "")
               
                 if not asset["duration"]:
                     dur = float(stream.get("duration",0))
