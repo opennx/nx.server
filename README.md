@@ -7,18 +7,6 @@ OpenNX media asset management core.
 
 _Early pre-alpha version - Only to be used in presence of developers._
 
-### New core features
-* EBUCore Compliant. 
-* Simplified HTTPS-Based API 
-* FIMS Compliant
-* Multilanguage support for UI and metadata
-* Hive-side seismic message queue
-
-### Oldies but goldies
-* PostgreSQL Database
-* Memcached
-* Seismic (Multicast UDP) messaging for instant view updates, logging, chat….
-
 
 ## Installation
 
@@ -28,11 +16,6 @@ In the distant future, installation should be like this:
 * Log in as root
 * Run `wget http://please.nxme.eu -o inst.all && chmod +x inst.all && ./inst.all`
 * Grab a beer
-
-### Via Puppet
-.... there will be a day...
-* Install puppet on fresh Debian 7.x machine
-* Pray
 
 
 ## Hive
