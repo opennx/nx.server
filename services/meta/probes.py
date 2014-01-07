@@ -124,7 +124,17 @@ class FFProbe(Probe):
                         asset["album/%s"%tag] = value.split("/")[0]
                 elif tag == "genre" and content_type == AUDIO:
                     # Ultra mindfuck
-                    from nx.cs import NX_MUSIC_GENRES
+                    NX_MUSIC_GENRES = [
+                                        "Alt Rock", 
+                                        "Electronic",
+                                        "Punk Rock", 
+                                        "Pop",
+                                        "Rock", 
+                                        "Metal",
+                                        "Hip Hop",
+                                        "Demoscene",
+                                        "Emo"
+                                        ] 
 
                     for genre in NX_MUSIC_GENRES:
                         genre_parts = genre.lower().split()
