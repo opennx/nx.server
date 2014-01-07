@@ -13,13 +13,13 @@ class NXBaseObject(object):
     def __init__(self, id_object=False, db=False, from_data=False):
         self.ns_prefix = self.object_type[0]
         self.ns_tags   = meta_types.ns_tags(self.ns_prefix)
+        self.id = id_object
 
         if from_data:
             self.meta = from_data
         else:
-            self.id_object = id_object
             self.db = db
-            if self.id_object:
+            if self.id:
                 self.load()
             else:
                 self.new()
@@ -81,7 +81,9 @@ class NXBaseObject(object):
 class NXServerObject(NXBaseObject):
     def _load(self):
         try:
-            self.meta = json.loads(cache.load("%s%d" % (self.ns_prefix, self.id_object)))
+            self.meta = json.loads(cache.load("%s%d" % (self.ns_prefix, self.id)))
+            if not self.meta:
+                raise Exception
         except:
             if not self.db:
                 self.db = DB()
@@ -90,7 +92,7 @@ class NXServerObject(NXBaseObject):
             logging.debug("Loading %s from DB" % self)
 
             qcols = ", ".join(self.ns_tags)
-            q = "SELECT %s FROM nx_%ss WHERE id_object = %d" % (qcols, self.object_type, self.id_object)
+            q = "SELECT %s FROM nx_%ss WHERE id_object = %d" % (qcols, self.object_type, self.id)
             try:
                 result = db.fetchall()[0]
             except:
