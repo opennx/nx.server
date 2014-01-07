@@ -9,12 +9,31 @@ if connection_type == "server":
     #######################################################################################################
     ## Database
 
+    class DBproto(object):
+        def __init__(self):
+            self._connect()
+
+        def _connect(self):
+            pass
+
+        def query(self, q, *args):
+            self.cur.execute(q,*args)
+
+        def fetchall(self):
+            return self.cur.fetchall()
+
+        def commit(self):
+            self.conn.commit()
+
+        def rollback(self):
+            self.conn.rollback()
+         
+        def close(self):
+            self.conn.close()
+
     if config['db_driver'] == 'postgres': 
         import psycopg2
-        class DB():
-            def __init__(self):
-                self._connect()
-
+        class DB(DBproto):
             def _connect(self):  
                 self.conn = psycopg2.connect(database = config['db_name'], 
                                              host     = config['db_host'], 
@@ -23,63 +42,28 @@ if connection_type == "server":
                                              ) 
                 self.cur = self.conn.cursor()
 
-            def query(self,q,*args):
-                self.cur.execute(q,*args)
-
             def sanit(self, instr):
                 #TODO: THIS SHOULD BE HEEEEAAAVILY MODIFIED
                 try: return str(instr).replace("''","'").replace("'","''").decode("utf-8")
                 except: return instr.replace("''","'").replace("'","''")
-
-            def fetchall(self):
-                return self.cur.fetchall()
            
             def lastid (self):
                 self.query("select lastval()")
                 return self.fetchall()[0][0]
 
-            def commit(self):
-                self.conn.commit()
-
-            def rollback(self):
-                self.conn.rollback()
-
-
     elif config['db_driver'] == 'sqlite':
         import sqlite3
-        class DB():
-            def __init__(self):
-                self._connect()
-
+        class DB(DBproto):
             def _connect(self):
                 try:
                     self.conn = sqlite3.connect(config["db_host"]) 
                     self.cur = self.conn.cursor()
                 except:
                     raise Exception, "Unable to connect database."
-
-            def query(self,q,*args):
-                self.cur.execute(q,*args)
-
-            def sanit(self, instr):
-                try: return str(instr).replace("''","'").replace("'","''").decode("utf-8")
-                except: return instr.replace("''","'").replace("'","''")
-
-            def fetchall(self):
-                return self.cur.fetchall()
               
             def lastid(self):
                 r = self.cur.lastrowid
                 return r
-              
-            def commit(self):
-                self.conn.commit()
-
-            def rollback(self):
-                self.conn.rollback()
-             
-            def close(self):
-                self.conn.close()
 
     else:
         critical_error("Unknown DB Driver. Exiting.")
@@ -115,15 +99,16 @@ if connection_type == "server":
                 self.host = config["cache_host"]
                 self.port = config["cache_port"]
                 self.cstring = '%s:%s'%(self.host,self.port)
+                self.lconn = self._conn()
 
             def _conn(self):
                 return pylibmc.Client([self.cstring])
 
             def load(self,key):
                 try:
-                    conn = self._conn()
-                    return conn.get(str("%s_%s"%(self.site,key)))
+                    return self.lconn.get(str("%s_%s"%(self.site,key)))
                 except:
+                    self.lconn = self._conn()
                     return False
 
             def save(self,key,value):
@@ -177,7 +162,7 @@ if connection_type == "server":
                 f.close()
                 return True
 
-    cache     = Cache()
+    cache = Cache()
 
     ## Cache
     ########################################################################
