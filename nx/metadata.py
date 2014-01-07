@@ -34,6 +34,7 @@ class MetaType(object):
 class MetaTypes(dict):
     def __init__(self):
         super(MetaTypes, self).__init__()
+        self.nstagdict = {}
         self._load()
 
     def __getitem__(self, key):
@@ -53,12 +54,13 @@ class MetaTypes(dict):
         return meta_type
 
     def ns_tags(self, ns):
-        result = []
-        for tag in self:
-            if self[tag].namespace in ["o", ns]:
-                result.append(self[tag].title)
-        return result
-
+        if not ns in self.nstagdict:
+            result = []
+            for tag in self:
+                if self[tag].namespace in ["o", ns]:
+                    result.append(self[tag].title)
+            self.nstagdict[ns] = result
+        return self.nstagdict[ns]
 
     def format_default(self, key):
         if not key in self:
