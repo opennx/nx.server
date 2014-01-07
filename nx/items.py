@@ -1,44 +1,45 @@
  #!/usr/bin/env python
  # -*- coding: utf-8 -*-
+from nx import *
 
-from server import *
-from assets import *
-
-
-class Item():
-    def __init__(self, id_item=False, db=False):
-        self.id_item = id_item
-        self.db = db
-        if self.id_item:
-            self._load()
-        else:
-            self._new()
-
-    def _new(self):
-        self.id_item  = False
-        self.id_bin   = False
-        self.id_asset = False
-        self.position = 0
-        self.params = {}
-        self.asset = False
+from nxobject import NXObject
+from metadata import meta_types
+from assets import Asset
 
 
-    def _load(self):
-        self.data = json.loads(cache.load("A%d" % id_asset))
-        if not self.db:
-            self.db = DB()
-        db = self.db
+class Item(NXObject):
+    object_type = "item"
 
+    def new(self):
+        self["id_object"] = False
+        self["id_bin"]    = False
+        self["id_asset"]  = False
+        self["position"]  = 0
+        self.asset        = False
 
-
-
-class Bin():
-    def __init__(self, id_bin=False):
-       pass
+    def __getitem__(self, key):
+        key = key.lower().strip()
+        if not key in self.meta:
+            if not self.asset:
+                if self["id_asset"]:
+                    self.asset = Asset(self["id_asset"])
+                else:
+                    return meta_types.format_default(key)
+            if not key in self.asset.meta:
+                return meta_types.format_default(key)
+            return self.asset[key]
+        return self.meta[key]
 
 
 
-class Rundown():
+
+
+class Bin(NXObject):
+    object_type = "bin"
+
+
+
+class Rundown(object):
      def __init__(self, date=False):
         pass
 
