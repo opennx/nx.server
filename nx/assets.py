@@ -55,7 +55,8 @@ class Asset(NXObject, NXAsset):
 
 
 def asset_by_path(id_storage, path, db=False):
-    if not db: db = DB()
+    if not db: 
+        db = DB()
     db.query("""SELECT id_object FROM nx_meta 
                 WHERE object_type = 0 
                 AND tag='id_storage' 
@@ -69,6 +70,8 @@ def asset_by_path(id_storage, path, db=False):
 
 
 def asset_by_full_path(path, db=False):
+    if not db:
+        db = DB()
     for s in storages:
         if path.startswith(storages[s].get_path()):
             return asset_by_path(s,path.lstrip(s.path),db=db)
@@ -76,7 +79,8 @@ def asset_by_full_path(path, db=False):
 
 
 def meta_exists(tag, value, db=False):
-    if not db: db = DB()
+    if not db: 
+        db = DB()
     db.query("""SELECT a.id_asset FROM nx_meta as m, nx_assets as a 
                 WHERE a.status <> 'TRASHED' 
                 AND a.id_asset = m.id_object
