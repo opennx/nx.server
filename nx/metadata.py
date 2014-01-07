@@ -105,7 +105,6 @@ class MetaTypes(dict):
         elif mtype.class_ == STAR:        return int(value)
 
 
-
 meta_types = MetaTypes()
 
 
@@ -127,4 +126,4 @@ if connection_type == "server":
             meta_types[tag] = meta_type
 
 
-load_meta_types()
+    load_meta_types()

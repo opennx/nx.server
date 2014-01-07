@@ -3,18 +3,10 @@
 
 import subprocess
 import os
-import sys
-import json
 import uuid
 import tempfile
 import time
 
-#
-# Please rewrite me!
-# * I want to be multiplatform
-# * I want to be simple
-# * I don't want to crash
-#
 
 def get_tempname():
     dr = tempfile.gettempdir()
@@ -40,25 +32,3 @@ class shell():
 
     def stderr(self):
         return open(self.err_fn)
-    
-
-
-
-def audio_analyze(fname):
-    cmd = "ffmpeg -i \"%s\" -filter_complex ebur128 -vn -f null -" % fname
-    proc = shell(cmd)
-    ms = []
-    for line in proc.stderr().readlines():
-        line = line.strip()
-
-        if line.startswith("[Parsed_ebur128_0"):
-            try:    m = float(line.split("M: ")[1].split()[0])
-            except: pass
-            else:   
-                val = 256 + 256*max(m/80.0,-1)
-                ms.append(str(val))
-             #   val = (abs(m)/20.0)
-
-    f = open ("loud","w")
-    f.write("\n".join(ms))
-    f.close()
