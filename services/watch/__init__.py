@@ -82,6 +82,8 @@ class Service(ServicePrototype):
 
                 if asset_by_path(mstorage,apath,db=db): continue 
 
+                logging.debug("Found new file %s" % apath)
+
                 asset = Asset() 
                 asset["id_storage"]    = mstorage
                 asset["path"]          = apath
@@ -119,8 +121,8 @@ class Service(ServicePrototype):
                     try:
                         exec(post_script.text)
                     except:
-                        self.logging.error("Error executing post-script \"%s\" on %s" % (post_script.text, asset))
-                        self.logging.error(str(sys.exc_info()))
+                        logging.error("Error executing post-script \"%s\" on %s" % (post_script.text, asset))
+                        logging.error(str(sys.exc_info()))
                         failed = True
                
                 if not failed:

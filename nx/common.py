@@ -97,7 +97,7 @@ class Logging():
         }[code]
 
     def _typeformat(self, code):
-        return self._msgtype(msgtype)
+        return self._msgtype(code)
 
     def _send(self,msgtype,message):
         try:
