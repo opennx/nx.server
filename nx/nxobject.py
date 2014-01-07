@@ -122,6 +122,7 @@ class NXServerObject(NXBaseObject):
             v = [self[tag] for tag in self.ns_tags if tag != "id_object"]
             db.query(q, v)
         else:
+            self["ctime"] = time.time()
             q = "INSERT INTO nx_%ss (%s) VALUES (%s)" % ( self.object_type,  
                                                           ", ".join(tag for tag in self.ns_tags if tag != 'id_object'),
                                                           ", ".join(["%s"]*(len(self.ns_tags)-1)) 

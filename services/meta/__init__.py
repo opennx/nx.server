@@ -96,7 +96,7 @@ class Service(ServicePrototype):
             asset.save(set_mtime=False)
 
         elif asset["status"] in (CREATING, OFFLINE):
-            logging.debug("Turning online  %s" % asset)
+            logging.debug("Turning online %s" % asset)
             asset["status"] = ONLINE
             asset.save()
     

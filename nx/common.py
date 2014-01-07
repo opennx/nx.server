@@ -96,9 +96,12 @@ class Logging():
             GOOD_NEWS  : "GOOD NEWS"
         }[code]
 
+    def _typeformat(self, code):
+        return self._msgtype(msgtype)
+
     def _send(self,msgtype,message):
         try:
-            print self._msgtype(msgtype).ljust(10), config['user'].ljust(15), message
+            print self._typeformat(msgtype).ljust(10), config['user'].ljust(15), message
         except:
             print message.encode("utf-8")
         messaging.send("LOG",[config['user'], msgtype, message])
