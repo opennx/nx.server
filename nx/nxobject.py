@@ -20,29 +20,26 @@ class NXBaseObject(object):
         else:
             self.db = db
             if self.id:
-                self.load()
+                self._load()
             else:
-                self.new()
+                self._new()
 
     def id_object_type(self):
         return OBJECT_TYPES[self.object_type]
 
-    def new(self):
+    def _new(self):
         self.meta = {}
 
-    def load(self):
-        self._load()
+    def _load(self):
+        pass
 
+    def _save(self):
+        pass
+  
     def save(self, set_mtime=True):
         if set_mtime:
             self["mtime"] = time.time()
         self._save()
-
-    def _save(self):
-        pass
-
-    def _load(self):
-        pass
 
     def __getitem__(self, key):
         key = key.lower().strip()

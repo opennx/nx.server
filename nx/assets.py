@@ -8,10 +8,13 @@ from nxobject import NXObject
 
 __all__ = ["Asset", "asset_by_path", "asset_by_full_path", "meta_exists"]
 
-
-
-class NXAsset(object):
+class Asset(NXObject):
     object_type = "asset"
+
+    def _new(self):
+        self.meta = {
+        
+        }
 
     def get_file_path(self):
         return os.path.join(storages[self["id_storage"]].get_path(), self["path"])
@@ -40,15 +43,6 @@ class NXAsset(object):
 
     def make_offline(self):
         pass
-
-
-
-
-
-class Asset(NXObject, NXAsset):
-    pass
-
-
 
 
 

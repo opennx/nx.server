@@ -10,7 +10,7 @@ from assets import Asset
 class Item(NXObject):
     object_type = "item"
 
-    def new(self):
+    def _new(self):
         self["id_object"] = False
         self["id_bin"]    = False
         self["id_asset"]  = False

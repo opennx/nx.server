@@ -35,13 +35,45 @@ class MetaTypes(dict):
     def __init__(self):
         super(MetaTypes, self).__init__()
         self.nstagdict = {}
-        self._load()
 
     def __getitem__(self, key):
         return self.get(key, self._default())
 
-    def _load(self):
-        pass
+    def load(self):
+        if connection_type == "server":
+            db = DB()
+            db.query("SELECT namespace, tag, editable, searchable, class, default_value,  settings FROM nx_meta_types")
+            for ns, tag, editable, searchable, class_, default, settings in db.fetchall():
+                meta_type = MetaType(tag)
+                meta_type.namespace  = ns
+                meta_type.editable   = bool(editable)
+                meta_type.searchable = bool(searchable)
+                meta_type.class_     = class_
+                meta_type.default    = default
+                meta_type.settings   = settings
+                db.query("SELECT lang, alias FROM nx_meta_aliases WHERE tag='%s'" % tag)
+                for lang, alias in db.fetchall():
+                    meta_type.aliases[lang] = alias
+                self[tag] = meta_type
+            return True
+
+        elif connection_type == "client":
+            ret_code, result = query("meta_types")
+            if ret_code < 300:  
+                for t in result:
+                    m = MetaType(t["title"])
+                    m.namespace   = t["namespace"]
+                    m.editable    = t["editable"]
+                    m.searchable  = t["searchable"]
+                    m.class_      = t["class"]
+                    m.default     = t["default"]
+                    m.settings    = t["settings"]
+                    m.aliases     = t["aliases"]
+                    self[t["title"]] = m
+                return True
+            else:
+                return False
+        return False
 
     def _default(self):
         meta_type = MetaType("Unknown")
@@ -75,11 +107,9 @@ class MetaTypes(dict):
 
     def format(self, key, value):
         if not key in self:
-            print "!!!!!! %s is not in metatypes" % key
             return value
         mtype = self[key]
 
-        ## PLEASE REFACTOR ME.
         if  key == "path":                return value.replace("\\","/")
 
         elif mtype.class_ == TEXT:        return value.strip()
@@ -106,26 +136,7 @@ class MetaTypes(dict):
         elif mtype.class_ == BOOLEAN:     return int(value)
         elif mtype.class_ == STAR:        return int(value)
 
-
 meta_types = MetaTypes()
 
-
 if connection_type == "server":
-    def load_meta_types():
-        db = DB()
-        db.query("SELECT namespace, tag, editable, searchable, class, default_value,  settings FROM nx_meta_types")
-        for ns, tag, editable, searchable, class_, default, settings in db.fetchall():
-            meta_type = MetaType(tag)
-            meta_type.namespace  = ns
-            meta_type.editable   = bool(editable)
-            meta_type.searchable = bool(searchable)
-            meta_type.class_     = class_
-            meta_type.default    = default
-            meta_type.settings   = settings
-            db.query("SELECT lang, alias FROM nx_meta_aliases WHERE tag='%s'" % tag)
-            for lang, alias in db.fetchall():
-                meta_type.aliases[lang] = alias
-            meta_types[tag] = meta_type
-
-
-    load_meta_types()
+    meta_types.load()

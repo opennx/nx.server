@@ -1,7 +1,2 @@
 *.pyc
-*.db
-.cache
-storages/*
-opennx.sublime-project
-opennx.sublime-workspace
 local_settings.json
