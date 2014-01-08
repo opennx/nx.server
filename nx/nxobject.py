@@ -148,9 +148,9 @@ class NXServerObject(NXBaseObject):
 
 
 class NXClientObject(NXBaseObject):
-    pass
-
-
+    def _load(self):
+        pass
+    # TODO: hive loading, save, ....
 
 
 
@@ -158,3 +158,26 @@ if connection_type == "server":
     NXObject = NXServerObject
 else:
     NXObject = NXClientObject
+
+
+
+
+class AssetBase(object):
+    object_type = "asset"
+
+    def _new(self):
+        self.meta = {
+        
+        }
+
+    def get_file_path(self):
+        return os.path.join(storages[self["id_storage"]].get_path(), self["path"])
+
+    def get_duration(self):
+        dur = float(self.meta.get("duration",0))
+        mki = float(self.meta.get("mark_in" ,0))
+        mko = float(self.meta.get("mark_out",0))
+        if not dur: return 0
+        if mko > 0: dur -= dur - mko
+        if mki > 0: dur -= mki
+        return dur

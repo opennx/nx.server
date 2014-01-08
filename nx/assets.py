@@ -3,35 +3,16 @@
 
 from common import *
 from connection import *
-from nxobject import NXObject
 
+from nxobject import NXObject, AssetBase
+from metadata import meta_types
+
+
+from utils import *
 
 __all__ = ["Asset", "asset_by_path", "asset_by_full_path", "meta_exists"]
 
-class Asset(NXObject):
-    object_type = "asset"
-
-    def _new(self):
-        self.meta = {
-        
-        }
-
-    def get_file_path(self):
-        return os.path.join(storages[self["id_storage"]].get_path(), self["path"])
-
-    def get_duration(self):
-        dur = float(self.meta.get("duration",0))
-        mki = float(self.meta.get("mark_in" ,0))
-        mko = float(self.meta.get("mark_out",0))
-        if not dur: return 0
-        if mko > 0: dur -= dur - mko
-        if mki > 0: dur -= mki
-        return dur
-
-    ## Special Getters
-    #######################################
-    ## Asset deletion
-
+class Asset(NXObject, AssetBase):
     def trash(self):
         pass
 
@@ -46,6 +27,10 @@ class Asset(NXObject):
 
 
 
+
+
+	## END OF ASSET CLASS
+    #######################
 
 
 def asset_by_path(id_storage, path, db=False):

@@ -2,9 +2,15 @@
 # -*- coding: utf-8 -*-
  
 import os
+import unicodedata
 
 ######################################################################## 
 ## Time formating
+
+
+def unaccent(instr,encoding="utf-8"):
+    #return unicodedata.normalize('NFKD', unicode(instr,encoding)).encode('ascii', 'ignore')
+    return unicodedata.normalize('NFKD', instr).encode('ascii', 'ignore')
 
 def s2time(secs):
     """Converts seconds to time"""
