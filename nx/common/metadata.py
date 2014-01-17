@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from common import *
-from connection import *
+from nx.common import *
+from nx.connection import *
 
 class MetaType(object):
     def __init__(self, title):
@@ -29,6 +29,13 @@ class MetaType(object):
                 "settings"   : self.settings,
                 "aliases"    : self.aliases
                 }
+
+
+def fract2float(fract):
+    nd = fract.split("/")
+    if len(nd) == 1 or nd[1] == "1":
+        return float(nd[0])
+    return float(nd[0]) / float(nd[1])
 
 
 class MetaTypes(dict):
@@ -135,6 +142,7 @@ class MetaTypes(dict):
         elif mtype.class_ == PART:        return json.loads(value)
         elif mtype.class_ == BOOLEAN:     return int(value)
         elif mtype.class_ == STAR:        return int(value)
+        elif mtype.class_ == FRACTION:    return value.strip().replace(":","/")
 
 meta_types = MetaTypes()
 

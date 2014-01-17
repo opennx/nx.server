@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from common import *
-from connection import *
-from metadata import MetaType, meta_types
+from nx.common import *
+from nx.connection import *
+from nx.common.metadata import MetaType, meta_types
 
 __all__ = ["NXObject"]
 
@@ -14,6 +14,7 @@ class NXBaseObject(object):
         self.ns_prefix = self.object_type[0]
         self.ns_tags   = meta_types.ns_tags(self.ns_prefix)
         self.id = id_object
+        self.meta = {}
 
         if from_data:
             self.meta = from_data
@@ -67,9 +68,9 @@ class NXBaseObject(object):
             title = self.meta.get("title","")
             if title: 
                 title = " (%s)" % title
-            return ("%s ID:%d%s" % (self.object_type, self["id_object"], title))
+            return "%s ID:%d%s" % (self.object_type, self.id, title)
         except:
-            return("%s ID:%d" % self["id_object"])
+            return "%s ID:%d" % (self.object_type, self.id)
 
 
 
@@ -89,7 +90,7 @@ class NXServerObject(NXBaseObject):
             logging.debug("Loading %s from DB" % self)
 
             qcols = ", ".join(self.ns_tags)
-            q = "SELECT %s FROM nx_%ss WHERE id_object = %d" % (qcols, self.object_type, self.id)
+            db.query("SELECT %s FROM nx_%ss WHERE id_object = %d" % (qcols, self.object_type, self.id))
             try:
                 result = db.fetchall()[0]
             except:
@@ -99,7 +100,7 @@ class NXServerObject(NXBaseObject):
             for tag, value in zip(self.ns_tags, result):
                 self[tag] = value
 
-            db.query("SELECT tag, value FROM nx_meta WHERE id_object = %d and object_type = %d" % self["id_object"], self.id_object_type())
+            db.query("SELECT tag, value FROM nx_meta WHERE id_object = %s and object_type = %s", (self["id_object"], self.id_object_type()))
             for tag, value in db.fetchall():
                 self[tag] = value
 
@@ -170,6 +171,16 @@ class AssetBase(object):
         
         }
 
+    def mark_in(self, new_val=False):
+        if new_val:
+            self["mark_in"] = new_val
+        return self["mark_in"]
+
+    def mark_out(self, new_val=False):
+        if new_val:
+            self["mark_out"] = new_val
+        return self["mark_out"]
+        
     def get_file_path(self):
         return os.path.join(storages[self["id_storage"]].get_path(), self["path"])
 

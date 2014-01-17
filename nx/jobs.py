@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from server import *
+#$from nx.server import *
 
 
 class Job():

@@ -1,4 +1,4 @@
-from common import *
+from nx.common import *
 
 connection_type = "server"
 

@@ -1,4 +1,4 @@
-from nx.constants import *
+from nx.common.constants import *
 
 FILETYPES = {
 "dv"   : VIDEO,

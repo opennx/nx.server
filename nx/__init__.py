@@ -1,5 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from common import *
-from connection import *
-from services import *
+from nx.common import *
+from nx.connection import *
+from nx.services import *

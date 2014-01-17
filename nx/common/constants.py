@@ -11,6 +11,16 @@ STARTING = 2           # Service start requested.
 STOPPING = 3           # Service graceful stop requested. It should shutdown itself after current iteration
 KILL     = 4           # Service force stop requested. Dispatch is about to kill -9 it
 
+
+OBJECT_TYPES = {
+ "asset"  : 0,
+ "item"   : 1,
+ "bin"    : 2,
+ "event"  : 3,
+ "user"   : 4
+ }
+
+
 # content_type
 TEXT     = 0
 VIDEO    = 1
@@ -57,9 +67,9 @@ STATE        = 17      # Asset approval state representation. stored as int
 FILESIZE     = 18      # Stored as int, displayed as K, M... etc.
 MULTISELECT  = 19      # Stored as json list. config is simialar to select
 PART         = 20      # Part X of Y. Stored as (X,Y) JSON tuple, where X and Y are integers
-BOOLEAN      = 22      # 1/0 checkbox
-STAR         = 21      # Same as boolean, but representated as shiny star in browser.
-FRACTION     = 22      # 16/9 etc...
+BOOLEAN      = 21      # 1/0 checkbox
+STAR         = 22      # Same as boolean, but representated as shiny star in browser.
+FRACTION     = 23      # 16/9 etc...
 
 # storage types
 
@@ -81,6 +91,12 @@ PLAYOUT   = 0
 INGEST    = 1
 CAMPAIGN  = 2
 
+
+DEBUG       = 0
+INFO        = 1
+WARNING     = 2
+ERROR       = 3
+GOOD_NEWS   = 4
 
 
 

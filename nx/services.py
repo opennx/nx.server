@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from common import *
-from connection import *
+from nx.common import *
+from nx.connection import *
 
 class ServicePrototype(object):
     def __init__(self, id_service, settings=False):

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from common import logging
+from nx.common.core import logging
 
 try:
     import cairo

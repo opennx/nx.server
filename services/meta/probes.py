@@ -3,7 +3,7 @@
 
 import json
 
-from nx.constants import *
+from nx.common.constants import *
 from nx.shell import shell
 
 class Probe(object):
@@ -31,7 +31,7 @@ def guess_aspect (w,h):
     if 0 in [w,h]: return ""
     valid_aspects = [(16, 9), (4, 3), (2.35, 1)]
     ratio = float(w) / float(h)
-    return "%s:%s" % min(valid_aspects, key=lambda x:abs((float(x[0])/x[1])-ratio))
+    return "%s/%s" % min(valid_aspects, key=lambda x:abs((float(x[0])/x[1])-ratio))
 
 class FFProbe(Probe):
     title = "FFProbe"
@@ -89,7 +89,7 @@ class FFProbe(Probe):
                         pass # Pokud uz v meta aspect je a velikost se nezmenila, tak hodnotu neupdatujem. mohl ji zmenit uzivatel                     
                     else:
                         if stream.get("display_aspect_ratio",False) in ["4:3", "16:9"]:
-                            asset["video/aspect_ratio"] = stream["display_aspect_ratio"]
+                            asset["video/aspect_ratio"] = stream["display_aspect_ratio"].replace(":","/")
                         else:
                             asset["video/aspect_ratio"] = guess_aspect(w, h)
 

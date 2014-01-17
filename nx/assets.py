@@ -1,18 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from common import *
+from nx.common import *
+from nx.common.nxobject import NXObject, AssetBase
+from nx.common.metadata import meta_types
+from nx.common.utils import *
+
 from connection import *
 
-from nxobject import NXObject, AssetBase
-from metadata import meta_types
-
-
-from utils import *
 
 __all__ = ["Asset", "asset_by_path", "asset_by_full_path", "meta_exists"]
 
 class Asset(NXObject, AssetBase):
+
     def trash(self):
         pass
 
