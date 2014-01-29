@@ -41,7 +41,6 @@ class NXBaseObject(object):
         if set_mtime:
             self["mtime"] = time.time()
         self._save()
-        print self["status"]
 
     def __getitem__(self, key):
         key = key.lower().strip()
