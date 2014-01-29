@@ -58,7 +58,7 @@ class MetaTypes(dict):
                 meta_type.class_     = class_
                 meta_type.default    = default
                 meta_type.settings   = settings
-                db.query("SELECT lang, alias FROM nx_meta_aliases WHERE tag='%s'" % tag)
+                db.query("SELECT lang, alias FROM nx_meta_aliases WHERE tag='{0}'".format(tag))
                 for lang, alias in db.fetchall():
                     meta_type.aliases[lang] = alias
                 self[tag] = meta_type

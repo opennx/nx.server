@@ -18,12 +18,12 @@ def s2time(secs):
     except:
         return "--:--:--.--"
     wholesecs = int(secs)
-    milisecs = int((secs - wholesecs)*100)
+    milisecs = int((secs - wholesecs) * 100)
     hh = wholesecs / 3600
-    hhd = hh % 24
+    hd = hh % 24
     mm = (wholesecs / 60) - (hh*60)
     ss = wholesecs - (hh*3600) - (mm*60)
-    return "%.2d:%.2d:%.2d.%.2d" % (hhd,mm,ss,milisecs) 
+    return "{:02d}:{:02d}:{:02d}.{:02d}".format(hd, mm, ss, milisecs) 
 
 
 def f2tc(f,base=25):
@@ -36,7 +36,7 @@ def f2tc(f,base=25):
     mm = int(((f / base) / 60) - (hh*60))
     ss = int((f/base) - (hh*3600) - (mm*60))
     ff = int(f - (hh*3600*base) - (mm*60*base) - (ss*base))
-    return "%.2d:%.2d:%.2d:%.2d" % (hh,mm,ss,ff) 
+    return "{:02d}:{:02d}:{:02d}:{:02d}".format(hh, mm, ss, ff) 
  
  
 def s2tc(s,base=25):
@@ -48,15 +48,15 @@ def s2tc(s,base=25):
     mm  = int(((f / base) / 60) - (hh*60))
     ss  = int((f/base) - (hh*3600) - (mm*60))
     ff  = int(f - (hh*3600*base) - (mm*60*base) - (ss*base))
-    return "%02d:%02d:%02d:%02d" % (hhd,mm,ss,ff) 
+    return "{:02d}:{:02d}:{:02d}:{:02d}".format(hhd, mm, ss, ff) 
  
  
 def s2words(s):
     s = int(s)
-    if s < 60:     return "%d seconds"%s
-    elif s < 120:  return "1 min %d secs" % (s-60)
-    elif s < 7200: return "%d minutes" % round(s/60)
-    else:          return "%d hours" % round(s/3600)
+    if   s < 60:   return "{} seconds".format(s)
+    elif s < 120:  return "1 min {} secs".format(s-60)
+    elif s < 7200: return "{} minutes".format(round(s/60))
+    else:          return "{} hours".format(round(s/3600))
 
 
 ## Time formating
