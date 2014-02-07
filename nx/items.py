@@ -5,7 +5,10 @@ from nx.common import *
 from nx.common.nxobject import NXObject
 from nx.common.metadata import meta_types
 
+from connection import *
+
 from nx.assets import Asset
+
 
 
 class Item(NXObject):
@@ -21,7 +24,7 @@ class Item(NXObject):
     def __getitem__(self, key):
         key = key.lower().strip()
         if not key in self.meta:
-            if self.get_asset()
+            if self.get_asset():
                 return self.get_asset()[key]
             else:
                 return False
@@ -64,16 +67,62 @@ class Bin(NXObject):
 
     def _new(self):
         self.meta = {}
+        self.items = []
+
+    def _load_from_cache(self):
+        try:
+            self.meta, itemdata = json.loads(cache.load("%s%d" % (self.ns_prefix, self.id)))
+        except:
+            return False
+        self.items = []
+        for idata in itemdata:
+            self.items.append(Item(from_data=idata))
+        return True
+
+    def _save_to_cache(self):
+        return cache.save("%s%d" % (self.ns_prefix, self["id_object"]), json.dumps([self.meta, [i.meta for i in self.items]]))
+
+    def get_duration(self):
+        dur = 0
+        for item in self.items:
+            dur += item.get_duration()
+        return dur
+
+
+
+
+class Event(NXObject):
+    object_type = "event"
+
+    def _new(self):
+        self.start      = 0
+        self.stop       = 0
+        self.id_channel = 0
+        self.id_magic   = 0
+        self.child      = False
+
+    def get_bin(self):
+        self.child = Bin(self.id_magic)
+        return self.child
+        
 
 
 
 
 class Rundown(object):
      def __init__(self, date=False):
-        pass
+        self.events = []
 
 
 
+
+def get_day_events(id_channel, date):
+    day_start = datestr2ts(date)
+    day_end   = datestr2ts(date, 23, 59, 59)
+    db = DB()
+    db.query("SELECT id_object FROM nx_events WHERE id_channel=%s AND start > %s AND start < %s ", (id_channel, day_start, day_end))
+    for id_event, in db.fetchall():
+        yield Event(id_event)
 
 
 def get_bin_first_item(id_bin, db=False):
@@ -84,6 +133,7 @@ def get_bin_first_item(id_bin, db=False):
         return db.fetchall()[0][0]
     except:
         return False
+
 
 def get_next_item(id_item, db=False):
     if not db:

@@ -6,4 +6,9 @@ def hive_meta_types(auth_key, params):
 
 
 def hive_site_settings(auth_key,params):
-    return 200, {}
+    db = DB()
+    db.query("SELECT key, value FROM nx_settings")
+    result = {}
+    for tag, value in db.fetchall():
+        result[tag] = value
+    return 200, result

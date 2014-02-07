@@ -16,7 +16,7 @@ class MetaType(object):
         self.aliases    = {}
 
     def alias(self, lang='en-US'):
-        return self.aliases.get(lang, self.title)
+        return self.aliases.get(lang, self.title.replace("_"," ").capitalize())
 
     def pack(self):
         return {
@@ -57,7 +57,7 @@ class MetaTypes(dict):
                 meta_type.searchable = bool(searchable)
                 meta_type.class_     = class_
                 meta_type.default    = default
-                meta_type.settings   = settings
+                meta_type.settings   = json.loads(settings)
                 db.query("SELECT lang, alias FROM nx_meta_aliases WHERE tag='{0}'".format(tag))
                 for lang, alias in db.fetchall():
                     meta_type.aliases[lang] = alias
@@ -109,7 +109,7 @@ class MetaTypes(dict):
 
     def col_alias(self, key, lang):
         if key in self: 
-            return self[key].aliases.get(lang,key)
+            return self[key].alias(lang)
         return key
 
     def format(self, key, value):

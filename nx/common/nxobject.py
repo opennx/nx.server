@@ -15,13 +15,15 @@ class NXBaseObject(object):
         self.ns_tags   = meta_types.ns_tags(self.ns_prefix)
         self.id = id_object
         self.meta = {}
+        self._loaded = False
 
         if from_data:
             self.meta = from_data
         else:
             self.db = db
             if self.id:
-                self._load()
+                if self._load():
+                    self._loaded = True
             else:
                 self._new()
 
@@ -42,6 +44,9 @@ class NXBaseObject(object):
             self["mtime"] = time.time()
         self._save()
 
+    def delete(self):
+        pass
+
     def __getitem__(self, key):
         key = key.lower().strip()
         if not key in self.meta:
@@ -50,7 +55,7 @@ class NXBaseObject(object):
 
     def __setitem__(self, key, value):
         key = key.lower().strip()
-        if value or value is 0:
+        if str(value):
             self.meta[key] = meta_types.format(key,value)
         else:
             del self[key]
@@ -74,6 +79,8 @@ class NXBaseObject(object):
         except:
             return "{0} ID:{1}".format(self.object_type, self.id)
 
+    def __len__(self):
+        return self._loaded
 
 
 
@@ -103,6 +110,7 @@ class NXServerObject(NXBaseObject):
                 self[tag] = value
 
             self._save_to_cache()
+        return True
 
     def _load_from_cache(self):
         try:
@@ -138,7 +146,8 @@ class NXServerObject(NXBaseObject):
                                                         )
             v = [self[tag] for tag in self.ns_tags if tag != "id_object"]
             db.query(q, v)
-            self["id_object"] = db.lastid()
+            self["id_object"] = self.id = db.lastid()
+
 
         db.query("DELETE FROM nx_meta WHERE id_object = {0} and object_type = {1}".format(self["id_object"], self.id_object_type()))
         for tag in self.meta:
@@ -155,6 +164,15 @@ class NXServerObject(NXBaseObject):
         else:
             db.rollback()
             return False
+
+    def delete(self):
+        if not self.db:
+            self.db = DB()
+        db = self.db
+        db.query("DELETE FROM nx_meta WHERE id_object = %s and object_type = %s", [self.id, self.id_object_type()] )
+        db.query("DELETE FROM nx_{}s WHERE id_object = %s".format(self.object_type), [self.id])
+        db.commit()
+        cache.delete("{0}{1}".format(self.ns_prefix, self.id))
 
         
 

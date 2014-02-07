@@ -72,7 +72,7 @@ class AdminHandler(BaseHTTPRequestHandler):
         logging.debug("Query %s completed in %.03f seconds" % (method, time.time()-start_time))
 
 
-import hive_assets, hive_settings
+import hive_assets, hive_settings, hive_items
 
 class Service(ServicePrototype):
     def onInit(self):
@@ -82,7 +82,7 @@ class Service(ServicePrototype):
         
         self.methods = {}
 
-        for module in [hive_assets, hive_settings]:
+        for module in [hive_assets, hive_settings, hive_items]:
             for method in dir(module):
                 if not method.startswith("hive_"):
                     continue

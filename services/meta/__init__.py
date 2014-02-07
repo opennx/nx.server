@@ -11,7 +11,7 @@ from probes import probes
 class Service(ServicePrototype):
     def onInit(self):
         filters = []
-        filters.append("status=%d"%CREATING)
+        #filters.append("status=%d"%CREATING)
         if filters:
             self.filters = "WHERE " + " AND ".join(filters)
         else: 
@@ -26,7 +26,7 @@ class Service(ServicePrototype):
     def _proc(self, id_asset, db):
         asset = Asset(id_asset, db = db)
         fname = asset.get_file_path()
-        logging.debug("Probing %s"%asset)
+        #logging.debug("Probing %s"%asset)
         
         if not os.path.exists(fname):
             if asset["status"] == ONLINE:

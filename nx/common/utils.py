@@ -2,14 +2,23 @@
 # -*- coding: utf-8 -*-
  
 import os
+import time
 import unicodedata
 
-######################################################################## 
-## Time formating
+
 
 
 def unaccent(instr,encoding="utf-8"):
     return unicodedata.normalize('NFKD', instr).encode('ascii', 'ignore')
+
+## String manipulation
+######################################################################## 
+## Time formating
+
+def datestr2ts(datestr, hh=0, mm=0, ss=0):
+    yy,mo,dd = [int(i) for i in datestr.split("-")]
+    return int(time.mktime(time.struct_time([yy,mo,dd,hh,mm,ss,False,False,False])))
+
 
 def s2time(secs):
     """Converts seconds to time"""
