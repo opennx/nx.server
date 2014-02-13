@@ -64,6 +64,7 @@ class Item(NXObject):
 
 class Bin(NXObject):
     object_type = "bin"
+    items = []
 
     def _new(self):
         self.meta = {}
@@ -93,27 +94,26 @@ class Bin(NXObject):
 
 class Event(NXObject):
     object_type = "event"
+    bin        = False
+    asset      = False
 
     def _new(self):
         self.start      = 0
         self.stop       = 0
         self.id_channel = 0
         self.id_magic   = 0
-        self.child      = False
 
     def get_bin(self):
-        self.child = Bin(self.id_magic)
-        return self.child
+        if not self.bin:
+            self.bin = Bin(self["id_magic"])
+        return self.bin
+
+    def get_asset(self):
+        if not self.asset:
+            self.asset = Asset(self["id_magic"])
+        return self.asset
+
         
-
-
-
-
-class Rundown(object):
-     def __init__(self, date=False):
-        self.events = []
-
-
 
 
 def get_day_events(id_channel, date):

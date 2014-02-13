@@ -16,7 +16,17 @@ class MetaType(object):
         self.aliases    = {}
 
     def alias(self, lang='en-US'):
-        return self.aliases.get(lang, self.title.replace("_"," ").capitalize())
+        if not lang in self.aliases:
+            return self.title.replace("_"," ").capitalize()
+        return self.aliases[lang][0]
+        
+    def col_header(self, lang='en-US'):
+        if not lang in self.aliases:
+            return self.title.replace("_"," ").capitalize()
+        a, h = self.aliases[lang][0]
+        if h is None:
+            return a
+        return h
 
     def pack(self):
         return {
@@ -58,9 +68,9 @@ class MetaTypes(dict):
                 meta_type.class_     = class_
                 meta_type.default    = default
                 meta_type.settings   = json.loads(settings)
-                db.query("SELECT lang, alias FROM nx_meta_aliases WHERE tag='{0}'".format(tag))
-                for lang, alias in db.fetchall():
-                    meta_type.aliases[lang] = alias
+                db.query("SELECT lang, alias, col_header FROM nx_meta_aliases WHERE tag='{0}'".format(tag))
+                for lang, alias, col_header in db.fetchall():
+                    meta_type.aliases[lang] = alias, col_header
                 self[tag] = meta_type
             return True
 
@@ -107,10 +117,16 @@ class MetaTypes(dict):
         else:
             return self.format(key, self[key].default)
 
-    def col_alias(self, key, lang):
+    def tag_alias(self, key, lang):
         if key in self: 
             return self[key].alias(lang)
         return key
+
+    def col_alias(self, key, lang):
+        if key in self: 
+            return self[key].col_header(lang)
+        return key
+
 
     def format(self, key, value):
         if not key in self:
