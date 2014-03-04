@@ -17,7 +17,7 @@ def is_installed(rname):
 
 
 class Service(ServicePrototype):
-    def onInit(self):
+    def on_init(self):
 
         try:     self.exec_require = config.find("require").text
         except:  self.exec_require = ""
@@ -35,7 +35,7 @@ class Service(ServicePrototype):
             self.shutdown()
         exec (self.exec_init)
 
-    def onMain(self):
+    def on_main(self):
         if self.exec_main:
             exec (self.exec_main)
         

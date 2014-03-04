@@ -9,7 +9,7 @@ from probes import probes
 
 
 class Service(ServicePrototype):
-    def onInit(self):
+    def on_init(self):
         filters = []
         #filters.append("status=%d"%CREATING)
         if filters:
@@ -17,7 +17,7 @@ class Service(ServicePrototype):
         else: 
             self.filters = ""
 
-    def onMain(self):
+    def on_main(self):
         db = DB()
         db.query("SELECT id_object FROM nx_assets %s" % self.filters)
         for id_asset, in db.fetchall():

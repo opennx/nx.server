@@ -34,10 +34,10 @@ def file_to_title(fname): # This sucks, but it's based on best practices :-)
 
 
 class Service(ServicePrototype):
-    def onInit(self):
+    def on_init(self):
         self.mirrors = self.settings.findall("mirror")
 
-    def onMain(self):
+    def on_main(self):
         db = DB()
 
         for mirror in self.mirrors:

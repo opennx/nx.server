@@ -75,7 +75,7 @@ class AdminHandler(BaseHTTPRequestHandler):
 import hive_assets, hive_settings, hive_items
 
 class Service(ServicePrototype):
-    def onInit(self):
+    def on_init(self):
         self.root_path = os.path.join(__path__[0])
         cert_name = os.path.join(self.root_path,"cert","server.pem")
         use_ssl = os.path.exists(cert_name)
@@ -104,5 +104,5 @@ class Service(ServicePrototype):
         thread.start_new_thread(self.server.serve_forever,())
 
 
-    def onMain(self):
+    def on_main(self):
         pass

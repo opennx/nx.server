@@ -11,7 +11,7 @@ class ServicePrototype(object):
         self.settings   = settings
 
         try:
-            self.onInit()
+            self.on_init()
         except:
             logging.error("Unable to initialize service. %s" % str(sys.exc_info()))
             self.shutdown()
@@ -21,10 +21,10 @@ class ServicePrototype(object):
             db.commit()
         logging.goodnews("Service started")
 
-    def onInit(self):
+    def on_init(self):
         pass
 
-    def onMain(self):
+    def on_main(self):
         pass        
 
     def soft_stop(self):

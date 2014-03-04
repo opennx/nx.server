@@ -36,6 +36,6 @@ if __name__ == "__main__":
     service = Service(id_service, settings)
 
     while True:
-        service.onMain()
+        service.on_main()
         service.heartbeat()
         time.sleep(loop_delay)

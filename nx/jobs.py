@@ -1,66 +1,128 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-#$from nx.server import *
+from nx import *
+from nx.assets import Asset
+
+MAX_RETRIES = 3
 
 
 class Job():
-    def __init__(self,service,):
-      self.service = service
-     
-      if limit: limit = "AND %s"%limit
-      else:     limit=""
-     
-      id_asset = False
-      settings = False
-      id_state = False
-      retries  = 0
-     
-      db = dbconn()
-      db.query("SELECT ast.id_asset,ast.id_state,s.settings,ast.retries FROM nebula_asset_states as ast, nebula_states as s WHERE ast.id_state=s.id_state AND ( (ast.id_service = 0 AND ast.progress = 0) OR (ast.progress = -2 AND ast.retries < 2) ) AND s.agent_type = '%s' %s ORDER BY ast.id_asset DESC LIMIT 1" % (agent_type,limit))
-      try:
-       id_asset,id_state,settings,retries = db.fetchall()[0]
-      except:
-       pass
-      else:
-       db.query("UPDATE nebula_asset_states SET id_service = %s, reason='Job in progress' WHERE id_asset=%s AND id_state=%s"%(service.id_service,id_asset,id_state))
-       db.commit()
-       time.sleep(random.random()) # TODO: pokud tohle nezabrani tomu, aby se spustily dva stejny joby naraz, tak zrusit
-       db.query("SELECT id_service FROM nebula_asset_states WHERE id_asset=%s AND id_state=%s"%(id_asset,id_state))
+    def __init__(self, id_service,  actions=[]):
 
-       r = db.fetchall()[0][0]
-       if str(r) != str(service.id_service):
-        service.logging.info("Giving up job %s/%s. Other service is working on it."%(id_asset, id_state))
-        id_asset = False
-        settings = False
-        id_state = False
-        retries  = 0
+        qactions = ", ".join([str(k) for k in actions])
+    
+        self.id_job    = False
+        self.id_object = False
+        self.id_action = False
+        self.settings  = False
+        self.retries   = False
 
-      self.id_asset = id_asset
-      self.settings = settings
-      self.id_state = id_state
-      self.retries  = retries
+        db = DB()
+        db.query("""UPDATE nx_jobs 
+            SET id_service = {id_service},
+                stime      = {stime},
+                etime      = 0
+            WHERE 
+                id_job IN (SELECT id_job from nx_jobs
+                    WHERE progress   = -1
+                    AND   id_service IN (0, {id_service})
+                    AND   id_action  IN ({actions})
+                    AND   retries    <  {max_retries}
+
+                    ORDER BY priority DESC, ctime DESC LIMIT 1
+                    )
+                  """.format(
+                      stime       = time.time(),
+                      id_service  = id_service, 
+                      actions     = qactions, 
+                      max_retries = MAX_RETRIES
+                      )
+            )
+
+        db.commit()
+
+        db.query("""SELECT id_job, id_object, id_action, settings, retries FROM nx_jobs 
+            WHERE progress = -1 
+            AND id_service={id_service}
+            """.format(id_service=id_service)
+            )
+
+
+        for id_job, id_object, id_action, settings, retries in db.fetchall():
+            logging.debug("New job found")
+            self.id_job    = id_job
+            self.id_object = id_object
+            self.id_action = id_action
+            self.settings  = settings
+            self.retries   = retries
+            break
+        else:
+            logging.debug("No new job")
 
 
 
-    def set_progress(self,PP,reason='Job in progress',retries=False):
-      db = dbconn()
-      db.query("SELECT progress FROM nebula_asset_states WHERE id_asset = %s AND id_state = %s" % (self.id_asset,self.id_state))
-      try:    res = db.fetchall()[0][0]
-      except: res = 0
-      
-      if   PP == -2: self.service.logging.error("Job (%d-%d) failed: %s"%(self.id_asset,self.id_state,reason))
-      elif PP == -3: 
-       self.service.logging.warning("Restarting job (%d-%d)"%(self.id_asset,self.id_state))
-       res = -3
-      elif PP == -4: 
-       self.service.logging.warning("Aborting job (%d-%d)"%(self.id_asset,self.id_state))
-       res = -4
-      
-      if not retries: retries = self.retries
-      
-      db.query("UPDATE nebula_asset_states set progress=%s, reason='%s',retries=%s  WHERE id_asset = %s and id_state = %s" %(PP,reason,retries,self.id_asset,self.id_state))
-      db.commit()
-      
-      return res
 
+    def __len__(self):
+        return bool(self.id_job)
+
+    def set_progress(self, progress, message="Job in progress"):
+        db = DB()
+        db.query("""UPDATE nx_jobs
+            SET progress  = {progress}, 
+                message   = {message}
+            WHERE 
+                id_job = {id_job}
+            """.format(
+                    progress = progress,
+                    message  = message,
+                    id_job  = self.id_job
+                    )
+                )
+        db.commit()
+
+
+
+    def abort(self):
+        db = DB()
+
+
+    def restart(self):
+        db = DB()
+
+
+    def fail(self, message="Job failed"):
+        db = DB()
+        db.query("""UPDATE nx_jobs
+            SET retries   = {retries}, 
+                priority  = {priority}, 
+                progress  = -3
+                message   = {message}
+            WHERE 
+                id_job  = {id_job}
+            """.format(
+                    retries  = retries+1, 
+                    priority = max(0,priority-1),
+                    message  = message,
+                    id_job   = self.id_job
+                    )
+                )
+        db.commit()
+
+
+    def done(self, message="Job completed"):
+        db = DB()
+        db.query("""UPDATE nx_jobs
+            SET   
+                progress  = -2
+                etime     = {etime}
+                message   = {message}
+            WHERE 
+                id_job  = {id_job}
+            """.format(
+                    etime   = time.time(), 
+                    message = message,
+                    id_job  = self.id_job
+                    )
+                )
+        db.commit()

@@ -12,6 +12,12 @@ STOPPING = 3           # Service graceful stop requested. It should shutdown its
 KILL     = 4           # Service force stop requested. Dispatch is about to kill -9 it
 
 
+ASSET = 0
+ITEM  = 1
+BIN   = 2
+EVENT = 3
+USER  = 4 
+
 OBJECT_TYPES = {
  "asset"  : 0,
  "item"   : 1,
@@ -53,7 +59,7 @@ BLOB         = 3       # Multiline text. 'syntax' can be provided in config
 DATE         = 4       # Date information. Stored as timestamp, presented as YYYY-MM-DD or calendar
 TIME         = 5       # Clock information Stored as timestamp, presened as HH:MM #TBD
 DATETIME     = 6       # Date and time information. Stored as timestamp
-TIMECODE     = 7       # Timecode information, stored as float(seconds), presented as HH:MM:SS.CS (centiseconds)
+TIMECODE     = 7       # Timecode information, stored as float(seconds), presented as HH:MM:SS:FF or HH:MM:SS.CS (centiseconds)
 DURATION     = 8       # Similar to TIMECODE, Marks and subclips are visualized 
 REGION       = 9       # Single time region stored as ///// TBD
 REGIONS      = 10      # Multiple time regions stored as json {"region_name":(float(start_second),float(end_second), "second_region_name":(float(start_second),float(end_second)}

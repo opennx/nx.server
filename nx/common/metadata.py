@@ -23,7 +23,7 @@ class MetaType(object):
     def col_header(self, lang='en-US'):
         if not lang in self.aliases:
             return self.title.replace("_"," ").capitalize()
-        a, h = self.aliases[lang][0]
+        a, h = self.aliases[lang]
         if h is None:
             return a
         return h

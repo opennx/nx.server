@@ -13,16 +13,17 @@ from nx.assets import Asset
 
 class Item(NXObject):
     object_type = "item"
+    asset = False
 
     def _new(self):
-        self["id_object"] = False
         self["id_bin"]    = False
         self["id_asset"]  = False
         self["position"]  = 0
-        self.asset        = False
 
     def __getitem__(self, key):
         key = key.lower().strip()
+        if key == "id_object":
+            return self.id
         if not key in self.meta:
             if self.get_asset():
                 return self.get_asset()[key]
@@ -42,7 +43,7 @@ class Item(NXObject):
 
     def get_asset(self):
         if (not self.asset) and self["id_asset"]:
-            self.asset = Asset(self["id_asset"])
+            self.asset = Asset(self["id_asset"], db = self.db)
         return self.asset
 
     def get_duration(self):
@@ -69,6 +70,38 @@ class Bin(NXObject):
     def _new(self):
         self.meta = {}
         self.items = []
+
+    def _load(self):
+        if not self._load_from_cache():
+            if not self.db:
+                self.db = DB()
+            db = self.db
+
+            logging.debug("Loading {!r} from DB".format(self))
+
+            qcols = ", ".join(self.ns_tags)
+            db.query("SELECT {0} FROM nx_{1}s WHERE id_object={2}".format(qcols, self.object_type, self.id))
+            try:
+                result = db.fetchall()[0]
+            except:
+                logging.error("Unable to load {!r}".format(self))
+                return False
+
+            for tag, value in zip(self.ns_tags, result):
+                self[tag] = value
+
+            db.query("SELECT tag, value FROM nx_meta WHERE id_object = %s and object_type = %s", (self["id_object"], self.id_object_type()))
+            for tag, value in db.fetchall():
+                self[tag] = value
+
+            db.query("SELECT id_object FROM nx_items WHERE id_bin = %s ORDER BY position", [self["id_object"]])
+            self.items = []
+            for id_item, in db.fetchall():
+                self.items.append(Item(id_item, db=db))
+
+            self._save_to_cache()
+        return True
+
 
     def _load_from_cache(self):
         try:
@@ -98,10 +131,10 @@ class Event(NXObject):
     asset      = False
 
     def _new(self):
-        self.start      = 0
-        self.stop       = 0
-        self.id_channel = 0
-        self.id_magic   = 0
+        self["start"]      = 0
+        self["stop"]       = 0
+        self["id_channel"] = 0
+        self["id_magic"]   = 0
 
     def get_bin(self):
         if not self.bin:

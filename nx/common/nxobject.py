@@ -16,11 +16,13 @@ class NXBaseObject(object):
         self.id = id_object
         self.meta = {}
         self._loaded = False
+        self.db = db
 
         if from_data:
             self.meta = from_data
+            self.id = self.meta.get("id_object", False)
+            self._loaded = True
         else:
-            self.db = db
             if self.id:
                 if self._load():
                     self._loaded = True
@@ -42,7 +44,7 @@ class NXBaseObject(object):
     def save(self, set_mtime=True):
         if set_mtime:
             self["mtime"] = time.time()
-        self._save()
+        return self._save()
 
     def delete(self):
         pass
@@ -55,7 +57,7 @@ class NXBaseObject(object):
 
     def __setitem__(self, key, value):
         key = key.lower().strip()
-        if str(value):
+        if value or type(key) in (float, int, bool):
             self.meta[key] = meta_types.format(key,value)
         else:
             del self[key]
@@ -162,6 +164,7 @@ class NXServerObject(NXBaseObject):
             db.commit()
             return True
         else:
+            logging.error("Save {!r} to cache failed".format(self))
             db.rollback()
             return False
 

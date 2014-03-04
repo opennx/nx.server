@@ -79,7 +79,7 @@ class ControlHandler(BaseHTTPRequestHandler):
 
 
 class Service(ServicePrototype):
-    def onInit(self):
+    def on_init(self):
         if not config["playout_channels"]:
             self.logging.error("No playout channel configured")
             self.shutdown()
