@@ -182,6 +182,9 @@ class Storage():
         elif PLATFORM == "linux":
             return os.path.join ("/mnt","nx%02d"%self.id_storage)
 
+    def __len__(self):
+        return ismount(self.get_path()) and len(os.listdir(self.get_path())) != 0
+
 def load_storages():
     try:
         db = DB()

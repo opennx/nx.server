@@ -2,10 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from nx import *
-from nx.assets import Asset
 
 MAX_RETRIES = 3
-
 
 class Job():
     def __init__(self, id_service,  actions=[]):
@@ -42,23 +40,24 @@ class Job():
 
         db.commit()
 
-        db.query("""SELECT id_job, id_object, id_action, settings, retries FROM nx_jobs 
+        db.query("""SELECT id_job, id_object, id_action, settings, priority, retries FROM nx_jobs 
             WHERE progress = -1 
             AND id_service={id_service}
             """.format(id_service=id_service)
             )
 
 
-        for id_job, id_object, id_action, settings, retries in db.fetchall():
+        for id_job, id_object, id_action, settings, priority, retries in db.fetchall():
             logging.debug("New job found")
             self.id_job    = id_job
             self.id_object = id_object
             self.id_action = id_action
             self.settings  = settings
+            self.priority  = priority
             self.retries   = retries
             break
-        else:
-            logging.debug("No new job")
+        #else:
+        #    logging.debug("No new job")
 
 
 
@@ -66,11 +65,11 @@ class Job():
     def __len__(self):
         return bool(self.id_job)
 
-    def set_progress(self, progress, message="Job in progress"):
+    def set_progress(self, progress, message="In progress"):
         db = DB()
         db.query("""UPDATE nx_jobs
             SET progress  = {progress}, 
-                message   = {message}
+                message   = '{message}'
             WHERE 
                 id_job = {id_job}
             """.format(
@@ -91,32 +90,33 @@ class Job():
         db = DB()
 
 
-    def fail(self, message="Job failed"):
+    def fail(self, message="Failed"):
         db = DB()
         db.query("""UPDATE nx_jobs
             SET retries   = {retries}, 
                 priority  = {priority}, 
                 progress  = -3
-                message   = {message}
+                message   = '{message}'
             WHERE 
                 id_job  = {id_job}
             """.format(
-                    retries  = retries+1, 
-                    priority = max(0,priority-1),
+                    retries  = self.retries+1, 
+                    priority = max(0,self.priority-1),
                     message  = message,
                     id_job   = self.id_job
                     )
                 )
         db.commit()
+        logging.error("Job ID {} : {}".format(self.id_job, message))
 
 
-    def done(self, message="Job completed"):
+    def done(self, message="Completed"):
         db = DB()
         db.query("""UPDATE nx_jobs
             SET   
-                progress  = -2
-                etime     = {etime}
-                message   = {message}
+                progress  = -2,
+                etime     = {etime},
+                message   = '{message}'
             WHERE 
                 id_job  = {id_job}
             """.format(
@@ -126,3 +126,4 @@ class Job():
                     )
                 )
         db.commit()
+        logging.goodnews("Job ID {} : {}".format(self.id_job, message))

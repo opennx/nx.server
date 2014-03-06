@@ -1,6 +1,6 @@
 from nx.common.constants import *
 
-FILETYPES = {
+file_types = {
 "dv"   : VIDEO,
 "avi"  : VIDEO,
 "mov"  : VIDEO,

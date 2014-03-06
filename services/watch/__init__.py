@@ -3,9 +3,9 @@
 
 from nx import *
 from nx.assets import *
+from nx.common.filetypes import file_types
 
 from stat import *
-from filetypes import FILETYPES
 
 def get_files(basepath,recursive=False,hidden=False):
     if os.path.exists(basepath):
@@ -39,6 +39,7 @@ class Service(ServicePrototype):
 
     def on_main(self):
         db = DB()
+        abp_cache = {}
 
         for mirror in self.mirrors:
             ###################
@@ -59,6 +60,7 @@ class Service(ServicePrototype):
 
             ## Mirror settings
             ###################
+            now = time.time()
 
             for f in get_files(os.path.join(stpath,mpath), recursive=mrecursive, hidden=mhidden):
 
@@ -67,7 +69,7 @@ class Service(ServicePrototype):
                 if apath == "": continue 
          
                 try:    
-                    filetype = FILETYPES[os.path.splitext(f)[1][1:].lower()]
+                    filetype = file_types[os.path.splitext(f)[1][1:].lower()]
                 except: 
                     continue
 
@@ -80,7 +82,10 @@ class Service(ServicePrototype):
                         continue
 
 
-                if asset_by_path(mstorage,apath,db=db): continue 
+                if now - abp_cache.get("{}|{}".format(mstorage,apath),0) > 600:
+                    if asset_by_path(mstorage,apath,db=db): 
+                        continue 
+            
 
                 logging.debug("Found new file %s" % apath)
 
@@ -105,7 +110,7 @@ class Service(ServicePrototype):
                 # Loading metadata from sidecar JSON file
                 path_elms = asset.get_file_path().split("/")
                 for i in range(len(path_elms)):
-                    nxmeta_name = reduce(os.path.join,path_elms[:i]+[".%s.nxmeta"%path_elms[i]])
+                    nxmeta_name = reduce(os.path.join, path_elms[:i]+[".%s.nxmeta"%path_elms[i]])
                     if os.path.exists(nxmeta_name):
                         try:
                             asset.meta.update(json.loads(open(nxmeta_name).read()))
