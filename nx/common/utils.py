@@ -28,10 +28,10 @@ def s2time(secs):
         return "--:--:--.--"
     wholesecs = int(secs)
     milisecs = int((secs - wholesecs) * 100)
-    hh = wholesecs / 3600
-    hd = hh % 24
-    mm = (wholesecs / 60) - (hh*60)
-    ss = wholesecs - (hh*3600) - (mm*60)
+    hh = int(wholesecs / 3600)
+    hd = int(hh % 24)
+    mm = int((wholesecs / 60) - (hh*60))
+    ss = int(wholesecs - (hh*3600) - (mm*60))
     return "{:02d}:{:02d}:{:02d}.{:02d}".format(hd, mm, ss, milisecs) 
 
 
@@ -80,3 +80,4 @@ def file_has_sibling(path,exts=[]):
         if os.path.exists(tstf):
             return tstf
     return False
+

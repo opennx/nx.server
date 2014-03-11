@@ -32,6 +32,7 @@ class AdminHandler(BaseHTTPRequestHandler):
         else:
             self._echo(False)
 
+
     def do_POST(self):
         start_time = time.time()
 

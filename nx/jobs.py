@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# PLEASE MAKE ME NICER
+
 from nx import *
 
 MAX_RETRIES = 3
@@ -67,15 +69,10 @@ class Job():
 
     def set_progress(self, progress, message="In progress"):
         db = DB()
-        db.query("""UPDATE nx_jobs
-            SET progress  = {progress}, 
-                message   = '{message}'
-            WHERE 
-                id_job = {id_job}
-            """.format(
+        db.query("""UPDATE nx_jobs SET progress  = {progress}, message = '{message}' WHERE id_job = {id_job}""".format(
                     progress = progress,
                     message  = message,
-                    id_job  = self.id_job
+                    id_job   = self.id_job
                     )
                 )
         db.commit()
@@ -127,3 +124,32 @@ class Job():
                 )
         db.commit()
         logging.goodnews("Job ID {} : {}".format(self.id_job, message))
+
+
+
+def send_to(id_object, id_action, settings={}, id_user=0, restart_existing=True, db=False):
+    if not db:
+        db = DB()
+
+    db.query("SELECT id_action FROM nx_jobs WHERE id_object={id_object} AND id_action={id_action} AND settings='{settings}'".format(id_object=id_object, id_action=id_action, settings=json.dumps(settings)))
+    res = db.fetchall()
+    if res:
+        if restart_existing:
+            db.query("UPDATE nx_jobs SET id_service=0, progress=-1, ctime={ctime} WHERE id_action={id_action}".format(ctime=time.time(), id_action=res[0][0] ))
+            db.commit()
+            return 200, "Job restarted"
+        else:
+            return 400, "Job exists. Not restarting"
+
+
+    db.query("""INSERT INTO nx_jobs (id_object, id_action, settings, id_service, priority, progress, retries, ctime, stime, etime, message, id_user)
+                            VALUES  ({id_object}, {id_action}, '{settings}', 0, 1, -1, 0, {ctime}, 0, 0, 'Pending', {id_user})""".format(
+                    id_object = id_object,
+                    id_action = id_action,
+                    settings  = json.dumps(settings),
+                    ctime     = time.time(),
+                    id_user   = id_user
+                )
+            )
+    db.commit()
+    return 201, "Job created"

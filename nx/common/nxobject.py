@@ -74,7 +74,7 @@ class NXBaseObject(object):
 
     def __repr__(self):
         try:
-            title = self.meta.get("title","")
+            title = self["title"]
             if title: 
                 title = " ({})".format(title)
             return "{0} ID:{1}{2}".format(self.object_type, self.id, title)
@@ -214,7 +214,10 @@ class AssetBase(object):
         return self["mark_out"]
         
     def get_file_path(self):
-        return os.path.join(storages[self["id_storage"]].get_path(), self["path"])
+        try:
+            return os.path.join(storages[self["id_storage"]].get_path(), self["path"])
+        except:
+            return ""
 
     def get_duration(self):
         dur = float(self.meta.get("duration",0))

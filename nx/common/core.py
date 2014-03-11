@@ -34,6 +34,14 @@ def critical_error(message):
         print ("CRITICAL ERROR: {0}".format(message))
     sys.exit(-1)
 
+
+
+def success(ret_code):
+    return ret_code < 300
+def failed(ret_code):
+    return not success(ret_code)
+
+
 ########################################################################
 ## Config
 
@@ -85,7 +93,13 @@ messaging = Messaging()
 
 class Logging():
     def __init__(self):
-        pass
+        self.formats = {
+            DEBUG     : "DEBUG      \033[34m{0:<15} {1}\033[0m",
+            INFO      : "INFO       {0:<15} {1}",
+            WARNING   : "\033[33mWARNING\033[0m    {0:<15} {1}",
+            ERROR     : "\033[31mERROR\033[0m      {0:<15} {1}",
+            GOOD_NEWS : "\033[32mGOOD NEWS\033[0m  {0:<15} {1}"
+        }
 
     def _msgtype(self, code):
         return {
@@ -100,10 +114,16 @@ class Logging():
         return self._msgtype(code)
 
     def _send(self,msgtype,message):
-        try:
-            print ("{0:<10} {1:<15} {2}".format(self._typeformat(msgtype), config['user'], message))
-        except:
-            print (message.encode("utf-8"))
+        if PLATFORM == "linux":
+            try:
+                print (self.formats[msgtype].format(config['user'], message))
+            except:
+                print (message.encode("utf-8"))
+        else:
+            try:
+                print ("{0:<10} {1:<15} {2}".format(self._typeformat(msgtype), config['user'], message))
+            except:
+                print (message.encode("utf-8"))
         messaging.send("LOG",[config['user'], msgtype, message])
 
     def debug   (self,msg): self._send(DEBUG,msg) 

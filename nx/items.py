@@ -169,6 +169,20 @@ def get_bin_first_item(id_bin, db=False):
 
 
 def get_next_item(id_item, db=False):
-    if not db:
-        db = DB()
+    if not id_item:
+        return False
+    logging.debug("Looking for item following item ID {}".format(id_item))
+
+
+    current_item = Item(id_item, db=db)
+    current_bin = Bin(current_item["id_bin"])
+    try:
+        return current_bin.items[current_item["position"]].id
+    except:
+        #if not db:
+        #    db = DB()
+        #   find next bin, open bin, return first item if exist
     
+        return current_bin.items[0].id
+
+

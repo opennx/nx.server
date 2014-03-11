@@ -6,19 +6,6 @@ from nx import *
 import telnetlib
 import thread
 
-### If you want to use this file separately, just uncomment following lines (and comment out first import nx)
-### There is an example (or should be), how to use it at the end
-#
-#import os, sys, subprocess, thread
-#from time import *
-#from xml.etree import ElementTree as ET
-#class casplog():
-#    def debug(self,msg)  : print "DEBUG   : %s"%msg
-#    def info(self,msg)   : print "INFO    : %s"%msg
-#    def warning(self,msg): print "WARNING : %s"%msg
-#    def error(self,msg)  : print "ERROR   : %s"%msg
-#logging = casplog()
-
 
 ########################################################################
 ## Channel stuff
@@ -44,21 +31,21 @@ class CasparChannel():
         self.paused         = False
         
         self._cueing        = False
-        self.request_time   = time()
+        self.request_time   = time.time()
         
         self.pos = self.dur = self.fpos = self.fdur = 0
         self.cued_in = self.cued_out = self.current_in = self.current_out = 0
 
 
-    def on_main(self):
+    def on_main(self, channel=False):
         pass
 
-    def on_change(self):
+    def on_change(self, channel=False):
         pass
 
 
     def get_position(self): 
-        return int(self.fpos - (self.current_in*self.fps))
+        return int(self.fpos - (self.current_in * self.fps))
      
     def get_duration(self): 
         dur = self.fdur
@@ -81,17 +68,18 @@ class CasparChannel():
         
         stat, res = self.server.query(q)
         
-        if not stat: 
-            logging.error("Unable to cue %s" % res)
+        if failed(stat): 
+            res = "Unable to cue %s" % res
             self.cued_item  = False
             self.cued_fname = False
+            self._cueing    = False
         else:
             self.cued_item  = id_item
             self.cued_fname = fname
             self.cued_in    = mark_in
             self.cued_out   = mark_out
             self._cueing = True
-            logging.info("Cueing item %s" % self.cued_item)
+            res = "Cueing item %s" % self.cued_item
 
         return (stat,res)
      
@@ -124,33 +112,34 @@ class CasparChannel():
          else:                LEN = ""
          q = "PLAY %d-%d %s SEEK %s %s"%(self.channel, layer, self.current_fname, self.fpos, LEN)
        
-        res,data = self.server.query(q)
-        if res["status"] == "OK": self.paused = not self.paused
-        return [res,data]
+        stat, res = self.server.query(q)
+        if success(stat):
+            self.paused = not self.paused
+        return stat, res
 
 
     def abort(self,layer=False):
         if not layer: layer = self.feed_layer
         if not self.cued_item: return [{"status":"FAILED","reason":"Unable to abort. No item is cued."},False]
         self.Take()
-        sleep(.1)
+        time.sleep(.1)
         self.Freeze()
-        return [{"status":"OK","reason":"Clip aborted"},True]
+        return 200, "Aborted"
 
 
 
 
     def update_stat(self):
         stat, res = self.server.query("INFO %d" % self.channel)
-        request_time = time()
-        if not stat: 
+        if failed(stat): 
+            print (stat, res)
             return False
         try:    
             xstat = ET.XML(res)
         except: 
             return False
         else:   
-            self.request_time = time()
+            self.request_time = time.time()
             self.xstat = xstat
             return True
 
@@ -194,7 +183,6 @@ class CasparChannel():
         if not cued_file and current_file:
             changed = False
             if current_file == self.cued_fname:
-                logging.info ("Advanced to the next item (%s)" % self.cued_item)
                 self.current_item  = self.cued_item
                 self.current_fname = self.cued_fname
                 self.current_in    = self.cued_in
@@ -205,15 +193,15 @@ class CasparChannel():
             self.cued_fname = False
             self.cued_item  = False
 
-            if self.OnChange and changed: 
-                self.OnChange(self)
+            if self.on_change and changed: 
+                self.on_change(self)
 
         elif self.cued_item and cued_file and cued_file != self.cued_fname and not self._cueing:
-            logging.debug ("Cue mismatch: This is not the file which should be cued. IS: %s vs. SHOULDBE: %s" % (cued_file,self.cued_fname))
+            logging.warning ("Cue mismatch: This is not the file which should be cued. IS: %s vs. SHOULDBE: %s" % (cued_file,self.cued_fname))
             self.cued_item = False # AutoCue should handle it
 
         if self._cueing: self._cueing = False
-        if self.OnMain:  self.OnMain(self)
+        if self.on_main:  self.on_main(self)
 
 
 ## Channel stuff... tricky
@@ -222,54 +210,58 @@ class CasparChannel():
 
 
 
-def server_ident(host,port):
-    return "%s:%d"%(host,port)
+def server_ident(host, port):
+    return "{}:{}".format(host, port)
 
 class CasparServer():
     def __init__(self, host="localhost", port=5250):
         self.host = host
         self.port = port
-        self.ident = server_ident(host,port)
+        self.ident = server_ident(host, port)
         self.connect()
 
     def __repr__(self): 
         return self.ident
 
     def connect(self):
+        logging.debug("Connecting to CasparCG server at {}:{}".format(self.host, self.port))
         try:    
-            self.cmd_conn = telnetlib.Telnet(self.host,self.port)
-            self.inf_conn = telnetlib.Telnet(self.host,self.port)
+            self.cmd_conn = telnetlib.Telnet(self.host, self.port)
+            self.inf_conn = telnetlib.Telnet(self.host, self.port)
         except:
-            return False
+            return 503, "Connection failed"
         else:
-            return True
+            return 200, "OK"
      
-    def query(self,q):
+    def query(self, q):
         if q.startswith("INFO"):
             conn = self.inf_conn
         else:
+            logging.debug("Executing AMCP: {}".format(q))
             conn = self.cmd_conn
         
         try:
             conn.write("%s\r\n"%q)
             result = conn.read_until("\r\n").strip() 
         except:
-            return (False, "Connection failed")
+            return 500, "Query execution failed"
         
         if not result: 
-            return (False, "Connection failed")
+            return 500, "No result"
         
         try:
             if result[0:3] == "202":
-                return (True, result)
+                return (202, result)
             elif result[0:3] in ["201","200"]:
+                stat = int(result[0:3])
                 result = conn.read_until("\r\n").strip()
-                return (True, result)
+                return stat, result
             elif int(result[0:1]) > 3:
-                return (False, result)
+                return int(result[0:3]), result
         except:
-            return (False, "Malformed result")
-        return (False, "Very strange result")
+            return 500, "Malformed result"
+        return 500, "Very strange result"
+
 
 class Caspar():
     def __init__(self):
@@ -283,24 +275,26 @@ class Caspar():
       Appends an output channel.
       Arguments:
       host, port : connection to running CasparCG server
-      channel    : caspar cg channel id 
+      channel    : CASPAR's channel id (First number in "PLAY 1-1" command....)
       feed_layer : "main" caspar layer - that one with playlist.
-      ident      : YOUR unique identification of the channel
+      ident      : YOUR unique identification of the channel (aka nx_channels.id_channel)
       """
-      self._add_server(host,port)
-      self.channels[ident] = CasparChannel(self, self.servers[server_ident(host,port)], channel)
+      server = self._add_server(host, port)
+      self.channels[ident] = CasparChannel(self.servers[server], channel)
       self.channels[ident].ident = ident
       self.channels[ident].feed_layer = feed_layer
       return self.channels[ident]
     
-    def _add_server(self,host,port):
-        if not server_ident(host,port) in self.servers:
-            self.servers[ServerIdent(host,port)] = CasparServer(self,host,port)
+    def _add_server(self, host, port):
+        server = server_ident(host,port)
+        if not server in self.servers:
+            self.servers[server] = CasparServer(host, port)
+        return server
 
     def _start(self):
         while True:
             self._main()
-            sleep(.2) 
+            time.sleep(.2) 
 
     def _main(self):
         for ident in self.channels:
@@ -313,12 +307,19 @@ class Caspar():
                         logging.goodnews("Connection estabilished")
                     else:
                         logging.error("Connection call failed")
-                        sleep(2)
-                sleep(.1)
+                        time.sleep(2)
+                time.sleep(.1)
                 continue
             else:
                 self.bad_requests = 0
-                channel.Main() 
+                channel.main() 
+
+
+    def __getitem__(self, id_channel):
+        return self.channels[id_channel]
+
+
+
 
 
 ## an example of stand alone use

@@ -86,6 +86,26 @@ def load_site_settings():
             config[key] = value
     except:
         print "Unable to load local settings. Nothing will work."
+        return
+
+    config["playout_channels"] = {}
+    config["ingest_channels"] = {}
+
+    db.query("SELECT id_channel, channel_type, title, config FROM nx_channels")
+    for id_channel, channel_type, title, ch_config in db.fetchall():
+        try:
+            ch_config = json.loads(ch_config)
+        except:
+            print ("Unable to parse channel {}:{} config.".format(id_channel, title))
+            continue
+        ch_config.update({"title":title})
+        if channel_type == PLAYOUT:
+            config["playout_channels"][id_channel] = ch_config
+        elif channel_type == INGEST:
+            config["ingest_channels"][id_channel] = ch_config
+
+
+
 
 load_site_settings()
 messaging.init()

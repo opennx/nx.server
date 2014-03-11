@@ -2,18 +2,15 @@
 # -*- coding: utf-8 -*-
 
 
-
-#
-# CasparCG Playout server ctrl
-#
-#
-
 from nx import *
+from nx.assets import *
+from nx.items import *
+
 from caspar import Caspar
 
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-from functools import partial
 import cgi
+import thread
 
 
 class ControlHandler(BaseHTTPRequestHandler):
@@ -32,15 +29,20 @@ class ControlHandler(BaseHTTPRequestHandler):
     def _echo(self,istring):
         self.wfile.write(istring.encode("utf-8"))
 
-    def result(self,obj):
-        self._do_headers()
-        self._echo()
+    def result(self, r):
+        response, data = r
+        self._do_headers(response=response)
+        if data:
+            self._echo(json.dumps(data))
+        else:
+            self._echo("false")
 
     def error(self,response):
         self._do_headers(response=response)
 
     def do_GET(self):
-        self.result("Hello :-)")
+        service = self.server.service
+        self.result(service.stat())
 
     def do_POST(self):
         service = self.server.service
@@ -49,6 +51,7 @@ class ControlHandler(BaseHTTPRequestHandler):
         if ctype == 'multipart/form-data':
             postvars = cgi.parse_multipart(self.rfile, pdict)
         elif ctype == 'application/x-www-form-urlencoded':
+            length = int(self.headers.getheader('content-length'))
             postvars = cgi.parse_qs(self.rfile.read(length), keep_blank_values=1)
         else:
             logging.debug("No post data")
@@ -63,17 +66,17 @@ class ControlHandler(BaseHTTPRequestHandler):
             self.error(400)
             return
         
-        if   method == "take":    self.echo(service.take(params))
-        elif method == "cue":     self.echo(service.cue(params)) 
-        elif method == "freeze":  self.echo(service.freeze(params)) 
-        elif method == "retake":  self.echo(service.retake(params)) 
-        elif method == "abort":   self.echo(service.abort(params))
-        elif method == "stat":    self.echo(service.stat(params))
-        elif method == "cg_list": self.echo(service.cg_list(params))
-        elif method == "cg_exec": self.echo(service.cg_exec(params))
+        if   method == "take":    self.result(service.take(params))
+        elif method == "cue":     self.result(service.cue(params)) 
+        elif method == "freeze":  self.result(service.freeze(params)) 
+        elif method == "retake":  self.result(service.retake(params)) 
+        elif method == "abort":   self.result(service.abort(params))
+        elif method == "stat":    self.result(service.stat(params))
+        elif method == "cg_list": self.result(service.cg_list(params))
+        elif method == "cg_exec": self.result(service.cg_exec(params))
+        
         else:
-         self.error(501) # Not implemented
-        return
+            self.error(501) # Not implemented
         
 
 
@@ -81,49 +84,170 @@ class ControlHandler(BaseHTTPRequestHandler):
 class Service(ServicePrototype):
     def on_init(self):
         if not config["playout_channels"]:
-            self.logging.error("No playout channel configured")
+            logging.error("No playout channel configured")
             self.shutdown()
 
         self.caspar = Caspar()
         for id_channel in config["playout_channels"]:
             channel_cfg = config["playout_channels"][id_channel]
 
-            channel = self.caspar.add_channel(channel_cfg["caspar_host"], channel_cfg["caspar_port"], channel_cfg["caspar_channel"], channel_cfg["feed_layer"], id_channel)
-            channel.on_main   = partial(self.channel_main, channel)
-            channel.on_change = partial(self.channel_change, channel)
+            logging.debug("Initializing playout channel {}: {}".format(id_channel, channel_cfg["title"]))
+
+            channel = self.caspar.add_channel(channel_cfg["caspar_host"], 
+                                              channel_cfg["caspar_port"], 
+                                              channel_cfg["caspar_channel"], 
+                                              channel_cfg["feed_layer"], 
+                                              id_channel
+                                             )
+
+            channel.playout_spec  = channel_cfg["playout_spec"]
+            channel.on_main       = self.channel_main
+            channel.on_change     = self.channel_change
+
+            channel.cued_asset    = False
+            channel.current_asset = False
+            channel._changed      = False
+            channel._last_run     = False
+            channel.plugins       = []
+
+        port = 42100
+
+        self.server = HTTPServer(('',port), ControlHandler)
+        self.server.service = self
+        thread.start_new_thread(self.server.serve_forever,())
+
+
+
+    def cue(self, params={}):
+        id_channel = params.get("id_channel", False)
+        id_item    = params.get("id_item", False)
+
+        if not (id_item and id_channel):
+            return 400, "Bad request"
+
+        if not id_channel in self.caspar.channels:
+            return 400, "Requested channel is not operated by this service"
+
+        item  = Item(id_item)
+        if not item:
+            return 404, "No such item"
+
+        channel = self.caspar[id_channel]
+
+        master_asset  = item.get_asset()
+        id_playout = master_asset[channel.playout_spec]
+        playout_asset = Asset(id_playout)
+
+        if not os.path.exists(playout_asset.get_file_path()):
+            return 404, "Playout asset is offline"
+
+        fname = os.path.splitext(os.path.basename(playout_asset["path"]))[0].encode("utf-8")
+
+        return channel.cue(fname, 
+                           id_item = id_item
+                          )
+
+
 
 
     def take(self,params={}):
-        pass
-
-    def cue(self,params={}):
-        pass
+        return "200", "take"
 
     def freeze(self,params={}):
-        pass
+        return "200", "freeze"
 
     def retake(self,params={}):
-        pass
-
-    def recover(self,params={}):
-        pass
+        return "200", "retake"
 
     def abort(self,params={}):
-        pass
+        return "200", "abort"
 
     def stat(self,params={}):
-        pass
+        return "200", "stat"
 
     def cg_list(self,params={}):
-        pass
+        return "200", "cg_list"
 
     def cg_exec(self,params={}):
-        pass
+        return "200", "cg_exec"
+
+
+    def stat(self):
+        return "200", "Running"
 
 
 
-    def channel_main(self,):
-        pass
 
-    def channel_change(self):
-        pass
+
+
+
+    def channel_main(self, channel):
+
+        if not channel.cued_asset and channel.cued_item:
+            channel.cued_asset = Item(channel.cued_item).get_asset()
+
+        data = {}
+        data["id_channel"]    = channel.ident
+
+        data["current_item"]  = channel.current_item
+        data["cued_item"]     = channel.cued_item
+        data["position"]      = channel.get_position()
+        data["duration"]      = channel.get_duration()
+        data["current_title"] = channel.current_asset["title"] if channel.current_asset else "(no clip)"
+        data["cued_title"]    = channel.cued_asset["title"]    if channel.cued_asset    else "(no clip)"
+
+        messaging.send("playout_status", data)
+
+        for plugin in channel.plugins:
+            thread.start_new_thread(plugin.on_main, ())
+
+        if channel.current_item and not channel.cued_item and not channel._cueing:
+            self.cue_next(channel)
+            #thread.start_new_thread(self.cue_next, channel)
+
+
+
+    def channel_change(self, channel):
+        itm = Item(channel.current_item)
+        channel.current_asset = itm.get_asset()
+
+        logging.info ("Advanced to {}".format(itm) )
+
+
+        self.on_change_update(channel)
+        #thread.start_new_thread(self.on_change_update, (channel))
+        
+        for plugin in channel.plugins:
+            thread.start_new_thread(plugin.on_change, ())
+
+        
+
+    def on_change_update(self, channel):
+        db = DB()
+
+        # Update AsRun
+
+     #   if channel._last_run:
+     #       db.query("UPDATE nebula_asrun SET stop_time = %s WHERE id_run = %s" %(int(time()) , channel._last_run_item  ))
+     #   db.query("INSERT INTO nebula_asrun (id_asset,title, start_time, id_item, id_channel) VALUES (%s,'%s',%s,%s,%s) " % (channel.current_asset.id_asset, db.sanit(channel.current_asset["Title"]), int(time()), channel.current_item, channel.ident ) ) 
+     #   channel._last_run_item = db.lastid()
+     #   db.commit()
+     #   channel._changed = False
+
+        # Cue next item
+        self.cue_next(channel, db=db)
+
+
+    
+    def cue_next(self, channel, id_item=False, db=False):
+        channel._cueing = True
+
+        if not id_item:
+            id_item = channel.current_item
+
+        id_item_next = get_next_item(id_item, db=db)
+        stat, res = self.cue({"id_item"    : id_item_next, 
+                              "id_channel" : channel.ident
+                            })
+        if failed(stat):
+            self.cue_next(channel, id_item_next+1)
