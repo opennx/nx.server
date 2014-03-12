@@ -131,11 +131,11 @@ def send_to(id_object, id_action, settings={}, id_user=0, restart_existing=True,
     if not db:
         db = DB()
 
-    db.query("SELECT id_action FROM nx_jobs WHERE id_object={id_object} AND id_action={id_action} AND settings='{settings}'".format(id_object=id_object, id_action=id_action, settings=json.dumps(settings)))
+    db.query("SELECT id_job FROM nx_jobs WHERE id_object={id_object} AND id_action={id_action} AND settings='{settings}'".format(id_object=id_object, id_action=id_action, settings=json.dumps(settings)))
     res = db.fetchall()
     if res:
         if restart_existing:
-            db.query("UPDATE nx_jobs SET id_service=0, progress=-1, ctime={ctime} WHERE id_action={id_action}".format(ctime=time.time(), id_action=res[0][0] ))
+            db.query("UPDATE nx_jobs SET id_service=0, progress=-1, ctime={ctime} WHERE id_job={id_job}".format(ctime=time.time(), id_job=res[0][0] ))
             db.commit()
             return 200, "Job restarted"
         else:
