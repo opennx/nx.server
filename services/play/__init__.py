@@ -12,6 +12,38 @@ from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 import cgi
 import thread
 
+from nx.plugins import plugin_path
+import imp
+
+class PlayoutPlugins():
+    def __init__(self, channel):
+        self.plugins = []
+        bpath = os.path.join(plugin_path, "playout")
+        if not os.path.exists(bpath):
+            logging.warning("Playout plugins directory does not exist")
+            return 
+
+        for fname in os.listdir(bpath):
+            mod_name, file_ext = os.path.splitext(fname)
+            if file_ext != ".py":
+                continue
+
+            py_mod = imp.load_source(mod_name, os.path.join(bpath, fname))
+
+            if not "__manifest__" in dir(py_mod):
+                logging.warning("No plugin manifest found in {}".format(fname))
+                continue
+
+            if not "Plugin" in dir(py_mod):
+                logging.warning("No plugin class found in {}".format(fname))
+            
+            logging.info("Initializing plugin {} on channel {}".format(py_mod.__manifest__["name"], channel.ident ))
+            self.plugins.append(py_mod.Plugin(channel))    
+        
+    def __getitem__(self, key):
+        return self.plugins[key]
+
+
 
 class ControlHandler(BaseHTTPRequestHandler):
     def log_request(self, code='-', size='-'): 
@@ -108,7 +140,7 @@ class Service(ServicePrototype):
             channel.current_asset = False
             channel._changed      = False
             channel._last_run     = False
-            channel.plugins       = []
+            channel.plugins       = PlayoutPlugins(channel)
 
         port = 42100
 
@@ -199,7 +231,8 @@ class Service(ServicePrototype):
         messaging.send("playout_status", data)
 
         for plugin in channel.plugins:
-            thread.start_new_thread(plugin.on_main, ())
+            plugin.on_main()
+            #thread.start_new_thread(plugin.on_main, ())
 
         if channel.current_item and not channel.cued_item and not channel._cueing:
             self.cue_next(channel)
@@ -239,15 +272,24 @@ class Service(ServicePrototype):
 
 
     
-    def cue_next(self, channel, id_item=False, db=False):
+    def cue_next(self, channel, id_item=False, db=False, level = 0):
+        if not db:
+            db = DB()
+
         channel._cueing = True
 
         if not id_item:
             id_item = channel.current_item
 
-        id_item_next = get_next_item(id_item, db=db)
-        stat, res = self.cue({"id_item"    : id_item_next, 
+        item_next = get_next_item(id_item, db=db)
+        logging.info("Auto-cueing {}".format(item_next))
+
+        stat, res = self.cue({"id_item"    : item_next.id, 
                               "id_channel" : channel.ident
                             })
         if failed(stat):
-            self.cue_next(channel, id_item_next+1)
+            if level > 5:
+                logging.error("Cue it yourself....")
+                return
+            logging.warning("Unable to cue {}. Trying next one.".format(item_next))
+            self.cue_next(channel, id_item=item_next.id, db=db, level=level+1)

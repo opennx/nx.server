@@ -177,12 +177,12 @@ def get_next_item(id_item, db=False):
     current_item = Item(id_item, db=db)
     current_bin = Bin(current_item["id_bin"])
     try:
-        return current_bin.items[current_item["position"]].id
+        return current_bin.items[current_item["position"]]
     except:
         #if not db:
         #    db = DB()
         #   find next bin, open bin, return first item if exist
     
-        return current_bin.items[0].id
+        return current_bin.items[0]
 
 

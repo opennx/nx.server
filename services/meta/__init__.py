@@ -63,9 +63,10 @@ class Service(ServicePrototype):
                 asset["file/mtime"] = fmtime
                 asset.save(set_mtime=False)
             else:
-                logging.debug("Updating metadata %s" % asset)
+                logging.info("Updating metadata %s" % asset)
 
-                for key in asset.meta:
+                keys = list(asset.meta.keys())
+                for key in keys:
                     if meta_types[key].namespace in ("fmt", "qc"):
                         del (asset.meta[key])
 
@@ -96,7 +97,7 @@ class Service(ServicePrototype):
             asset.save(set_mtime=False)
 
         elif asset["status"] in (CREATING, OFFLINE):
-            logging.debug("Turning online %s" % asset)
+            logging.goodnews("Turning online %s" % asset)
             asset["status"] = ONLINE
             asset.save()
     

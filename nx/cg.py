@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from nx.common.core import logging
+from nx import *
+from nx.plugins import plugin_path
+
+import random
 
 try:
     import cairo
@@ -19,34 +22,47 @@ def hex_color(hex_string):
     return r,g,b,a
 
 
-class CG():
-    def __init__(self,width,height):
+
+
+
+def plugins():
+    bpath = os.path.join(plugin_path, "cg")
+
+    if not os.path.exists(bpath):
+        logging.warning("CG plugins directory does not exist")
+
+    else:
+        for fname in os.listdir(bpath):
+            mod_name, file_ext = os.path.splitext(fname)
+            if file_ext != ".py":
+                continue
+
+            plugin = open(os.path.join(bpath, fname)).read()
+
+            yield plugin
+
+    
+
+
+class CG(object):
+    def __init__(self, width, height):
         self.w = width
         self.h = height
-        self.surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, w, h)
+        self.surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
         self.ctx     = cairo.Context (self.surface)
         self.ctx.set_antialias(cairo.ANTIALIAS_GRAY)
 
-
-    def rect(self, x, y, w, h, color):
-        r, g, b, a = hex_color(color)
-        self.ctx.set_source_rgba(r,g,b,a)
+    def rect(self, x, y, w, h, color=False):
+        if color:
+            r, g, b, a = hex_color(color)
+            self.ctx.set_source_rgba(r,g,b,a)
         self.ctx.rectangle(x,y,w,h)
         self.ctx.fill()
 
-    def text_box(self, x, y, size, text, fcolor="#efefef", bcolor="#00000066", hoffset=0, fixw=False):
-        tsize = int(size*.72)
-        self.ctx.set_font_size(tsize)
-        tx, ty, tw, th, dx, dy = self.ctx.text_extents(text)
-        bw = tw+int(size/2) + hoffset*2
-        bh = size
-        if fixw: bw = fixw
-        self.rect(x, y, bw, bh, bcolor)
-        self.ctx.move_to(x+int(bw/2 - tw/2)+hoffset,y+tsize*1.1 )
-        r, g, b, a = hex_color(fcolor)
-        self.ctx.set_source_rgba(r,g,b,a)
-        self.ctx.show_text(text)
-        self.ctx.stroke()
-
     def save(self, fname):
         self.surface.write_to_png(fname)
+
+    for plugin in plugins():
+        exec(plugin)
+
+
