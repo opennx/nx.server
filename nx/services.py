@@ -6,7 +6,7 @@ from nx.connection import *
 
 class ServicePrototype(object):
     def __init__(self, id_service, settings=False):
-        logging.info("Initialising service")
+        logging.debug("Initializing service")
         self.id_service = id_service
         self.settings   = settings
 

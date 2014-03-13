@@ -142,7 +142,6 @@ class CasparChannel():
     def update_stat(self):
         stat, res = self.server.query("INFO %d" % self.channel)
         if failed(stat): 
-            print (stat, res)
             return False
         try:    
             xstat = ET.XML(res)
@@ -228,7 +227,7 @@ class CasparServer():
         self.host = host
         self.port = port
         self.ident = server_ident(host, port)
-        self.cmd_conn = self_inf_conn = False
+        self.cmd_conn = self.inf_conn = False
         self.connect()
 
     def __repr__(self): 

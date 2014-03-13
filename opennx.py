@@ -144,7 +144,7 @@ class ServiceMonitor():
         db.query("SELECT id_service, title, state, autostart FROM nx_services WHERE host = '%s' AND state=0 AND autostart=1" % HOSTNAME)
         for id_service, title, state, autostart in db.fetchall():
             if not id_service in self.services.keys():
-                logging.info("AutoStarting service %s (%s)"% (title, id_service))
+                logging.debug("AutoStarting service %s (%s)"% (title, id_service))
                 self.start_service(id_service, title)
             
     def start_service(self, id_service, title, db=False):
