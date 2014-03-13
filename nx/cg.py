@@ -36,16 +36,14 @@ def plugins():
             mod_name, file_ext = os.path.splitext(fname)
             if file_ext != ".py":
                 continue
-
             plugin = open(os.path.join(bpath, fname)).read()
-
             yield plugin
 
     
 
 
 class CG(object):
-    def __init__(self, width, height):
+    def __init__(self, width=1920, height=1080):
         self.w = width
         self.h = height
         self.surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)

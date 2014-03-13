@@ -11,6 +11,15 @@ class PlayoutPlugin(object):
         self.id_layer = self.channel.feed_layer + 1
         self.tasks = []
         self.on_init()
+        self.busy = False
+
+    def _main(self):
+        self.busy = True
+        try:
+            self.on_main()
+        except:
+            logging.error("Plugin error: {}".format(str(sys.exc_info())))
+        self.busy = False
 
     def layer(self, id_layer=False):
         if not id_layer:

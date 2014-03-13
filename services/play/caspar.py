@@ -3,23 +3,22 @@
 
 from nx import *
 
-import telnetlib
 import thread
+import telnetlib
 
 
-########################################################################
-## Channel stuff
+
 
 def basefname(fname):
-  """Platform dependent path splitter (caspar is always on win)"""
-  return os.path.splitext(fname.split("\\")[-1])[0]
+    """Platform dependent path splitter (caspar is always on win)"""
+    return os.path.splitext(fname.split("\\")[-1])[0]
 
 
 class CasparChannel():
     def __init__(self, server, channel):
         self.server  = server  # CasparServer class instance
         self.channel = channel # Caspar channel (that "X" integer in PLAY x-y command)
-        self.fps = 25.0
+        self.fps = 25.0        # FIXME FIXME
 
         self.xstat  = "<channel>init</channel>"  
         self.chdata = {}
@@ -85,8 +84,9 @@ class CasparChannel():
      
      
     def clear(self,layer=False):
-        if not layer: layer = self.feed_layer
-        return self.server.query("CLEAR %d-%d" % (self.channel, layer))
+        if not layer: 
+            layer = self.feed_layer
+        return self.server.query("CLEAR {}-{}".format(self.channel, layer))
 
     def take(self,layer=False):
         if not layer: layer = self.feed_layer
@@ -104,27 +104,37 @@ class CasparChannel():
      
 
     def freeze(self,layer=False):
-        if not layer: layer = self.feed_layer
+        if not layer: 
+            layer = self.feed_layer
+
         if not self.paused:
-         q = "PAUSE %d-%d"%(self.channel,layer)
+            q = "PAUSE %d-%d"%(self.channel,layer)
+            msg = "Playback paused"
         else:
-         if self.current_out: LEN = "LENGTH %s" %int(self.current_out*self.fps)
-         else:                LEN = ""
-         q = "PLAY %d-%d %s SEEK %s %s"%(self.channel, layer, self.current_fname, self.fpos, LEN)
+            if self.current_out: 
+                LEN = "LENGTH %s" %int(self.current_out*self.fps)
+            else:
+                LEN = ""
+
+            q = "PLAY %d-%d %s SEEK %s %s"%(self.channel, layer, self.current_fname, self.fpos, LEN)
+            msg = "Playback resumed"
        
         stat, res = self.server.query(q)
         if success(stat):
             self.paused = not self.paused
-        return stat, res
+
+        return stat, msg
 
 
     def abort(self,layer=False):
-        if not layer: layer = self.feed_layer
-        if not self.cued_item: return [{"status":"FAILED","reason":"Unable to abort. No item is cued."},False]
-        self.Take()
+        if not layer: 
+            layer = self.feed_layer
+        if not self.cued_item: 
+            return 400, "Unable to abort. No item is cued."
+        self.take()
         time.sleep(.1)
-        self.Freeze()
-        return 200, "Aborted"
+        self.freeze()
+        return 200, "Playback aborted"
 
 
 
@@ -218,6 +228,7 @@ class CasparServer():
         self.host = host
         self.port = port
         self.ident = server_ident(host, port)
+        self.cmd_conn = self_inf_conn = False
         self.connect()
 
     def __repr__(self): 
@@ -234,6 +245,9 @@ class CasparServer():
             return 200, "OK"
      
     def query(self, q):
+        if not (self.inf_conn and self.cmd_conn):
+            return 500, "CasparCG server is offline"
+
         if q.startswith("INFO"):
             conn = self.inf_conn
         else:
@@ -252,10 +266,12 @@ class CasparServer():
         try:
             if result[0:3] == "202":
                 return (202, result)
+
             elif result[0:3] in ["201","200"]:
                 stat = int(result[0:3])
                 result = conn.read_until("\r\n").strip()
                 return stat, result
+
             elif int(result[0:1]) > 3:
                 return int(result[0:3]), result
         except:
@@ -317,12 +333,4 @@ class Caspar():
 
     def __getitem__(self, id_channel):
         return self.channels[id_channel]
-
-
-
-
-
-## an example of stand alone use
-if __name__ == "__main__":
-  pass # HA HAHAHAHA
 

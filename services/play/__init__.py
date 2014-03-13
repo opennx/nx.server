@@ -183,16 +183,37 @@ class Service(ServicePrototype):
 
 
     def take(self,params={}):
-        return "200", "take"
+        id_channel = params.get("id_channel", False)
+        if not id_channel in self.caspar.channels:
+            return 400, "Requested channel is not operated by this service"
+        channel = self.caspar[id_channel]
+        res = channel.take()
+        print res
+        return res
 
     def freeze(self,params={}):
-        return "200", "freeze"
+        id_channel = params.get("id_channel", False)
+        if not id_channel in self.caspar.channels:
+            return 400, "Requested channel is not operated by this service"
+        channel = self.caspar[id_channel]
+        return channel.freeze()
 
     def retake(self,params={}):
-        return "200", "retake"
+        id_channel = params.get("id_channel", False)
+        if not id_channel in self.caspar.channels:
+            return 400, "Requested channel is not operated by this service"
+        channel = self.caspar[id_channel]
+        return channel.retake()
 
     def abort(self,params={}):
-        return "200", "abort"
+        id_channel = params.get("id_channel", False)
+        if not id_channel in self.caspar.channels:
+            return 400, "Requested channel is not operated by this service"
+        channel = self.caspar[id_channel]
+        return channel.abort()
+
+
+
 
     def stat(self,params={}):
         return "200", "stat"
@@ -227,16 +248,17 @@ class Service(ServicePrototype):
         data["duration"]      = channel.get_duration()
         data["current_title"] = channel.current_asset["title"] if channel.current_asset else "(no clip)"
         data["cued_title"]    = channel.cued_asset["title"]    if channel.cued_asset    else "(no clip)"
+        data["request_time"]  = channel.request_time
 
         messaging.send("playout_status", data)
 
         for plugin in channel.plugins:
-            plugin.on_main()
-            #thread.start_new_thread(plugin.on_main, ())
+            if not plugin.busy:
+                thread.start_new_thread(plugin._main, ())
 
         if channel.current_item and not channel.cued_item and not channel._cueing:
-            self.cue_next(channel)
-            #thread.start_new_thread(self.cue_next, channel)
+            #self.cue_next(channel)
+            thread.start_new_thread(self.cue_next, (channel,))
 
 
 
