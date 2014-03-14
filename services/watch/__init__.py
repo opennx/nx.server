@@ -40,7 +40,6 @@ class Service(ServicePrototype):
     def on_main(self):
         db = DB()
         abp_cache = {}
-
         for mirror in self.mirrors:
             ###################
             ## Mirror settings
@@ -67,7 +66,7 @@ class Service(ServicePrototype):
                 apath = os.path.normpath(f.replace(stpath,""))
                 apath = apath.lstrip("/")  
                 if apath == "": continue 
-         
+
                 try:    
                     filetype = file_types[os.path.splitext(f)[1][1:].lower()]
                 except: 
@@ -85,7 +84,6 @@ class Service(ServicePrototype):
                 if now - abp_cache.get("{}|{}".format(mstorage,apath),0) > 600:
                     if asset_by_path(mstorage,apath,db=db): 
                         continue 
-            
 
                 logging.debug("Found new file %s" % apath)
 
