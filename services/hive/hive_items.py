@@ -94,10 +94,9 @@ def hive_rundown(auth_key, params):
             else:
                 id_playout = item["id_playout/{}".format(id_channel)]
                 if not id_playout or Asset(id_playout)["status"] != ONLINE:
-                    i_meta["rundown_status"] = 2
+                    i_meta["rundown_status"] = 1
                 else:
-                    i_meta["rundown_status"] = 3
-
+                    i_meta["rundown_status"] = 2
 
             items.append((i_meta, a_meta))
 

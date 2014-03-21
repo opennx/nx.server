@@ -32,6 +32,10 @@ class AdminHandler(BaseHTTPRequestHandler):
         else:
             self._echo(False)
 
+    def do_GET(self):
+        self._do_headers(mime="text/txt", response=200)
+        while True:
+            self._echo(time.time())
 
     def do_POST(self):
         start_time = time.time()
@@ -73,7 +77,11 @@ class AdminHandler(BaseHTTPRequestHandler):
         logging.debug("Query %s completed in %.03f seconds" % (method, time.time()-start_time))
 
 
-import hive_assets, hive_settings, hive_items
+
+
+import hive_assets, hive_system, hive_items
+
+
 
 class Service(ServicePrototype):
     def on_init(self):
@@ -83,7 +91,7 @@ class Service(ServicePrototype):
         
         self.methods = {}
 
-        for module in [hive_assets, hive_settings, hive_items]:
+        for module in [hive_assets, hive_system, hive_items]:
             for method in dir(module):
                 if not method.startswith("hive_"):
                     continue

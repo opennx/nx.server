@@ -65,7 +65,7 @@ class FFMPEG(Encoder):
         #try:
         id_storage = int(self.task.find("storage").text)
         self.id_storage = id_storage
-        exec ("self.target_rel_path = {}".format(self.task.find("path").text))
+        self.target_rel_path = eval(self.task.find("path").text)
         #except:
         #    return "Wrong target script"
 
@@ -91,7 +91,7 @@ class FFMPEG(Encoder):
         ########################
 
         for param in self.task.findall("param"):
-            exec("value = {}".format(param.text))
+            value = eval(param.text)
             self.ffparams.extend(["-{}".format(param.attrib["name"]), value])
 
         self.ffparams.append(self.temp_file_path)

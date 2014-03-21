@@ -318,7 +318,7 @@ class Caspar():
                 self.bad_requests += 1
                 if self.bad_requests > 10:
                     logging.warning("Connection lost. Reconnecting...")
-                    if channel.server.connect(): 
+                    if success(channel.server.connect()[0]): 
                         logging.goodnews("Connection estabilished")
                     else:
                         logging.error("Connection call failed")

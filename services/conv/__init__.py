@@ -40,8 +40,8 @@ class Service(ServicePrototype):
                     continue
 
                 match = False
-                cmd = "if "+svc_cond+": match = True"
-                exec (cmd)
+                if eval(svc_cond): 
+                    match = True
 
             if not match:
                 continue
