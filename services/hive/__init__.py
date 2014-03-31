@@ -33,9 +33,40 @@ class AdminHandler(BaseHTTPRequestHandler):
             self._echo(False)
 
     def do_GET(self):
+        #TODO: This should be done better
         self._do_headers(mime="text/txt", response=200)
-        while True:
-            self._echo(time.time())
+
+        logging.debug("HTTP Push client connected")
+
+        self.site_name = config["site_name"]
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.sock.bind(("0.0.0.0",int(config["seismic_port"])))
+        self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 255)
+        status = self.sock.setsockopt(socket.IPPROTO_IP,socket.IP_ADD_MEMBERSHIP,socket.inet_aton(config["seismic_addr"]) + socket.inet_aton("0.0.0.0"));
+        self.sock.settimeout(1)
+    
+
+        try:
+            while True:
+                try:
+                    message, addr = self.sock.recvfrom(1024)
+                except (socket.error):
+                    continue
+
+                try:
+                    tstamp, site_name, host, method, data = json.loads(message)
+                except:
+                    logging.warning("Malformed seismic message detected: {}".format(message))
+
+                if site_name == config["site_name"]:
+                    self._echo("{}\n".format(message.replace("\n","")))
+
+        except (ConnectionAbortedError, ConnectionResetError):
+            logging.debug("HTTP Push client disconnected")
+
+
+
 
     def do_POST(self):
         start_time = time.time()

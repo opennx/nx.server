@@ -44,7 +44,8 @@ def hive_set_day_events(auth_key, params={}):
         if not event:
             logging.warning("Unable to delete non existent event ID {}".format(id_event))
             continue
-        logging.info("Deleting {!r}".format(event))
+        bin = event.get_bin()
+        bin.delete()
         event.delete()
         deleted += 1
     

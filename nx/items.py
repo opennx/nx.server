@@ -122,7 +122,9 @@ class Bin(NXObject):
             dur += item.get_duration()
         return dur
 
-
+    def delete_childs(self):
+        for item in self.items:
+            item.delete()
 
 
 class Event(NXObject):

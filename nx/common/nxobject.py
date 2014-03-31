@@ -168,9 +168,14 @@ class NXServerObject(NXBaseObject):
             db.rollback()
             return False
 
+    def delete_childs(self):
+        pass
+
     def delete(self):
+        logging.debug("Deleting {!r}".format(self))
         if not self.db:
             self.db = DB()
+        self.delete_childs()
         db = self.db
         db.query("DELETE FROM nx_meta WHERE id_object = %s and object_type = %s", [self.id, self.id_object_type()] )
         db.query("DELETE FROM nx_{}s WHERE id_object = %s".format(self.object_type), [self.id])
