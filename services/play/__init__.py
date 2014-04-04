@@ -164,6 +164,9 @@ class Service(ServicePrototype):
         if not item:
             return 404, "No such item"
 
+        if not item["id_asset"]:
+            return 400, "Cannot cue virtual item"
+
         channel = self.caspar[id_channel]
 
         master_asset  = item.get_asset()

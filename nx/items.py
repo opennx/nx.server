@@ -11,9 +11,15 @@ from nx.assets import Asset
 
 
 
+class EmptyAsset():
+    def __init__(self):
+        self.meta = {}
+    def __getitem__(self, key):
+        return ""
+
 class Item(NXObject):
     object_type = "item"
-    asset = False
+    asset = None
 
     def _new(self):
         self["id_bin"]    = False
@@ -24,7 +30,7 @@ class Item(NXObject):
         key = key.lower().strip()
         if key == "id_object":
             return self.id
-        if not key in self.meta:
+        if not key in self.meta :
             if self.get_asset():
                 return self.get_asset()[key]
             else:
@@ -42,19 +48,19 @@ class Item(NXObject):
         return self["mark_out"]
 
     def get_asset(self):
-        if (not self.asset) and self["id_asset"]:
-            self.asset = Asset(self["id_asset"], db = self.db)
+        if not self.asset:
+            if self.meta.get("id_asset", 0):
+                self.asset = Asset(self["id_asset"], db = self.db)
+            else:
+                return False
         return self.asset
 
     def get_duration(self):
-        if self.id_asset == -1: 
-            dur = 999999
-        else:
-            dur  = self.get_asset()["duration"]
-
+        if not self.id_asset: 
+            return self.mark_out() - self.mark_in()
+        dur = self.get_asset()["duration"]
         if not dur:
             return 0
-            
         mark_in  = self.mark_in()
         mark_out = self.mark_out()
         if mark_out > 0: dur -= dur - mark_out
@@ -124,7 +130,8 @@ class Bin(NXObject):
 
     def delete_childs(self):
         for item in self.items:
-            item.delete()
+            if item.id > 0:
+                item.delete()
 
 
 class Event(NXObject):
@@ -184,7 +191,6 @@ def get_next_item(id_item, db=False):
         #if not db:
         #    db = DB()
         #   find next bin, open bin, return first item if exist
-    
         return current_bin.items[0]
 
 

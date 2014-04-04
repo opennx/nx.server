@@ -124,7 +124,7 @@ class Logging():
                 print ("{0:<10} {1:<15} {2}".format(self._typeformat(msgtype), config['user'], message))
             except:
                 print (message.encode("utf-8"))
-        messaging.send("LOG",[config['user'], msgtype, message])
+        messaging.send("log",[config['user'], msgtype, message])
 
     def debug   (self,msg): self._send(DEBUG,msg) 
     def info    (self,msg): self._send(INFO,msg) 

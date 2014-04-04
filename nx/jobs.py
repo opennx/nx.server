@@ -131,6 +131,9 @@ def send_to(id_object, id_action, settings={}, id_user=0, restart_existing=True,
     if not db:
         db = DB()
 
+    if not id_object:
+        return 401, "You must specify existing object"
+
     db.query("SELECT id_job FROM nx_jobs WHERE id_object={id_object} AND id_action={id_action} AND settings='{settings}'".format(id_object=id_object, id_action=id_action, settings=json.dumps(settings)))
     res = db.fetchall()
     if res:
