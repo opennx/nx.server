@@ -17,7 +17,7 @@ and provides (almost) complete toolset for:
  - web publishing
  - statistics
 
-This GPL version replaces our software which existed for more than 5 years and has been used in several Czech TV stations.
+This GPL version replaces our software which existed for more than 5 years and has been used in several TV stations in Czech republic.
 It has been completely redesigned and rewritten from scratch.
 
 ## Installation
