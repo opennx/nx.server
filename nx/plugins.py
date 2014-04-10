@@ -13,7 +13,7 @@ class PlayoutPlugin(object):
         self.on_init()
         self.busy = False
 
-    def _main(self):
+    def main(self):
         self.busy = True
         try:
             self.on_main()

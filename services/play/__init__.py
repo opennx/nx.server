@@ -97,7 +97,9 @@ class ControlHandler(BaseHTTPRequestHandler):
             logging.debug("Malformed request")
             self.error(400)
             return
-        
+
+	logging.debug("Requested {} /w params {}".format(method, params))        
+
         if   method == "take":    self.result(service.take(params))
         elif method == "cue":     self.result(service.cue(params)) 
         elif method == "freeze":  self.result(service.freeze(params)) 
@@ -109,6 +111,8 @@ class ControlHandler(BaseHTTPRequestHandler):
         
         else:
             self.error(501) # Not implemented
+
+	logging.debug("Request {} completed".format(method))
         
 
 
@@ -256,18 +260,20 @@ class Service(ServicePrototype):
         messaging.send("playout_status", data)
 
         for plugin in channel.plugins:
-            if not plugin.busy:
-                thread.start_new_thread(plugin._main, ())
+            plugin.main()
+            #if not plugin.busy:
+            #    thread.start_new_thread(plugin.main, ())
 
         if channel.current_item and not channel.cued_item and not channel._cueing:
-            #self.cue_next(channel)
-            thread.start_new_thread(self.cue_next, (channel,))
+            self.cue_next(channel)
+            #thread.start_new_thread(self.cue_next, (channel,))
 
 
 
     def channel_change(self, channel):
         itm = Item(channel.current_item)
         channel.current_asset = itm.get_asset()
+        channel.cued_asset = False
 
         logging.info ("Advanced to {}".format(itm) )
 
@@ -276,7 +282,8 @@ class Service(ServicePrototype):
         #thread.start_new_thread(self.on_change_update, (channel))
         
         for plugin in channel.plugins:
-            thread.start_new_thread(plugin.on_change, ())
+            plugin.on_change()
+            #thread.start_new_thread(plugin.on_change, ())
 
         
 

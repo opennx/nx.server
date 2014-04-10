@@ -10,7 +10,28 @@ def hive_site_settings(auth_key,params):
     result = {}
     for tag, value in db.fetchall():
         result[tag] = value
+
+    folders = {}
+    db.query("SELECT id_folder, title, color FROM nx_folders")
+    for id_folder, title, color in db.fetchall():
+        folders[id_folder] = (title, color)
+
+    result["folders"] = folders
+
+    views = []
+    db.query("SELECT id_view, title, config  FROM nx_views ORDER BY position")
+    for id_view, title, view_config in db.fetchall():
+        try:
+            view_config = ET.XML(view_config)
+            columns = [col.text for col in view_config.find("columns").findall("column")]
+        except:
+            columns = []
+        views.append((id_view, title, columns))
+
+    result["views"] = views
+
     return 200, result
+
 
 def hive_services(auth_key, params):
     command    = params.get("command", 0) 

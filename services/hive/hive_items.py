@@ -87,10 +87,12 @@ def hive_rundown(auth_key, params):
 
         for item in bin.items:
             i_meta = item.meta
-            a_meta = item.get_asset().meta
-
+            a_meta = item.get_asset().meta if item["id_asset"] else {}
+            
             # ITEM STATUS
-            if item.get_asset()["status"] != ONLINE:
+            if not item["id_asset"]:
+                i_meta["rundown_status"] = 2
+            elif item.get_asset()["status"] != ONLINE:
                 i_meta["rundown_status"] = 0
             else:
                 id_playout = item["id_playout/{}".format(id_channel)]

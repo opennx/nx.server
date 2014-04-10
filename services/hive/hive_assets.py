@@ -7,18 +7,23 @@ def hive_browse(auth_key, params):
     conds = []
 
     if params.get("fulltext", False):
+        fulltext_base = "id_object IN (SELECT id_object FROM nx_meta WHERE object_type=0 AND {})"
         if config["db_driver"] == "postgres":
-            # happy debugging...
-            conds.append("id_object IN (SELECT id_object FROM nx_meta WHERE object_type=0 AND %s)" % " AND ".join(["unaccent(LOWER(value)) LIKE unaccent('%%%s%%')" % db.sanit(elm.lower()) for elm in params["fulltext"].split()]))
+            fulltext_cond = " AND ".join(["unaccent(LOWER(value)) LIKE unaccent('%{}%')".format(db.sanit(elm.lower())) for elm in params["fulltext"].split()])
         else:
-            conds.append("id_object IN (SELECT id_object FROM nx_meta WHERE object_type=0 AND %s)" % " AND ".join(["LOWER(value) LIKE '%%%s%%'"% db.sanit(elm.lower()) for elm in params["fulltext"].split()]))
+            fulltext_cond = " AND ".join(["LOWER(value) LIKE '%{}%'".format(db.sanit(elm.lower())) for elm in params["fulltext"].split()])
+
+        conds.append(fulltext_base.format(fulltext_cond))
+
+    if params.get("view", False):
+        conds.append("id_object in ({})".format(config["views"][params["view"]]["query"]))
 
     if conds:
-        qcon = " WHERE %s" % " AND ".join(conds)
+        qcon = " WHERE {}".format(" AND ".join(conds))
     else:
         qcon = ""
 
-    query = "SELECT id_object FROM nx_assets%s" % qcon
+    query = "SELECT id_object FROM nx_assets{}".format(qcon)
 
     print query
 

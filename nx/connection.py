@@ -79,17 +79,22 @@ else:
 
 def load_site_settings():
     """Should be called after db initialisation"""
-    try:
-        db = DB()
-        db.query("SELECT key, value FROM nx_settings")
-        for key, value in db.fetchall():
-            config[key] = value
-    except:
-        print "Unable to load local settings. Nothing will work."
-        return
+    db = DB()
+    global config
 
     config["playout_channels"] = {}
     config["ingest_channels"] = {}
+    config["views"] = {}
+
+    db.query("SELECT key, value FROM nx_settings")
+    for key, value in db.fetchall():
+        config[key] = value
+
+    db.query("SELECT id_view, config FROM nx_views")
+    for id_view, view_config in db.fetchall():
+        view_config = ET.XML(view_config)
+        view = {"query": view_config.find("query").text.strip()}
+        config["views"][id_view] = view
 
     db.query("SELECT id_channel, channel_type, title, config FROM nx_channels")
     for id_channel, channel_type, title, ch_config in db.fetchall():
