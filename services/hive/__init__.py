@@ -109,4 +109,7 @@ class Service(ServicePrototype):
 
 
     def on_main(self):
-        messaging.send("hive_heartbeat", True)
+        db = DB()
+        db.query("SELECT id_service, state, last_seen FROM nx_services")
+        service_status = db.fetchall()
+        messaging.send("hive_heartbeat", {"service_status": service_status})

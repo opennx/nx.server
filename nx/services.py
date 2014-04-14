@@ -46,6 +46,7 @@ class ServicePrototype(object):
             state = KILL
         else:
             db.query("UPDATE nx_services SET last_seen = %d, state=1 WHERE id_service=%d" % (time.time(), self.id_service))
+            db.commit()
 
         if state in [STOPPED, STOPPING, KILL]:
             self.shutdown()

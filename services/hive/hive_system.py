@@ -33,6 +33,7 @@ def hive_site_settings(auth_key,params):
     return 200, result
 
 
+
 def hive_services(auth_key, params):
     command    = params.get("command", 0) 
     id_service = params.get("id_service", 0)
@@ -52,7 +53,7 @@ def hive_services(auth_key, params):
             "loop_delay" : loop_delay, 
             "settings" : settings, 
             "state" : state, 
-            "last_seen" : last_seen
+            "last_seen" : time.time() - last_seen
         }
         res.append(s)   
 

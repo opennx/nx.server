@@ -92,7 +92,7 @@ class ServiceMonitor():
         db.query("SELECT id_service,pid FROM nx_services WHERE host='%s'" % HOSTNAME)
         for id_service, pid in db.fetchall(): 
             if pid:
-                self.Kill(r[1])
+                self.kill_service(r[1])
         db.query("UPDATE nx_services SET state = 0 WHERE host='%s'" % HOSTNAME)
         db.commit()
 
@@ -123,7 +123,7 @@ class ServiceMonitor():
 
             elif state == KILL: # Kill service
                 if id_service in self.services.keys():
-                    self.kill_service(self.services[id_services][0].pid)
+                    self.kill_service(self.services[id_service][0].pid)
 
         ## Starting / Stopping
         #######################
@@ -156,7 +156,7 @@ class ServiceMonitor():
         logging.info("Stopping service %d - %s"%(id_service, title))
         #well... service should stop itself :-/
 
-    def kill_service(self,pid):    
+    def kill_service(self, pid):    
         pid = self.services[id_service][0].pid
         if pid == os.getpid() or pid == 0: 
             return
