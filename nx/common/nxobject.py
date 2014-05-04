@@ -57,10 +57,10 @@ class NXBaseObject(object):
 
     def __setitem__(self, key, value):
         key = key.lower().strip()
-        if value or type(key) in (float, int, bool):
+        if value or type(value) in [float, int, bool]:
             self.meta[key] = meta_types.format(key,value)
         else:
-            del self[key]
+            del self[key] # empty strings
         return True
         
 

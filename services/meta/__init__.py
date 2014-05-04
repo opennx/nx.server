@@ -32,7 +32,9 @@ class Service(ServicePrototype):
             if asset["status"] == ONLINE:
                 logging.warning("Turning offline %s" % asset)
                 asset["status"] = OFFLINE
+                print "sav"
                 asset.save()
+                print (asset["status"])
             return
 
         try:

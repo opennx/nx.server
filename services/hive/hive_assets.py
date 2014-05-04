@@ -26,10 +26,7 @@ def hive_browse(auth_key, params):
         asset = Asset(id_asset)
         asset_data.append(asset.meta)
     
-    if not asset_data:
-        return 204, []
-    else:
-        return 200, {"asset_data" : asset_data}
+    return 200, {"asset_data" : asset_data}
 
 
 
@@ -47,3 +44,19 @@ def hive_send_to(auth_key, params):
     for id_object in params.get("objects", []):
         print (id_object, send_to(id_object, id_action, settings={}, id_user=0, restart_existing=restart_existing, db=db))
     return 200, "OK"
+
+
+def hive_set_meta(auth, params):
+    try:
+        id_object = int(params["id_object"])
+        tag = params["tag"]
+        value = params["value"]
+    except:
+        return 400, "bla bla"
+
+    db = DB()
+    # FIXME: Another object types
+    obj = Asset(id_object)
+    obj[tag] = value
+    obj.save()
+    return 200, obj.meta

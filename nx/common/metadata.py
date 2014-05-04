@@ -160,6 +160,8 @@ class MetaTypes(dict):
         elif mtype.class_ == STAR:        return int(value)
         elif mtype.class_ == FRACTION:    return value.strip().replace(":","/")
 
+        return value
+
 meta_types = MetaTypes()
 
 if connection_type == "server":

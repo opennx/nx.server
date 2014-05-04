@@ -59,19 +59,36 @@ class FFMPEG(Encoder):
         self.ffparams.extend(["-i", self.asset.get_file_path()])
         asset = self.asset
 
+        try:
+            id_storage = int(self.task.find("storage").text)
+            self.id_storage = id_storage
+            self.target_rel_path = eval(self.task.find("path").text)
+        except:
+            return "Wrong target script"
+
+
+        for p in self.task:
+            if p.tag == "param":
+                value = eval(p.text) if p.text else ""
+                self.ffparams.append("-{}".format(p.attrib["name"]))
+                if value:
+                    self.ffparams.append(value)
+
+            elif p.tag == "pre":
+                exec(p.text)
+
+            elif p.tag == "paramset" and eval(p.attrib["condition"]):
+                for pp in p.findall("param"):
+                    value = eval(pp.text) if pp.text else ""
+                    self.ffparams.append("-{}".format(pp.attrib["name"]))
+                    if value:
+                        self.ffparams.append(value)
+
         ########################
         ## Output path madness
 
-        #try:
-        id_storage = int(self.task.find("storage").text)
-        self.id_storage = id_storage
-        self.target_rel_path = eval(self.task.find("path").text)
-        #except:
-        #    return "Wrong target script"
-
         if not storages[id_storage]:
             return "Target storage is not mounted"
-
 
         temp_ext  = os.path.splitext(self.target_rel_path)[1]
         self.temp_file_path   = temp_file(id_storage, temp_ext)
@@ -90,12 +107,7 @@ class FFMPEG(Encoder):
         ## Output path madness
         ########################
 
-        for param in self.task.findall("param"):
-            value = eval(param.text)
-            self.ffparams.extend(["-{}".format(param.attrib["name"]), value])
-
         self.ffparams.append(self.temp_file_path)
-
         return False # no error
 
 
@@ -168,7 +180,6 @@ class FFMPEG(Encoder):
         if new is not None:
             new.save()
         asset.save()
-
 
 ## FFMPEG
 #########################################################################
