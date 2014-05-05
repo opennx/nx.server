@@ -29,6 +29,35 @@ def hive_browse(auth_key, params):
     return 200, {"asset_data" : asset_data}
 
 
+def hive_actions(auth_key, params):
+    assets = params.get("assets", [])
+    if not assets: 
+        return 400, "No asset selected"
+
+    print (assets)
+
+    result = []
+
+    db = DB()
+    db.query("SELECT id_action, title, config FROM nx_actions ORDER BY id_action ASC")
+    for id_action, title, cfg in db.fetchall():
+        try:
+            cond = ET.XML(cfg).find("allow_if").text
+        except:
+            continue
+
+        for id_asset in assets:
+            asset = Asset(id_asset, db=db)
+            if not eval(cond):
+                break
+        else:
+            result.append((id_action, title))
+
+    return 200, result
+
+
+
+
 
 
 def hive_send_to(auth_key, params):
