@@ -92,7 +92,7 @@ class Job():
         db.query("""UPDATE nx_jobs
             SET retries   = {retries}, 
                 priority  = {priority}, 
-                progress  = -3
+                progress  = -3,
                 message   = '{message}'
             WHERE 
                 id_job  = {id_job}
