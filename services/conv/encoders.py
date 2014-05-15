@@ -59,12 +59,12 @@ class FFMPEG(Encoder):
         self.ffparams.extend(["-i", self.asset.get_file_path()])
         asset = self.asset
 
-        try:
-            id_storage = int(self.task.find("storage").text)
-            self.id_storage = id_storage
-            self.target_rel_path = eval(self.task.find("path").text)
-        except:
-            return "Wrong target script"
+    #    try:
+        id_storage = int(self.task.find("storage").text)
+        self.id_storage = id_storage
+        self.target_rel_path = eval(self.task.find("path").text)
+    #    except:
+    #        return "Wrong target script"
 
 
         for p in self.task:
