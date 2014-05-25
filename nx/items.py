@@ -56,7 +56,7 @@ class Item(NXObject):
         return self.asset
 
     def get_duration(self):
-        if not self.id_asset: 
+        if not self["id_asset"]: 
             return self.mark_out() - self.mark_in()
         dur = self.get_asset()["duration"]
         if not dur:

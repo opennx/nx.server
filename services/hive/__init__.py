@@ -90,15 +90,16 @@ class Service(ServicePrototype):
             for method in dir(module):
                 if not method.startswith("hive_"):
                     continue
-                method_title = method.lstrip("hive_")
+                method_title = method[5:]
                 module_name  = module.__name__.split(".")[-1] 
-                exec ("self.methods['%s'] = %s.%s" % (method_title, module_name, method ))
+                exec ("self.methods['{}'] = {}.{}".format(method_title, module_name, method ))
+                logging.debug("Enabling method '{}'".format(method_title))
         try:
             port = int(self.config.find("port").text)
         except:
             port = 42000
 
-        logging.debug("Starting hive at port %d" % port)
+        logging.debug("Starting hive at port {}".format(port))
 
         self.server = HTTPServer(('',port), AdminHandler)
         if use_ssl:

@@ -8,6 +8,9 @@ def bin_refresh(bins, sender=False, db=False):
     if not db:
         db = DB()
     for id_bin in bins:
+        bin = Bin(id_bin,db=db)
+        for item in bin.items:
+            cache.delete("i{}".format(item.id))
         cache.delete("b{}".format(id_bin))
     bq = ", ".join([str(b) for b in bins])
     changed_rundowns = []
@@ -20,11 +23,15 @@ def bin_refresh(bins, sender=False, db=False):
         if not chg in changed_rundowns:
             changed_rundowns.append(chg)
     if changed_rundowns:
-        print "Affected rundowns: ", changed_rundowns
         messaging.send("rundown_change", {"sender":sender, "rundowns":changed_rundowns})
     return 202, "OK"
 
+
+
+##################################################################################
+## MACRO SCHEDULING BEGIN
   
+
 def hive_get_day_events(auth_key,params={}):
     id_channel = int(params.get("id_channel",1))
     date = params.get("date",time.strftime("%Y-%m-%d"))
@@ -38,7 +45,7 @@ def hive_set_day_events(auth_key, params={}):
     id_channel = int(params.get("id_channel",False))
     updated = created = deleted = 0
     
-    for id_event in params.get("delete",[]):
+    for id_event in params.get("delete", []):
         id_event = int(id_event)
         event = Event(id_event)
         if not event:
@@ -67,6 +74,71 @@ def hive_set_day_events(auth_key, params={}):
 
 
 
+def hive_event_from_asset(auth_key, params):
+    id_asset = params.get("id_asset", False)
+    id_channel = params.get("id_channel", False)
+    timestamp = params.get("timestamp", False)
+    asset = Asset(id_asset)
+
+    if not (id_asset and id_channel and timestamp and asset):
+        return 400, "e eeee"
+
+    db = DB()
+    
+    event = Event(db=db)
+    bin = Bin(db=db)
+    bin.save()
+
+    event["id_magic"] = bin.id
+    event["id_channel"] = id_channel
+    event["start"] = timestamp
+    event["title"] = asset["title"]
+    event["promoted"] = asset["promoted"]
+    event["description"] = asset["description"]
+    event.save()
+    
+    item = Item(db=db)
+    item["id_asset"] = asset.id
+    item["position"] = 0
+    item["id_bin"] = bin.id
+    item.save()
+
+    bin.items.append(item)
+    bin.save()
+
+    return 201, "Created"
+
+
+
+def hive_scheduler(auth_key, params):
+    date = params.get("date",time.strftime("%Y-%m-%d"))
+    id_channel = int(params.get("id_channel",1))
+
+    start_time = datestr2ts(date, 6, 0) #TODO: Load day start from channel config
+    end_time   = start_time + (3600*24*7)
+
+    db = DB()
+    db.query("SELECT id_object FROM nx_events WHERE id_channel = %s AND start >= %s AND start < %s ORDER BY start ASC", (id_channel, start_time, end_time))
+    res = db.fetchall()
+    db.query("SELECT id_object FROM nx_events WHERE id_channel = %s AND start < %s ORDER BY start DESC LIMIT 1", (id_channel, start_time))
+    res = db.fetchall() + res
+
+    result = []
+    for id_event, in res:
+        event = Event(id_event)
+        bin   = event.get_bin()
+        event["duration"] = bin.get_duration()
+        result.append(event.meta)
+    return 200, {"data":result}
+
+
+
+## MACRO SCHEDULING END
+##################################################################################
+## MICRO SCHEDULING BEGIN
+
+
+
 def hive_rundown(auth_key, params):
     date = params.get("date",time.strftime("%Y-%m-%d"))
     id_channel = int(params.get("id_channel",1))
@@ -76,7 +148,7 @@ def hive_rundown(auth_key, params):
     
     data = []
     db = DB()
-    db.query("SELECT id_object FROM nx_events WHERE id_channel = %s AND start > %s AND start < %s ORDER BY start ASC", (id_channel, start_time, end_time))
+    db.query("SELECT id_object FROM nx_events WHERE id_channel = %s AND start >= %s AND start < %s ORDER BY start ASC", (id_channel, start_time, end_time))
     for id_event, in db.fetchall():
         event = Event(id_event)
         bin   = event.get_bin()
@@ -118,6 +190,12 @@ def hive_bin_order(auth_key, params):
     order  = params.get("order", [])
     sender = params.get("sender", False)
 
+    id_channel = params.get("id_channel", False) # Optional. Just for playlist-bin. 
+    append_cond = True
+    if id_channel:
+        append_cond = config["playout_channels"]
+
+
     if not (id_bin and order):
         return 400, "Fuck you"
 
@@ -141,6 +219,7 @@ def hive_bin_order(auth_key, params):
             asset = Asset(id_object, db=db)
             if not asset: # + Accept conditions
                 continue
+
             item = Item(db=db)
             item["id_asset"] = asset.id
             item.meta.update(params)

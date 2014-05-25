@@ -137,6 +137,7 @@ class Service(ServicePrototype):
                                              )
 
             channel.playout_spec  = channel_cfg["playout_spec"]
+            channel.fps           = channel_cfg.get("fps", 25.0)
             channel.on_main       = self.channel_main
             channel.on_change     = self.channel_change
 
