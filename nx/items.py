@@ -146,13 +146,19 @@ class Event(NXObject):
         self["id_magic"]   = 0
 
     def get_bin(self):
+        if not self.db:
+            self.db = DB()
+        db = self.db
         if not self.bin:
-            self.bin = Bin(self["id_magic"])
+            self.bin = Bin(self["id_magic"], db=db)
         return self.bin
 
     def get_asset(self):
+        if not self.db:
+            self.db = DB()
+        db = self.db
         if not self.asset:
-            self.asset = Asset(self["id_magic"])
+            self.asset = Asset(self["id_magic"], db=db)
         return self.asset
 
         
@@ -176,21 +182,38 @@ def get_bin_first_item(id_bin, db=False):
     except:
         return False
 
+def get_item_event(id_item, db=False):
+    if not db:
+        db = DB
+    db.query("""SELECT e.id_object from nx_items as i, nx_events as e where e.id_magic = i.id_bin and i.id_object = {} and e.id_channel in ({})""".format(
+        id_item,
+        ", ".join([str(f) for f in config["playout_channels"].keys()]) 
+        ))
+    return Event(db.fetchall()[0][0], db=db)
+
 
 def get_next_item(id_item, db=False):
     if not id_item:
         return False
     logging.debug("Looking for item following item ID {}".format(id_item))
-
-
     current_item = Item(id_item, db=db)
     current_bin = Bin(current_item["id_bin"])
     try:
         return current_bin.items[current_item["position"]]
     except:
-        #if not db:
-        #    db = DB()
-        #   find next bin, open bin, return first item if exist
-        return current_bin.items[0]
+        if not db:
+            db = DB()
+        current_event = get_item_event(id_item, db=db)
+        q = "SELECT id_object FROM nx_events WHERE id_channel = {} and start > {} ORDER BY start ASC LIMIT 1".format(current_event["id_channel"], current_event["start"])
+        db.query(q)
+        try:
+            next_event = Event(db.fetchall()[0][0], db=db)
+            next_bin = next_event.get_bin()
+            if not next_bin.items:
+                raise Exception
+            return next_bin.items[0]
+        except:
+            logging.warning("There is no non-empty after this one. Looping current")
+            return current_bin.items[0]
 
 
