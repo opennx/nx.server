@@ -30,6 +30,25 @@ def hive_site_settings(auth_key,params):
 
     result["views"] = views
 
+
+    result["playout_channels"] = {}
+    result["ingest_channels"] = {}
+    db.query("SELECT id_channel, channel_type, title, config FROM nx_channels")
+    for id_channel, channel_type, title, ch_config in db.fetchall():
+        try:
+            ch_config = json.loads(ch_config)
+        except:
+            print ("Unable to parse channel {}:{} config.".format(id_channel, title))
+            continue
+        ch_config.update({"title":title})
+        if channel_type == PLAYOUT:
+            result["playout_channels"][id_channel] = ch_config
+        elif channel_type == INGEST:
+            result["ingest_channels"][id_channel] = ch_config
+
+
+
+
     return 200, result
 
 

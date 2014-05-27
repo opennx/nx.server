@@ -2,14 +2,15 @@ from nx import *
 from nx.assets import *
 from nx.items import *
 
+BLOCK_MODES = ["LINK", "MANUAL", "SOFT AUTO", "HARD AUTO"]
 
 
 def bin_refresh(bins, sender=False, db=False):
     if not db:
         db = DB()
     for id_bin in bins:
-        bin = Bin(id_bin,db=db)
-        for item in bin.items:
+        pbin = Bin(id_bin, db=db)
+        for item in pbin.items:
             cache.delete("i{}".format(item.id))
         cache.delete("b{}".format(id_bin))
     bq = ", ".join([str(b) for b in bins])
@@ -51,8 +52,8 @@ def hive_set_day_events(auth_key, params={}):
         if not event:
             logging.warning("Unable to delete non existent event ID {}".format(id_event))
             continue
-        bin = event.get_bin()
-        bin.delete()
+        pbin = event.get_bin()
+        pbin.delete()
         event.delete()
         deleted += 1
     
@@ -62,9 +63,9 @@ def hive_set_day_events(auth_key, params={}):
             event = Event(id_event)
         else:
             event = Event()
-            bin = Bin()
-            bin.save()
-            event["id_magic"] = bin.id
+            pbin = Bin()
+            pbin.save()
+            event["id_magic"] = pbin.id
             event["id_channel"] = id_channel
         for key in event_data:
             event.meta[key] = event_data[key]
@@ -86,10 +87,10 @@ def hive_event_from_asset(auth_key, params):
     db = DB()
     
     event = Event(db=db)
-    bin = Bin(db=db)
-    bin.save()
+    pbin = Bin(db=db)
+    pbin.save()
 
-    event["id_magic"] = bin.id
+    event["id_magic"] = pbin.id
     event["id_channel"] = id_channel
     event["start"] = timestamp
     event["title"] = asset["title"]
@@ -100,11 +101,11 @@ def hive_event_from_asset(auth_key, params):
     item = Item(db=db)
     item["id_asset"] = asset.id
     item["position"] = 0
-    item["id_bin"] = bin.id
+    item["id_bin"] = pbin.id
     item.save()
 
-    bin.items.append(item)
-    bin.save()
+    pbin.items.append(item)
+    pbin.save()
 
     return 201, "Created"
 
@@ -114,7 +115,7 @@ def hive_scheduler(auth_key, params):
     date = params.get("date",time.strftime("%Y-%m-%d"))
     id_channel = int(params.get("id_channel",1))
 
-    start_time = datestr2ts(date, 6, 0) #TODO: Load day start from channel config
+    start_time = datestr2ts(date, *config["playout_channels"].get("day_start", [6,0]))
     end_time   = start_time + (3600*24*7)
 
     db = DB()
@@ -126,8 +127,8 @@ def hive_scheduler(auth_key, params):
     result = []
     for id_event, in res:
         event = Event(id_event)
-        bin   = event.get_bin()
-        event["duration"] = bin.get_duration()
+        pbin  = event.get_bin()
+        event["duration"] = pbin.get_duration()
         result.append(event.meta)
     return 200, {"data":result}
 
@@ -143,7 +144,7 @@ def hive_rundown(auth_key, params):
     date = params.get("date",time.strftime("%Y-%m-%d"))
     id_channel = int(params.get("id_channel",1))
 
-    start_time = datestr2ts(date)
+    start_time = datestr2ts(date, *config["playout_channels"].get("day_start", [6,0]))
     end_time   = start_time + (3600*24)
     
     data = []
@@ -151,13 +152,13 @@ def hive_rundown(auth_key, params):
     db.query("SELECT id_object FROM nx_events WHERE id_channel = %s AND start >= %s AND start < %s ORDER BY start ASC", (id_channel, start_time, end_time))
     for id_event, in db.fetchall():
         event = Event(id_event)
-        bin   = event.get_bin()
+        pbin   = event.get_bin()
 
         event_meta = event.meta
-        bin_meta   = bin.meta
+        bin_meta   = pbin.meta
         items = []
 
-        for item in bin.items:
+        for item in pbin.items:
             i_meta = item.meta
             a_meta = item.get_asset().meta if item["id_asset"] else {}
             
@@ -194,7 +195,6 @@ def hive_bin_order(auth_key, params):
     append_cond = True
     if id_channel:
         append_cond = config["playout_channels"]
-
 
     if not (id_bin and order):
         return 400, "Fuck you"
@@ -253,3 +253,27 @@ def hive_del_items(auth_key,params):
     bin_refresh(affected_bins, sender, db)
     return 202, "OK"
 
+
+
+def hive_toggle_run_mode(auth_key,params={}):
+    items  = list(params.get("items" ,[]))
+    blocks = list(params.get("events" ,[]))
+    affected_bins = set()
+    if items:
+        for id_item in items:
+            item = Item(id_item)
+            if not item["manual_start"]: 
+                item["manual_start"] = 1
+            else: 
+                item["manual_start"] = 0
+            item.save()
+            affected_bins.append(item["id_bin"])
+    elif events:
+        for id_event in events:
+            event = Event(id_event)
+            event["run_mode"] = (event["run_mode"]+1) % len(BLOCK_MODES)
+            event.save()
+            affected_bins.append(event.get_bin().id)
+    bin_refresh(list(affected_bins))
+    return 200, "Run mode changed"
+ 
