@@ -161,14 +161,35 @@ class Event(NXObject):
             self.asset = Asset(self["id_magic"], db=db)
         return self.asset
 
+
+def bin_refresh(bins, sender=False, db=False):
+    if not db:
+        db = DB()
+    for id_bin in bins:
+        pbin = Bin(id_bin, db=db)
+        for item in pbin.items:
+            cache.delete("i{}".format(item.id))
+        cache.delete("b{}".format(id_bin))
+    bq = ", ".join([str(b) for b in bins])
+    changed_rundowns = []
+    q = "SELECT e.id_channel, e.start FROM nx_events as e, nx_channels as c WHERE c.channel_type = 0 AND c.id_channel = e.id_channel AND id_magic in ({})".format(bq)
+    print q
+    db.query(q)
+    for id_channel, start_time in db.fetchall():
+        start_time = time.strftime("%Y-%m-%d",time.localtime(start_time))
+        chg = [id_channel, start_time]
+        if not chg in changed_rundowns:
+            changed_rundowns.append(chg)
+    if changed_rundowns:
+        messaging.send("rundown_change", {"sender":sender, "rundowns":changed_rundowns})
+    return 202, "OK"
+
         
-
-
 def get_day_events(id_channel, date):
-    day_start = datestr2ts(date)
-    day_end   = datestr2ts(date, 23, 59, 59)
+    start_time = datestr2ts(date, *config["playout_channels"][id_channel].get("day_start", [6,0]))
+    end_time   = start_time + (3600*24*7)
     db = DB()
-    db.query("SELECT id_object FROM nx_events WHERE id_channel=%s AND start > %s AND start < %s ", (id_channel, day_start, day_end))
+    db.query("SELECT id_object FROM nx_events WHERE id_channel=%s AND start > %s AND start < %s ", (id_channel, start_time, end_time))
     for id_event, in db.fetchall():
         yield Event(id_event)
 
@@ -215,5 +236,4 @@ def get_next_item(id_item, db=False):
         except:
             logging.warning("There is no non-empty after this one. Looping current")
             return current_bin.items[0]
-
 

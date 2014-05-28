@@ -5,29 +5,6 @@ from nx.items import *
 BLOCK_MODES = ["LINK", "MANUAL", "SOFT AUTO", "HARD AUTO"]
 
 
-def bin_refresh(bins, sender=False, db=False):
-    if not db:
-        db = DB()
-    for id_bin in bins:
-        pbin = Bin(id_bin, db=db)
-        for item in pbin.items:
-            cache.delete("i{}".format(item.id))
-        cache.delete("b{}".format(id_bin))
-    bq = ", ".join([str(b) for b in bins])
-    changed_rundowns = []
-    q = "SELECT e.id_channel, e.start FROM nx_events as e, nx_channels as c WHERE c.channel_type = 0 AND c.id_channel = e.id_channel AND id_magic in ({})".format(bq)
-    print q
-    db.query(q)
-    for id_channel, start_time in db.fetchall():
-        start_time = time.strftime("%Y-%m-%d",time.localtime(start_time))
-        chg = [id_channel, start_time]
-        if not chg in changed_rundowns:
-            changed_rundowns.append(chg)
-    if changed_rundowns:
-        messaging.send("rundown_change", {"sender":sender, "rundowns":changed_rundowns})
-    return 202, "OK"
-
-
 
 ##################################################################################
 ## MACRO SCHEDULING BEGIN
@@ -115,7 +92,7 @@ def hive_scheduler(auth_key, params):
     date = params.get("date",time.strftime("%Y-%m-%d"))
     id_channel = int(params.get("id_channel",1))
 
-    start_time = datestr2ts(date, *config["playout_channels"].get("day_start", [6,0]))
+    start_time = datestr2ts(date, *config["playout_channels"][id_channel].get("day_start", [6,0]))
     end_time   = start_time + (3600*24*7)
 
     db = DB()
@@ -144,17 +121,26 @@ def hive_rundown(auth_key, params):
     date = params.get("date",time.strftime("%Y-%m-%d"))
     id_channel = int(params.get("id_channel",1))
 
-    start_time = datestr2ts(date, *config["playout_channels"].get("day_start", [6,0]))
-    end_time   = start_time + (3600*24)
-    
-    data = []
     db = DB()
+
+    start_time = datestr2ts(date, *config["playout_channels"][id_channel].get("day_start", [6,0]))
+    end_time   = start_time + (3600*24)
+    ts_broadcast = 0
+    data = []
     db.query("SELECT id_object FROM nx_events WHERE id_channel = %s AND start >= %s AND start < %s ORDER BY start ASC", (id_channel, start_time, end_time))
     for id_event, in db.fetchall():
         event = Event(id_event)
         pbin   = event.get_bin()
 
         event_meta = event.meta
+        event_meta["rundown_scheduled"] = ts_scheduled = event["start"]
+        if not ts_broadcast:
+            ts_broadcast = ts_scheduled
+        event_meta["rundown_broadcast"] = ts_broadcast
+
+        if not pbin.items:
+            ts_broadcast = 0
+
         bin_meta   = pbin.meta
         items = []
 
@@ -162,6 +148,11 @@ def hive_rundown(auth_key, params):
             i_meta = item.meta
             a_meta = item.get_asset().meta if item["id_asset"] else {}
             
+            i_meta["rundown_broadcast"] = ts_broadcast
+            i_meta["rundown_scheduled"] = ts_scheduled
+            ts_scheduled += item.get_duration()
+            ts_broadcast += item.get_duration()
+
             # ITEM STATUS
             if not item["id_asset"]:
                 i_meta["rundown_status"] = 2
@@ -194,7 +185,8 @@ def hive_bin_order(auth_key, params):
     id_channel = params.get("id_channel", False) # Optional. Just for playlist-bin. 
     append_cond = True
     if id_channel:
-        append_cond = config["playout_channels"]
+        append_cond = config["playout_channels"][id_channel].get("scheduler_accepts", True)
+
 
     if not (id_bin and order):
         return 400, "Fuck you"
@@ -217,7 +209,7 @@ def hive_bin_order(auth_key, params):
 
         elif object_type == ASSET:
             asset = Asset(id_object, db=db)
-            if not asset: # + Accept conditions
+            if not asset or not eval(append_cond):
                 continue
 
             item = Item(db=db)
