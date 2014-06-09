@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="shortcut icon" href="static/favicon.png">
+
+
+    <title>{{ title }}</title>
+
+    <link href="static/css/bootstrap.min.css" rel="stylesheet">
+    <link href="static/css/basic.css" rel="stylesheet">
+    <link href="static/css/font-awesome.min.css" rel="stylesheet">
+
+</head>
+
+<body>
+{% if current_user.is_authenticated() %}
+    {{current_user.id}}
+    {% block body %}
+        Logged in
+    {% endblock %}
+{% else %}
+
+    <h1>Sign In</h1>
+    <form action="/login" method="post" name="login" class="form-horizontal well well-large">
+        <input type='text' name='username'></input><br>
+        <input type='password' name='password'></input></br>
+        <input type='checkbox' name='remember'>Remember me</input></br>
+        <input type='submit'>
+    </form>
+
+{% endif %}
+
+</body>
+</html>
