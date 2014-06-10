@@ -36,6 +36,7 @@ def file_to_title(fname): # This sucks, but it's based on best practices :-)
 class Service(ServicePrototype):
     def on_init(self):
         self.mirrors = self.settings.findall("mirror")
+        self.ignore = []
 
     def on_main(self):
         db = DB()
@@ -85,7 +86,10 @@ class Service(ServicePrototype):
                     if asset_by_path(mstorage,apath,db=db): 
                         continue 
 
-                logging.debug("Found new file %s" % apath)
+                if (mstorage, apath) in self.ignore:
+                    continue
+
+                logging.debug("Found new file '{}'".format(apath))
 
                 asset = Asset() 
                 asset["id_storage"]    = mstorage
@@ -131,3 +135,6 @@ class Service(ServicePrototype):
                 if not failed:
                     asset.save()
                     logging.info("Created %s from %s"%(asset, apath))
+                else:
+                    logging.info("Post script failed. Ignoring file.")
+                    self.ignore.append((mstorage, apath))
