@@ -41,13 +41,6 @@ class MetaType(object):
                 }
 
 
-def fract2float(fract):
-    nd = fract.split("/")
-    if len(nd) == 1 or nd[1] == "1":
-        return float(nd[0])
-    return float(nd[0]) / float(nd[1])
-
-
 class MetaTypes(dict):
     def __init__(self):
         super(MetaTypes, self).__init__()

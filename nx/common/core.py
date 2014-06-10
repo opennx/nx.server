@@ -38,9 +38,15 @@ def critical_error(message):
 
 def success(ret_code):
     return ret_code < 300
+
 def failed(ret_code):
     return not success(ret_code)
 
+def fract2float(fract):
+    nd = fract.split("/")
+    if len(nd) == 1 or nd[1] == "1":
+        return float(nd[0])
+    return float(nd[0]) / float(nd[1])
 
 ########################################################################
 ## Config
