@@ -13,6 +13,7 @@ file_types = {
 "m2v"  : VIDEO,
 "m2p"  : VIDEO,
 "m2ts" : VIDEO,
+"mts"  : VIDEO,
 "mkv"  : VIDEO,
 "3gp"  : VIDEO,
 "vob"  : VIDEO,
