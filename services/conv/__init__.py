@@ -8,11 +8,12 @@ from nx.common.metadata import meta_types
 from nx.common.filetypes import file_types
 
 
-from encoders import FFMPEG
+from encoders import FFMPEG, FTP
 
 
 encoders = {
-    "ffmpeg" : FFMPEG
+    "ffmpeg" : FFMPEG,
+    "ftp" : FTP
 }
 
 
@@ -23,6 +24,8 @@ class Service(ServicePrototype):
         id_service = self.id_service
         self.allowed_actions = {}
         db = DB()
+        db.query("UPDATE nx_jobs set id_service=0, progress=-1, retries=0, stime=0, etime=0, message='Restarting' WHERE id_service=%s AND progress > -1", [id_service])
+        db.commit()
         db.query("SELECT id_action, title, config FROM nx_actions ORDER BY id_action")
         for id_action, title, config in db.fetchall():
             try:
@@ -86,11 +89,18 @@ class Service(ServicePrototype):
             logging.info("Starting task {} of {}".format(id_task+1, len(tasks)) )
             encoder.run()
 
+            old_progress = 0
             while encoder.is_working():
-                time.sleep(.1)
+                progress, msg = encoder.get_progress()
+                if progress < 0:
+                    break
+                if progress != old_progress:
+                    job.set_progress(int(progress*100), msg)
+                    old_progress = progress
+                time.sleep(.01)
 
-            if encoder.get_progress() == FAILED:
-                job.fail()
+            if progress == FAILED:
+                job.fail(msg)
                 return
 
             logging.info("Finalizing task {} of {}".format(id_task+1, len(tasks)) )

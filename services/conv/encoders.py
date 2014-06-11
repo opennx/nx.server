@@ -54,9 +54,9 @@ def temp_file(id_storage, ext):
 ## FFMPEG
 
 
-def join_filters(filters=[]):
+def join_filters(*filters):
     """Joins multiple filters"""
-    return "\"[in]%s[out]\"" % "[out];[out]".join(i for i in filters if i)
+    return "[in]%s[out]" % "[out];[out]".join(i for i in filters if i)
 
 def filter_deinterlace():
     """Yadif deinterlace"""
@@ -87,13 +87,10 @@ class FFMPEG(Encoder):
         self.ffparams.extend(["-i", self.asset.get_file_path()])
         asset = self.asset
 
-    #    try:
         id_storage = int(self.task.find("storage").text)
         self.id_storage = id_storage
         self.target_rel_path = eval(self.task.find("path").text)
-    #    except:
-    #        return "Wrong target script"
-
+        temp_ext  = os.path.splitext(self.target_rel_path)[1]
 
         for p in self.task:
             if p.tag == "param":
@@ -118,7 +115,6 @@ class FFMPEG(Encoder):
         if not storages[id_storage]:
             return "Target storage is not mounted"
 
-        temp_ext  = os.path.splitext(self.target_rel_path)[1]
         self.temp_file_path   = temp_file(id_storage, temp_ext)
         if not self.temp_file_path:
             return "Unable to create temp directory"
@@ -142,23 +138,39 @@ class FFMPEG(Encoder):
 
     def run(self):
         logging.debug("Executing {}".format(str(self.ffparams)))
-        self.proc = subprocess.Popen(self.ffparams)
+        self.progress = 0
+        self.proc = subprocess.Popen(self.ffparams, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
 
     def is_working(self):
         if not self.proc or self.proc.poll() == None:
             return True
         return False
 
+
     def get_progress(self):
         if not self.proc:
-            return 0
+            return 0, "Starting"
         elif self.proc.poll() == 0:
-            return COMPLETED
+            return COMPLETED, "Encoding completed"
         elif self.proc.poll() > 0:
-            return FAILED
+            return FAILED, "Encoding failed"
         else:
-            return 0.5
-
+            try:    
+                ln = self.proc.stderr.readline().split(" ")
+            except: 
+                pass
+            else:
+                for k in ln:
+                    if k.startswith("time="):
+                        try:
+                            PZ = self.asset.get_duration()
+                            hh, mm, ss = k.replace("time=","").split(":")
+                            PC = (int(hh)*3600) + (int(mm)*60) + float(ss)
+                            self.progress = PC / PZ
+                            return self.progress, "Encoding media"
+                        except:
+                            pass
+            return self.progress, "Encoding media"
 
 
     def finalize(self):
@@ -211,3 +223,21 @@ class FFMPEG(Encoder):
 
 ## FFMPEG
 #########################################################################
+## FTP
+
+class FTP(Encoder):
+    def configure(self):
+        pass
+
+    def run(self):
+        pass
+
+    def is_working(self):
+        return False
+
+    def get_progress(self): 
+        """Should return float between 0.0 and 1.0"""
+        return 0
+
+    def finalize(self):
+        pass

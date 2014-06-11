@@ -1,4 +1,30 @@
 {% extends "base.html" %}
 {% block body %}
 <h2>Services</h2>
+
+<div class="table-responsive">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Title</th>
+                <th>Agent</th>
+                <th>Host</th>
+
+            </tr>
+        </thead>
+        <tbody>
+            {% for service in services %}
+            <tr>
+                <td>{{service.id_service}}</td>
+                <td>{{service.title}}</td>
+                <td>{{service.agent}}</td>
+                <td>{{service.host}}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+
 {% endblock %}

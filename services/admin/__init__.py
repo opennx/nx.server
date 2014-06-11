@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from nx import *
 import thread
 import hashlib
 
-from flask import Flask, request, render_template, redirect, url_for, flash
+from nx import *
+from nx.assets import Asset
+
+from flask import Flask, request, render_template, redirect, url_for, flash, jsonify
 from flask.ext.login import (LoginManager, current_user, login_required,
                             login_user, logout_user, UserMixin, 
                             confirm_login, fresh_login_required)
@@ -97,18 +99,71 @@ def load_user(id):
 def index():
     return render_template("index.html", navigation=get_navigation(current_user.id))
  
-@app.route("/jobs")
-def jobs():
-    cols = ["id_service", "agent", "title", "host"]
+@app.route("/jobs", methods=['GET', 'POST'])
+@app.route("/jobs/<view>", methods=['GET', 'POST'])
+def jobs(view="active"):
+    cols = [ "id_job", "id_object", "id_action", "settings", "id_service", "priority", "progress", "retries", "ctime", "stime", "etime", "message", "id_user", "action_title", "asset_title" ]
+
+    if view == "failed":
+        current_view = "failed"
+        cond = " AND j.progress = -3"
+    elif view == "completed":
+        current_view = "completed"
+        cond = " AND j.progress = -2"
+    else:
+        current_view = "active"
+        cond = " AND (j.progress >= -1 OR {} - etime < 60)".format(time.time())
+
     db = DB()
-    db.query("SELECT id_service, agent, title, host, autostart, loop_delay, settings, state, pid, last_seen FROM nx_services")
-    for id_service, agent, title, host, autostart, loop_delay, settings, state, pid, last_seen in db.fetchall():
-        pass
-    return render_template("job_monitor.html", navigation=get_navigation(current_user.id))
+    if request.method == "POST" and "id_job" in request.form:
+        id_job = int(request.form.get("id_job"))
+        db.query("UPDATE nx_jobs set id_service=0, progress=-1, retries=0, ctime=%s, stime=0, etime=0, message='Restarting', id_user=%s WHERE id_job=%s", (time.time(), current_user.id, id_job))
+        db.commit()
+        flash("Job {} restarted".format(id_job))
+
+    db.query("""SELECT j.id_job, j.id_object, j.id_action, j.settings, j.id_service, j.priority, j.progress, j.retries, j.ctime, j.stime, j.etime, j.message, j.id_user, a.title 
+        FROM nx_jobs as j, nx_actions as a WHERE a.id_action = j.id_action{} ORDER BY etime DESC, stime DESC, ctime DESC """.format(cond))
+
+    if view=="json":
+        jobs = {}
+        for job_data in db.fetchall():
+            jobs[str(job_data[0])] = [job_data[6], job_data[11]]
+        return jsonify(**jobs)
+
+    jobs = []
+    for job_data in db.fetchall():
+        asset = Asset(job_data[1])
+        job_data = list(job_data)
+        job_data.append(asset["title"])
+        job = {}
+        for i,c in enumerate(cols):
+            job[c] = job_data[i]
+        jobs.append(job)
+
+    return render_template("job_monitor.html", navigation=get_navigation(current_user.id), jobs=jobs, current_view=current_view)
+
+
+
 
 @app.route("/services")
 def services():
-    return render_template("services.html", navigation=get_navigation(current_user.id))
+    cols = ["id_service", "agent", "title", "host", "autostart", "loop_delay", "settings", "state", "pid", "last_seen"]
+    db = DB()
+    db.query("SELECT id_service, agent, title, host, autostart, loop_delay, settings, state, pid, last_seen FROM nx_services ORDER BY id_service ASC")
+    services = []
+    for service_data in db.fetchall():
+        service = {}
+        for i, c in enumerate(cols):
+            service[c] = service_data[i]
+        services.append(service)
+    return render_template("services.html", navigation=get_navigation(current_user.id), services=services)
+
+
+
+
+
+
+
 
 
 @app.route("/login", methods=["POST"])
@@ -118,20 +173,25 @@ def login():
         if id_user:
             remember = request.form.get("remember", "no") == "yes"
             if login_user(flask_users[id_user], remember=remember):
-                return redirect(request.args.get("next") or url_for("index"))
+                return render_template("index.html", navigation=get_navigation(current_user.id))
             else:
                 flash("Sorry, but you could not log in.", "danger")
         else:
             flash("Login failed", "danger")
+    return render_template("index.html", navigation=get_navigation(current_user.id))
 
-    return redirect(url_for("index"))
 
 @app.route("/logout")
 def logout():
     logout_user()
     flash("Logged out.", "info")
-    return redirect(url_for("index"))
+    return render_template("index.html", navigation=get_navigation(current_user.id))
   
+
+
+
+
+
 
 
 
