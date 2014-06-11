@@ -1,3 +1,7 @@
+html {
+    overflow-y: scroll; 
+}
+
 body {
   padding-top: 70px;
 }
@@ -5,4 +9,10 @@ body {
 .starter-template {
   padding: 20px 15px;
   text-align: left;
+}
+
+.view_switcher {
+    width:100%;
+    text-align: center;
+    margin-bottom : 15px;
 }

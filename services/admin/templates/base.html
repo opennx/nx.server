@@ -10,14 +10,15 @@
 
     <title>{{ title }}</title>
 
-    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/bootstrap.css" rel="stylesheet">
     <link href="/static/css/basic.css" rel="stylesheet">
 </head>
 
 <body>
 
-    <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <div class="navbar navbar-default navbar-fixed-top" role="navigation">
         <div class="container">
+            
             <div class="navbar-header">
                 <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
                     <span class="sr-only">Toggle navigation</span>
@@ -25,22 +26,36 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a class="navbar-brand" href="/">nebula</a>
+                <a class="navbar-brand" href="/">{{ current_user.name + "@" if current_user.is_authenticated() }}nebula</a>
             </div>
+
+
             <div class="collapse navbar-collapse">
-                <ul class="nav navbar-nav">{% if current_user.is_authenticated() %}{% for caption, href in navigation %}
-                    <li><a href="{{ href }}">{{ caption }}</a></li>{% endfor %}{% endif %}
+                <ul class="nav navbar-nav">
+                {% if current_user.is_authenticated() %}
+                    <li><a href="/jobs">Jobs</a></li>
+                    <li><a href="/services">Services</a></li>    
+                </ul>
+                <ul class="nav navbar-nav navbar-right">
+                    <li><a href="/logout"><span class="glyphicon glyphicon-log-out"></span></a></li>
+
+                {% endif %}
                 </ul>
             </div><!--/.nav-collapse -->
         </div>
     </div>
 
+
+
     <div class="container">
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
-            <div id='alerts'>
+            <div id='alerts' class="col-md-6 col-md-offset-3" >
             {% for category, message in messages %}
-                <div class="alert alert-{{category}}">{{ message }}</div>
+                <div class="alert alert-dismissable alert-{{category}}">
+                    <button type="button" class="close" data-dismiss="alert">×</button>
+                    <strong>{{ category|upper }}:</strong> {{ message }}
+                </div>
             {% endfor %}
             </div>
           {% endif %}
@@ -51,13 +66,31 @@
                 Logged in
             {% endblock %}
         {% else %}
-            <h2>Sign In</h2>
+            <div class="col-md-6 col-md-offset-3">
             <form action="/login" method="post" name="login" class="form-horizontal well well-large">
-                <input type='text' name='username'></input><br>
-                <input type='password' name='password'></input></br>
-                <input type='checkbox' name='remember'>Remember me</input></br>
-                <input type='submit'>
+           
+                <div class="form-group">
+                  <label for="username" class="col-lg-2 control-label">Login</label>
+                  <div class="col-lg-10">
+                    <input class="form-control" id="username" name='username' placeholder="Login" type="text">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="password" class="col-lg-2 control-label">Password</label>
+                  <div class="col-lg-10">
+                    <input class="form-control" id="password" name="password" placeholder="Password" type="password">
+                    <div class="checkbox">
+                      <label>
+                        <input type="checkbox" name='remember'> Remember me
+                      </label>
+                    </div>
+                  </div>
+                </div>
+                <button type='submit' class="btn btn-default">Login</button>
             </form>
+            </div>
+
         {% endif %}
     </div> <!-- container -->
     

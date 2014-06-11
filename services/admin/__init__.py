@@ -12,15 +12,12 @@ from flask.ext.login import (LoginManager, current_user, login_required,
                             login_user, logout_user, UserMixin, 
                             confirm_login, fresh_login_required)
  
-
 config["users"] = {
         1 : {
         "login" : "admin",
         "password" : "21232f297a57a5a743894a0e4a801fc3", 
         }
     }
-
-
 
 class User(UserMixin):
     def __init__(self, id):
@@ -31,19 +28,15 @@ class User(UserMixin):
     def is_active(self):
         return self.active
 
-
 class Anonymous(UserMixin):
     name = u"Anonymous"
     id = 0
     def is_authenticated(self):
         return False
 
-
-
 flask_users = {}
 for id_user in config["users"]:
     flask_users[id_user] = User(id_user)
-
 
 def login_to_id(login):
     for id_user in config["users"]:
@@ -117,9 +110,9 @@ def jobs(view="active"):
     db = DB()
     if request.method == "POST" and "id_job" in request.form:
         id_job = int(request.form.get("id_job"))
-        db.query("UPDATE nx_jobs set id_service=0, progress=-1, retries=0, ctime=%s, stime=0, etime=0, message='Restarting', id_user=%s WHERE id_job=%s", (time.time(), current_user.id, id_job))
+        db.query("UPDATE nx_jobs set id_service=0, progress=-1, retries=0, ctime=%s, stime=0, etime=0, message='Pending', id_user=%s WHERE id_job=%s", (time.time(), current_user.id, id_job))
         db.commit()
-        flash("Job {} restarted".format(id_job))
+        flash("Job {} restarted".format(id_job), "info")
 
     db.query("""SELECT j.id_job, j.id_object, j.id_action, j.settings, j.id_service, j.priority, j.progress, j.retries, j.ctime, j.stime, j.etime, j.message, j.id_user, a.title 
         FROM nx_jobs as j, nx_actions as a WHERE a.id_action = j.id_action{} ORDER BY etime DESC, stime DESC, ctime DESC """.format(cond))
