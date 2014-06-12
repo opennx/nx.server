@@ -1,7 +1,9 @@
+
 from nx import *
 from flask.ext.login import (LoginManager, current_user, login_required,
                             login_user, logout_user, UserMixin, 
                             confirm_login, fresh_login_required)
+import hashlib
 
 config["users"] = {
         1 : {
@@ -42,7 +44,6 @@ def auth_helper(login, password):
             if config["users"][id_user]["password"] == hashlib.md5(password.encode()).hexdigest():
                 return id_user
             else:
-                print ("Invalid password", config["users"][id_user]["password"], hashlib.md5(password.encode()).hexdigest())
                 return False
     else:
         print ("No such user")
