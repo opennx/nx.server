@@ -5,11 +5,11 @@
     <table class="table">
         <thead>
             <tr>
-                <th>#</th>
+                <th style='width:50px;'>#</th>
                 <th>Title</th>
                 <th>Agent</th>
                 <th>Host</th>
-
+                <th style='width:76px;'>&nbsp;</th>
             </tr>
         </thead>
         <tbody>
@@ -19,6 +19,11 @@
                 <td>{{service.title}}</td>
                 <td>{{service.agent}}</td>
                 <td>{{service.host}}</td>
+
+                <td>
+                        <button id="btn_svc_{{service.id_service}}" style='width:70px;' class="btn btn-default btn-xs" onClick="stop_service({{service.id_service}});">loading....</button>    
+                </td>
+
             </tr>
             {% endfor %}
         </tbody>
@@ -26,4 +31,55 @@
 </div>
 
 
+{% endblock %}
+
+
+{% block js %}
+    <script type="text/javascript">
+
+        function timeout_init() {
+            setTimeout('update_services()', 2000);
+            }
+
+
+        function update_services() {            
+            $.getJSON("/services/json").done(function(data) {
+
+                if (data){
+                $.each( data, function( id_service, state ) {
+
+                    if (state == 0){
+                        $("#btn_svc_" + id_service).html("START").removeClass("btn-default btn-warning btn-success").addClass("btn-danger").removeAttr('disabled');
+                    }  
+                    else if (state == 1){
+                        $("#btn_svc_" + id_service).html("STOP").removeClass("btn-default btn-warning btn-danger").addClass("btn-success").removeAttr('disabled');
+                    }
+                    else if (state == 2){
+                        $("#btn_svc_" + id_service).html("STARTING").removeClass("btn-default btn-danger btn-success").addClass("btn-warning").attr('disabled','disabled');
+                    }
+                    else if (state == 3){
+                        $("#btn_svc_" + id_service).html("STOPPING").removeClass("btn-default btn-danger btn-success").addClass("btn-warning").attr('disabled','disabled');
+                    }
+                    
+                  });
+                } //if data
+                });
+
+            timeout_init();
+            }
+
+
+        function stop_service(id_service){
+            $.post( "/services", { action: "stop", id_service: id_service } );
+            update_services();
+        }
+
+
+
+        $(document).ready(function(){
+            update_services();
+        }); // document ready
+
+
+    </script>
 {% endblock %}

@@ -8,66 +8,19 @@ from nx import *
 from nx.assets import Asset
 
 from flask import Flask, request, render_template, redirect, url_for, flash, jsonify
-from flask.ext.login import (LoginManager, current_user, login_required,
-                            login_user, logout_user, UserMixin, 
-                            confirm_login, fresh_login_required)
- 
 
+from auth import *
+
+
+
+ 
 import logging
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
-
-config["users"] = {
-        1 : {
-        "login" : "admin",
-        "password" : "21232f297a57a5a743894a0e4a801fc3", 
-        }
-    }
-
-class User(UserMixin):
-    def __init__(self, id):
-        self.id = id
-        self.name = config["users"][id]["login"]
-        self.active = True
-
-    def is_active(self):
-        return self.active
-
-class Anonymous(UserMixin):
-    name = u"Anonymous"
-    id = 0
-    def is_authenticated(self):
-        return False
-
-flask_users = {}
-for id_user in config["users"]:
-    flask_users[id_user] = User(id_user)
-
-def login_to_id(login):
-    for id_user in config["users"]:
-        if config["users"][id_user]["login"] == login:
-            return id_user
-    else:
-        return False
-
-def auth_helper(login, password):
-    for id_user in config["users"]:
-        if config["users"][id_user]["login"] == login:
-            if config["users"][id_user]["password"] == hashlib.md5(password.encode()).hexdigest():
-                return id_user
-            else:
-                print ("Invalid password", config["users"][id_user]["password"], hashlib.md5(password.encode()).hexdigest())
-                return False
-    else:
-        print ("No such user")
-        return False
-
- 
 SECRET_KEY = "yeah, not actually a secret"
 DEBUG = True
  
-
 app = Flask(__name__)
 app.config.from_object(__name__)
 
@@ -78,25 +31,18 @@ login_manager.login_message = u"Please log in to access this page."
 login_manager.refresh_view = "reauth"
 login_manager.setup_app(app)
 
-
-
-def get_navigation(id_user):
-    return [
-        ("Jobs", "/jobs"),
-        ("Services", "/services"),
-        ("Logout","/logout")
-    ]
-
-
 @login_manager.user_loader
 def load_user(id):
     return flask_users.get(int(id))
 
 
 
+
+
 @app.route("/")
 def index():
-    return render_template("index.html", navigation=get_navigation(current_user.id))
+    return render_template("index.html")
+
  
 @app.route("/jobs", methods=['GET', 'POST'])
 @app.route("/jobs/<view>", methods=['GET', 'POST'])
@@ -139,23 +85,44 @@ def jobs(view="active"):
             job[c] = job_data[i]
         jobs.append(job)
 
-    return render_template("job_monitor.html", navigation=get_navigation(current_user.id), jobs=jobs, current_view=current_view)
+    return render_template("job_monitor.html", jobs=jobs, current_view=current_view)
 
 
 
 
-@app.route("/services")
-def services():
+@app.route("/services",methods=['GET', 'POST'])
+@app.route("/services/<view>")
+def services(view="default"):
     cols = ["id_service", "agent", "title", "host", "autostart", "loop_delay", "settings", "state", "pid", "last_seen"]
     db = DB()
+
+    if request.method == "POST" and "id_service" in request.form:
+        id_service = int(request.form.get("id_service"))
+        sstate = {
+            "stop" : 3,
+            "start" : 2
+            }[request.form.get("action")]
+        db.query("UPDATE nx_services set state = %s WHERE id_service=%s", [sstate, id_service])
+        db.commit()
+        return "OK"
+
+
+
     db.query("SELECT id_service, agent, title, host, autostart, loop_delay, settings, state, pid, last_seen FROM nx_services ORDER BY id_service ASC")
+
+    if view=="json":
+        services={}
+        for sdata in db.fetchall():
+            services[str(sdata[0])] = sdata[7]
+        return jsonify(**services)
+
     services = []
     for service_data in db.fetchall():
         service = {}
         for i, c in enumerate(cols):
             service[c] = service_data[i]
         services.append(service)
-    return render_template("services.html", navigation=get_navigation(current_user.id), services=services)
+    return render_template("services.html", services=services)
 
 
 
@@ -172,35 +139,33 @@ def login():
         if id_user:
             remember = request.form.get("remember", "no") == "yes"
             if login_user(flask_users[id_user], remember=remember):
-                return render_template("index.html", navigation=get_navigation(current_user.id))
+                return render_template("index.html")
             else:
                 flash("Sorry, but you could not log in.", "danger")
         else:
             flash("Login failed", "danger")
-    return render_template("index.html", navigation=get_navigation(current_user.id))
+    return render_template("index.html")
 
 
 @app.route("/logout")
 def logout():
     logout_user()
     flash("Logged out.", "info")
-    return render_template("index.html", navigation=get_navigation(current_user.id))
+    return render_template("index.html")
   
 
 
-
-
-
+ 
 
 
 
 
 class Service(ServicePrototype):
     def on_init(self):
-        thread.start_new_thread(app.run(host="0.0.0.0"))
+        try:
+            thread.start_new_thread(app.run(host="0.0.0.0"))
+        except:
+            logging.info("Flask reload...")
 
     def on_main(self):
-        db = DB()
-        db.query("SELECT id_service, state, last_seen FROM nx_services")
-        service_status = db.fetchall()
-        messaging.send("hive_heartbeat", {"service_status": service_status})
+        pass

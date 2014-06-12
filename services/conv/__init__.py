@@ -7,9 +7,9 @@ from nx.assets import *
 from nx.common.metadata import meta_types
 from nx.common.filetypes import file_types
 
-
 from encoders import FFMPEG, FTP
 
+FORCE_INFO_EVERY = 15
 
 encoders = {
     "ffmpeg" : FFMPEG,
@@ -24,7 +24,7 @@ class Service(ServicePrototype):
         id_service = self.id_service
         self.allowed_actions = {}
         db = DB()
-        db.query("UPDATE nx_jobs set id_service=0, progress=-1, retries=0, stime=0, etime=0, message='Restarting' WHERE id_service=%s AND progress > -1", [id_service])
+        db.query("UPDATE nx_jobs set id_service=0, progress=-1, retries=0, stime=0, etime=0, message='Restarting\nRestart requested after service crash.' WHERE id_service=%s AND progress > -1", [id_service])
         db.commit()
         db.query("SELECT id_action, title, config FROM nx_actions ORDER BY id_action")
         for id_action, title, config in db.fetchall():
@@ -69,7 +69,11 @@ class Service(ServicePrototype):
         action_config = self.allowed_actions[job.id_action]
         tasks = action_config.findall("task")
 
+
+        job_start_time = last_info_time = time.time()
         for id_task, task in enumerate(tasks):
+            task_start_time = time.time()
+
             try:
                 using = task.attrib["using"]
             except:
@@ -91,13 +95,23 @@ class Service(ServicePrototype):
 
             old_progress = 0
             while encoder.is_working():
+                now = time.time()
                 progress, msg = encoder.get_progress()
                 if progress < 0:
                     break
+
                 if progress != old_progress:
-                    job.set_progress(int(progress*100), msg)
+                    job.set_progress(progress*100, msg)
                     old_progress = progress
+
+                if now - last_info_time > FORCE_INFO_EVERY:
+                    logging.info("{}. {0:.2f}% completed".format(msg, progress*100))
+                    last_info_time = now
+
                 time.sleep(.01)
+
+
+
 
             if progress == FAILED:
                 job.fail(msg)

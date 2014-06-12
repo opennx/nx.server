@@ -37,5 +37,9 @@ if __name__ == "__main__":
 
     while True:
         service.on_main()
-        service.heartbeat()
-        time.sleep(loop_delay)
+        last_run = time.time()
+        while True:
+            time.sleep(min(loop_delay, 2))
+            service.heartbeat()
+            if time.time() - last_run >= loop_delay:
+                break
