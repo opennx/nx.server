@@ -26,6 +26,14 @@ class Asset(NXObject, AssetBase):
         pass
 
 
+    def delete_childs(self, db):
+        db = DB()
+        db.query("SELECT id_object, id_bin FROM nx_items WHERE id_asset = {}".format(self.id))
+        if db.fetchall():
+            logging.warning("Unable to delete {}. Remove it from all bins first.".format(self))
+            return False
+        return True
+
 
 
 

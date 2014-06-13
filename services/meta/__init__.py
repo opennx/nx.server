@@ -13,13 +13,13 @@ class Service(ServicePrototype):
         filters = []
         #filters.append("status=%d"%CREATING)
         if filters:
-            self.filters = "WHERE " + " AND ".join(filters)
+            self.filters = "AND " + " AND ".join(filters)
         else: 
             self.filters = ""
 
     def on_main(self):
         db = DB()
-        db.query("SELECT id_object FROM nx_assets %s" % self.filters)
+        db.query("SELECT id_object FROM nx_assets {} WHERE media_type=0".format(self.filters))
         for id_asset, in db.fetchall():
             self._proc(id_asset, db)
 

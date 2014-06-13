@@ -128,10 +128,11 @@ class Bin(NXObject):
             dur += item.get_duration()
         return dur
 
-    def delete_childs(self):
+    def delete_childs(self, db):
         for item in self.items:
             if item.id > 0:
                 item.delete()
+        return True
 
 
 class Event(NXObject):
@@ -185,9 +186,9 @@ def bin_refresh(bins, sender=False, db=False):
     return 202, "OK"
 
         
-def get_day_events(id_channel, date):
+def get_day_events(id_channel, date, num_days=1):
     start_time = datestr2ts(date, *config["playout_channels"][id_channel].get("day_start", [6,0]))
-    end_time   = start_time + (3600*24*7)
+    end_time   = start_time + (3600*24*num_days)
     db = DB()
     db.query("SELECT id_object FROM nx_events WHERE id_channel=%s AND start > %s AND start < %s ", (id_channel, start_time, end_time))
     for id_event, in db.fetchall():

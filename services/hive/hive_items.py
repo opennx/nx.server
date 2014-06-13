@@ -13,8 +13,9 @@ BLOCK_MODES = ["LINK", "MANUAL", "SOFT AUTO", "HARD AUTO"]
 def hive_get_day_events(auth_key,params={}):
     id_channel = int(params.get("id_channel",1))
     date = params.get("date",time.strftime("%Y-%m-%d"))
+    num_days = params.get("num_days",1)
     result = []
-    for event in get_day_events(id_channel, date):
+    for event in get_day_events(id_channel, date, num_days):
         result.append(event.meta)
     return 200, {"events": result}
 
@@ -73,6 +74,7 @@ def hive_event_from_asset(auth_key, params):
     event["title"] = asset["title"]
     event["promoted"] = asset["promoted"]
     event["description"] = asset["description"]
+    event["dramatica/config"] = asset["dramatica/config"]
     event.save()
     
     item = Item(db=db)

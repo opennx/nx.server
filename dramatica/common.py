@@ -18,6 +18,11 @@ class DramaticaObject(object):
 
 
 class DramaticaAsset(DramaticaObject):
+    def __init__(self, **kwargs):
+        super(DramaticaAsset, self).__init__(**kwargs)
+        self.veto = False
+        self.weights = {}
+
     @property 
     def id(self):
         return self["id_object"]
@@ -53,26 +58,30 @@ class DramaticaCache(object):
         self.conn.commit()
 
     def load_assets(self, data_source):
-        self.cur.execute("TRUNCATE TABLE assets;")
+        self.cur.execute("DELETE FROM assets;")
         for asset in data_source:
             id_object = asset["id_object"]
-            self.cur.execute("INSERT INTO assets VALUES (?, {})".format(",".join(["?"]*len(tags))), [id_object] + [asset.get(k, None) for t, k in tags ] )
+            self.cur.execute("INSERT INTO assets VALUES (?, {})".format(",".join(["?"]*len(self.tags))), [id_object] + [asset.get(k, None) for t, k in self.tags ] )
             self.assets[id_object] = DramaticaAsset(**asset)
         self.conn.commit()
+        return len(self.assets)
 
     def load_history(self, data_source, start=False, stop=False):
         if not (start or stop):
-            self.cur.execute("TRUNCATE TABLE history;")
+            self.cur.execute("DELETE FROM history;")
         else:
             conds = []
             if start:
-                conds.append("ts > {}".format(start))
+                conds.append("tstamp > {}".format(start))
             if stop:
-                conds.append("ts < {}".format(stop))
-            self.cur.execute("DELETE FROM history WHERE {}".format("AND".join(conds)))
+                conds.append("tstamp < {}".format(stop))
+            self.cur.execute("DELETE FROM history WHERE {}".format(" AND ".join(conds)))
         self.conn.commit()
+        i = 0
         for id_channel, tstamp, id_asset in data_source:
             self.cur.execute("INSERT INTO history VALUES (?,?,?)", [id_channel, tstamp, id_asset])
+            i+=1
+        return i
 
 
 

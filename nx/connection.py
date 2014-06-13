@@ -58,7 +58,7 @@ elif config['db_driver'] == 'sqlite':
                 self.conn = sqlite3.connect(config["db_host"]) 
                 self.cur = self.conn.cursor()
             except:
-                raise Exception, "Unable to connect database."
+                raise (Exception, "Unable to connect database.")
 
         def sanit(self, instr):
             try: 
@@ -147,8 +147,8 @@ if config["cache_driver"] == "memcached":
                     val = conn.set(str("%s_%s"%(self.site,key)), str(value))
                     break
                 except:  
-                    print "MEMCACHE SAVE FAILED %s" % key
-                    print str(sys.exc_info())
+                    print ("MEMCACHE SAVE FAILED %s" % key)
+                    print (str(sys.exc_info()))
                     time.sleep(1)
                 else:
                     critical_error ("Memcache save failed. This should never happen. Check MC server")
@@ -162,8 +162,8 @@ if config["cache_driver"] == "memcached":
                     conn.delete("%s_%s"%(self.site,key))
                     break
                 except: 
-                    print "MEMCACHE DELETE FAILED %s" % key
-                    print str(sys.exc_info())
+                    print ("MEMCACHE DELETE FAILED %s" % key)
+                    print (str(sys.exc_info()))
                     time.sleep(1)
                 else:
                     critical_error ("Memcache delete failed. This should never happen. Check MC server")

@@ -149,6 +149,7 @@ class NXServerObject(NXBaseObject):
             v = [self[tag] for tag in self.ns_tags if tag != "id_object"]
             db.query(q, v)
             self["id_object"] = self.id = db.lastid()
+            logging.info("{!r} created".format(self))
 
 
         db.query("DELETE FROM nx_meta WHERE id_object = {0} and object_type = {1}".format(self["id_object"], self.id_object_type()))
@@ -168,19 +169,22 @@ class NXServerObject(NXBaseObject):
             db.rollback()
             return False
 
-    def delete_childs(self):
-        pass
+    def delete_childs(self, db):
+        return True
 
     def delete(self):
         logging.debug("Deleting {!r}".format(self))
         if not self.db:
             self.db = DB()
-        self.delete_childs()
         db = self.db
-        db.query("DELETE FROM nx_meta WHERE id_object = %s and object_type = %s", [self.id, self.id_object_type()] )
-        db.query("DELETE FROM nx_{}s WHERE id_object = %s".format(self.object_type), [self.id])
-        db.commit()
-        cache.delete("{0}{1}".format(self.ns_prefix, self.id))
+        if self.delete_childs(db):
+            db.query("DELETE FROM nx_meta WHERE id_object = %s and object_type = %s", [self.id, self.id_object_type()] )
+            db.query("DELETE FROM nx_{}s WHERE id_object = %s".format(self.object_type), [self.id])
+            db.commit()
+            cache.delete("{0}{1}".format(self.ns_prefix, self.id))
+            logging.info("{!r} deleted.".format(self))
+            return True    
+        return False
 
         
 
