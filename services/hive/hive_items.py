@@ -77,13 +77,14 @@ def hive_event_from_asset(auth_key, params):
     event["dramatica/config"] = asset["dramatica/config"]
     event.save()
     
-    item = Item(db=db)
-    item["id_asset"] = asset.id
-    item["position"] = 0
-    item["id_bin"] = pbin.id
-    item.save()
-
-    pbin.items.append(item)
+    if not event["dramatica/config"]:
+        item = Item(db=db)
+        item["id_asset"] = asset.id
+        item["position"] = 0
+        item["id_bin"] = pbin.id
+        item.save()
+        pbin.items.append(item)
+        
     pbin.save()
 
     return 201, "Created"

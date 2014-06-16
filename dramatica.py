@@ -105,15 +105,19 @@ class Session():
 
     def solve(self, id_event=False):
         """Solve one specified event, or entire rundown"""
-        for block in self.rundown.blocks:
-            if block.meta.get("id_event", -1) == id_event or id_event == False:
-                self.cache.load_history(
-                    nx_history_connector(start=self.start_time, stop=self.end_time),
-                    start=self.start_time,
-                    stop=self.end_time
-                    )
-                block.solve()
+        if not id_event:
+            self.cache.load_history(
+                nx_history_connector(start=self.start_time, stop=self.end_time),
+                start=self.start_time,
+                stop=self.end_time
+                )
+            self.rundown.solve()
+        else:
+            pass
+            #TODO: Single event cleanup
 
+
+  
     def save(self):
         if not self.rundown:
             return
@@ -126,6 +130,6 @@ class Session():
 
 if __name__ == "__main__":
     session = Session()
-    session.open_rundown(date="2014-06-13")
+    session.open_rundown(date="2014-06-17")
     session.solve()
     print(session.rundown.__str__().encode("utf-8"))

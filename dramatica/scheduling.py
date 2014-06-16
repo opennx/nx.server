@@ -26,7 +26,7 @@ class DramaticaBlock(DramaticaObject):
 
     @property 
     def target_duration(self):
-        return self["target_duration"] or self.scheduled_end - self.broadcast_start
+        return self.config.get("target_duration", False) or self.scheduled_end - self.broadcast_start
 
     @property
     def duration(self):
@@ -67,15 +67,15 @@ class DramaticaBlock(DramaticaObject):
     def add(self, item, **kwargs):
         if not item:
             return
-        if type(item) == int and item in self.cache.assets:
+        elif type(item) == int and item in self.cache.assets:
             self.items.append(self.cache[item])
+        elif type(item) == DramaticaAsset:
+            self.items.append(item)
+        else:
             return
-        assert type(item) == DramaticaAsset
-        self.items.append(item)
         self.items[-1].meta.update(kwargs)
 
     def solve(self):
-
         #TODO: Loading solvers
         from .solving import DefaultSolver, MusicBlockSolver
         if self.config.get("solver", False) == "MusicBlock":
@@ -141,6 +141,22 @@ class DramaticaRundown(DramaticaObject):
     def add(self, block):
         assert type(block) == DramaticaBlock
         self.blocks.append(block)
+
+    def insert(self, index, **kwargs):
+        self.blocks.insert(index, DramaticaBlock(self, **kwargs))
+        return self.blocks[index]
+
+
+    def solve(self):
+        i = 0
+        while True:
+            try:
+                block = self.blocks[i]
+            except IndexError:
+                break
+            block.solve()            
+            i+=1
+
 
     def __str__(self):
         output = u"\n"

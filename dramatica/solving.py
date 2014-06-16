@@ -83,7 +83,11 @@ class DramaticaSolver(object):
 
         q = "SELECT id_object FROM assets WHERE {}  ORDER BY {} LIMIT 1".format(conds, order)
         self.block.cache.cur.execute(q)
-        id_asset = self.block.cache.cur.fetchall()[0][0]
+        try:
+            id_asset = self.block.cache.cur.fetchall()[0][0]
+        except:
+            return False
+
         if not allow_reuse:
             self.used_ids.append(id_asset)
 
@@ -143,7 +147,28 @@ class DefaultSolver(DramaticaSolver):
         ]
 
     def solve(self):
-        print ("")
+        if self.block.remaining > 300:
+            asset = self.get(
+                    [
+                        "duration < {}".format(self.block.remaining),  #FIX MARK IN AND OUT
+                        "`dramatica/weight` > 0" 
+                    ],
+                    order="duration DESC"
+                ) 
+
+            if asset:
+                print asset, "to ", self.block["title"]
+                n = self.block.rundown.insert(
+                        self.block.block_order+1, 
+                        start=self.block["start"] + self.block.duration,
+                        title=asset["title"],
+                        description=asset["description"]
+                    )
+                n.add(asset)
+
+        #while self.block.remaining > 0:
+        #    pass
+
 
 
 
@@ -165,23 +190,28 @@ class MusicBlockSolver(DramaticaSolver):
         last_jingle = 0
         last_promo  = 0
 
-        self.block.add(self.block.config["intro_jingle"])
-        
+        jingle_selector = self.block.config.get("jingles", False)
+
+        intro_jingle = self.block.config.get("intro_jingle", False)
+        if intro_jingle:
+            self.block.add(self.get([intro_jingle], allow_reuse=True))
+
         while self.block.remaining > 0:
             if self.block.remaining > promo_span and self.block.duration - last_promo > promo_span:
                 pass #TODO
 
-            if self.block.remaining > jingle_span and self.block.duration - last_jingle > jingle_span:
-                pass #TODO
+            if jingle_selector and self.block.remaining > jingle_span and self.block.duration - last_jingle > jingle_span:
+                self.block.add(self.get([jingle_selector], allow_reuse=True))
+                last_jingle = self.block.duration
 
-
-            asset = self.get(["id_folder = 1"], order="({} - duration ) DESC".format(self.block.remaining)) # FIX MARK IN AND OUT
+            asset = self.get(["id_folder = 1"], order="ABS({} - duration )".format(self.block.remaining)) # FIX MARK IN AND OUT
             if self.block.remaining - asset.duration < 0:
                 self.block.add(asset)
                 break
 
-
-            asset = self.get(["id_folder = 1"])
+            asset = self.get(["id_folder = 1"]) ### MOOD/BPM SELECTOR GOES HERE
             self.block.add(asset)
 
-        self.block.add(self.block.config["outro_jingle"])
+        outro_jingle = self.block.config.get("outro_jingle", False)
+        if outro_jingle:
+            self.block.add(self.get([outro_jingle], allow_reuse=True))
