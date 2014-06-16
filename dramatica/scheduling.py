@@ -26,7 +26,7 @@ class DramaticaBlock(DramaticaObject):
 
     @property 
     def target_duration(self):
-        return self["target_duration"] or self.scheduled_end - self.scheduled_start
+        return self["target_duration"] or self.scheduled_end - self.broadcast_start
 
     @property
     def duration(self):
@@ -65,6 +65,11 @@ class DramaticaBlock(DramaticaObject):
             return self.scheduled_end
             
     def add(self, item, **kwargs):
+        if not item:
+            return
+        if type(item) == int and item in self.cache.assets:
+            self.items.append(self.cache[item])
+            return
         assert type(item) == DramaticaAsset
         self.items.append(item)
         self.items[-1].meta.update(kwargs)
@@ -77,6 +82,10 @@ class DramaticaBlock(DramaticaObject):
             solver_class = MusicBlockSolver
         else:
             solver_class = DefaultSolver
+
+        self.config["genres"] = self.config.get("genres", [])
+            .extend([item["genre/music"] in item in self.items if item["genre/music"] ])
+            .extend([item["genre/movie"] in item in self.items if item["genre/movie"] ])
 
         solver = solver_class(self)
         solver.solve()
@@ -131,14 +140,6 @@ class DramaticaRundown(DramaticaObject):
     def add(self, block):
         assert type(block) == DramaticaBlock
         self.blocks.append(block)
-
-##### DO NOT USE. cache history must be updated before each block
-#    def solve(self, force=False):
-#        self.at_time = self.day_start
-#        for block in self.blocks:
-#            if not block.solved or force:
-#                block.solve()
-#            self.at_time += block.duration
 
     def __str__(self):
         output = u"\n"

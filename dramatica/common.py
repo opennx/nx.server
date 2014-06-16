@@ -51,8 +51,8 @@ class DramaticaCache(object):
         self.conn = sqlite3.connect(":memory:")
         self.cur = self.conn.cursor()
         self.assets = {}
-        self.tags = tags
-        tformat = ", ".join(["`{}` {}".format(tag, {int:"INTEGER", str:"TEXT", float:"REAL"}[t]) for t, tag in tags])
+        self.tags = tags + [(int, "dramatica/weight")]
+        tformat = ", ".join(["`{}` {}".format(tag, {int:"INTEGER", str:"TEXT", float:"REAL"}[t]) for t, tag in self.tags])
         self.cur.execute("CREATE TABLE assets (id_object INTEGER PRIMARY KEY, {})".format(tformat))
         self.cur.execute("CREATE TABLE history (id_channel INTEGER, tstamp INTEGER, id_asset INTEGER)")
         self.conn.commit()
@@ -61,7 +61,7 @@ class DramaticaCache(object):
         self.cur.execute("DELETE FROM assets;")
         for asset in data_source:
             id_object = asset["id_object"]
-            self.cur.execute("INSERT INTO assets VALUES (?, {})".format(",".join(["?"]*len(self.tags))), [id_object] + [asset.get(k, None) for t, k in self.tags ] )
+            self.cur.execute("INSERT INTO assets VALUES (?, {})".format(",".join(["?"]*len(self.tags))), [id_object] + [asset.get(k, None) for t, k in self.tags ])
             self.assets[id_object] = DramaticaAsset(**asset)
         self.conn.commit()
         return len(self.assets)
@@ -81,6 +81,7 @@ class DramaticaCache(object):
         for id_channel, tstamp, id_asset in data_source:
             self.cur.execute("INSERT INTO history VALUES (?,?,?)", [id_channel, tstamp, id_asset])
             i+=1
+        self.conn.commit()
         return i
 
 
@@ -99,6 +100,33 @@ class DramaticaCache(object):
 
     def filter(self, q):
         q = self.sanit(q)
-        self.cur.execute("SELECT id_object FROM assets WHERE {}".format(q))
+        self.cur.execute("SELECT id_object FROM assets WHERE `dramatica/weight` >= 0 AND {}".format(q))
         for id_object, in self.cur.fetchall():
             yield self[id_object]
+
+    def clear_pool_weights(self):
+        self.cur.execute("UPDATE assets SET `dramatica/weight` = 0")
+        self.conn.commit()
+        for id_asset in self.assets:
+            self[id_asset]["dramatica/weight"] = 0
+
+    def set_weight(self, id_asset, value, auto_commit=True):
+        self.cur.execute("UPDATE assets SET `dramatica/weight` = ? WHERE id_object = ?", [value, id_asset])
+        if auto_commit:
+            self.conn.commit()
+        self[id_asset]["dramatica/weight"] = value
+
+    def update_weight(self, id_asset, value, auto_commit=True):
+        self.cur.execute("UPDATE assets SET `dramatica/weight` = `dramatica/weight` + ? WHERE id_object = ?", [value, id_asset])
+        if auto_commit:
+            self.conn.commit()
+        self[id_asset]["dramatica/weight"] += value
+    
+
+    def run_distance(self, id_asset, tstamp):
+        self.cur.execute("SELECT tstamp FROM history WHERE id_asset = ? ORDER BY ABS(tstamp - ?) ASC", [id_asset, tstamp])
+        res = self.cur.fetchall()
+        if not res:
+            return -1
+        else:
+            return abs(res[0][0] - tstamp)
