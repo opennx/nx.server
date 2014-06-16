@@ -9,7 +9,7 @@ from nx.common.filetypes import file_types
 
 from encoders import FFMPEG, FTP
 
-FORCE_INFO_EVERY = 15
+FORCE_INFO_EVERY = 20
 
 encoders = {
     "ffmpeg" : FFMPEG,
@@ -105,7 +105,7 @@ class Service(ServicePrototype):
                     old_progress = progress
 
                 if now - last_info_time > FORCE_INFO_EVERY:
-                    logging.info("{}. {0:.2f}% completed".format(msg, progress*100))
+                    logging.info("{}: {}, {:.2f}% completed".format(asset, msg, progress*100))
                     last_info_time = now
 
                 time.sleep(.01)
