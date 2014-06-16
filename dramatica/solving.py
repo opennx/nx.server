@@ -137,7 +137,7 @@ class BlockRepeatRule(DramaticaItemRule):
 
 class DefaultSolver(DramaticaSolver):
     rules = [
-        [GenreRule, 2]
+        [GenreRule, 2],
         [PromotedRule, 1],
         [DistanceRule, 1]
         ]

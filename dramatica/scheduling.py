@@ -83,9 +83,10 @@ class DramaticaBlock(DramaticaObject):
         else:
             solver_class = DefaultSolver
 
-        self.config["genres"] = self.config.get("genres", [])
-            .extend([item["genre/music"] in item in self.items if item["genre/music"] ])
-            .extend([item["genre/movie"] in item in self.items if item["genre/movie"] ])
+        self.config["genres"] = self.config.get("genres", []) or []
+        self.config["genres"].extend([item["genre/music"] for item in self.items if item["genre/music"] ])
+        self.config["genres"].extend([item["genre/movie"] for item in self.items if item["genre/movie"] ])
+        self.config["genres"] = list(set(self.config["genres"]))
 
         solver = solver_class(self)
         solver.solve()
