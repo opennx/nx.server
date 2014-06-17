@@ -59,7 +59,7 @@ class DramaticaBlock(DramaticaObject):
 
     @property 
     def broadcast_end(self):
-        if self.solved and self.items:
+        if self.items:
             return self.broadcast_start + self.duration
         else:
             return self.scheduled_end

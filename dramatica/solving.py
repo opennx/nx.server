@@ -1,6 +1,8 @@
 import math
 import random
 
+from .timeutils import *
+
 class DramaticaRule(object):
     def __init__(self, solver, asset=False):
         self.solver = solver
@@ -20,8 +22,6 @@ class DramaticaItemRule(DramaticaRule):
     pass
 
 
-
-
 class DramaticaSolver(object):
     full_clear = False          # Clear all existing items (including those created by user before solving)
     rules = []                  # List of solver rules and their weights -  tuple(rule_class, weight)
@@ -39,10 +39,13 @@ class DramaticaSolver(object):
         self.create_pool()
 
 
+    @property
+    def used_ids(self):
+        return [item["id_object"] for item in self.block.items]
+
     def create_pool(self):        
         self.block.cache.clear_pool_weights()
         self.pool_ids = []
-        self.used_ids = [item["id_object"] for item in self.block.items]
 
         for id_asset in self.block.cache.assets:
             i = 0
@@ -73,12 +76,15 @@ class DramaticaSolver(object):
 
 
 
-    def get(self, conds=[], order="`dramatica/weight` DESC", allow_reuse=False):
+    def get(self, *args, **kwargs):
+        allow_reuse = kwargs.get("allow_reuse", False)
+        order = kwargs.get("order", "`dramatica/weight` DESC")
+        conds = list(args)
         if not allow_reuse:
             cond = "id_object NOT IN ({})".format(", ".join([str(i) for i in self.used_ids]))
             conds.append(cond)
 
-        conds = ["`dramatica/weight` >= 0"] + conds
+        conds = ["`dramatica/weight` >= 0", "duration > 0"] + conds
         conds = " AND ".join(conds)
 
         q = "SELECT id_object FROM assets WHERE {}  ORDER BY {} LIMIT 1".format(conds, order)
@@ -87,9 +93,6 @@ class DramaticaSolver(object):
             id_asset = self.block.cache.cur.fetchall()[0][0]
         except:
             return False
-
-        if not allow_reuse:
-            self.used_ids.append(id_asset)
 
         return self.block.cache[id_asset]
 
@@ -147,12 +150,15 @@ class DefaultSolver(DramaticaSolver):
         ]
 
     def solve(self):
-        if self.block.remaining > 300:
+        suggested = suggested_duration(self.block.duration)
+        print suggested
+
+        if self.block.remaining > (suggested - self.block.duration):
+
             asset = self.get(
-                    [
-                        "duration < {}".format(self.block.remaining),  #FIX MARK IN AND OUT
-                        "`dramatica/weight` > 0" 
-                    ],
+                    "duration < {}".format(self.block.target_duration - suggested),  #FIX MARK IN AND OUT
+                    "duration > {}".format(suggested-self.block.duration),
+                    "`dramatica/weight` > 0",
                     order="duration DESC"
                 ) 
 
@@ -160,15 +166,24 @@ class DefaultSolver(DramaticaSolver):
                 print asset, "to ", self.block["title"]
                 n = self.block.rundown.insert(
                         self.block.block_order+1, 
-                        start=self.block["start"] + self.block.duration,
+                        start=self.block["start"] +  suggested,
                         title=asset["title"],
                         description=asset["description"]
                     )
                 n.add(asset)
 
-        #while self.block.remaining > 0:
-        #    pass
 
+        while self.block.remaining > 0:
+
+            asset = self.get(order="ABS({} - duration )".format(self.block.remaining)) # FIX MARK IN AND OUT
+            if self.block.remaining - asset.duration < 0:
+                self.block.add(asset)
+                break
+
+            asset = self.get("id_folder = 1") ### MOOD/BPM SELECTOR GOES HERE
+            self.block.add(asset)
+
+            print (self.block.remaining, asset, asset.duration)
 
 
 
@@ -194,24 +209,24 @@ class MusicBlockSolver(DramaticaSolver):
 
         intro_jingle = self.block.config.get("intro_jingle", False)
         if intro_jingle:
-            self.block.add(self.get([intro_jingle], allow_reuse=True))
+            self.block.add(self.get(intro_jingle, allow_reuse=True))
 
         while self.block.remaining > 0:
             if self.block.remaining > promo_span and self.block.duration - last_promo > promo_span:
                 pass #TODO
 
             if jingle_selector and self.block.remaining > jingle_span and self.block.duration - last_jingle > jingle_span:
-                self.block.add(self.get([jingle_selector], allow_reuse=True))
+                self.block.add(self.get(jingle_selector, allow_reuse=True))
                 last_jingle = self.block.duration
 
-            asset = self.get(["id_folder = 1"], order="ABS({} - duration )".format(self.block.remaining)) # FIX MARK IN AND OUT
+            asset = self.get("id_folder = 1", order="ABS({} - duration )".format(self.block.remaining)) # FIX MARK IN AND OUT
             if self.block.remaining - asset.duration < 0:
                 self.block.add(asset)
                 break
 
-            asset = self.get(["id_folder = 1"]) ### MOOD/BPM SELECTOR GOES HERE
+            asset = self.get("id_folder = 1") ### MOOD/BPM SELECTOR GOES HERE
             self.block.add(asset)
 
         outro_jingle = self.block.config.get("outro_jingle", False)
         if outro_jingle:
-            self.block.add(self.get([outro_jingle], allow_reuse=True))
+            self.block.add(self.get(outro_jingle, allow_reuse=True))
