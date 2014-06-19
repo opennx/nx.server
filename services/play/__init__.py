@@ -1,19 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import imp
+import cgi
+import thread
+
+from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
 from nx import *
 from nx.assets import *
 from nx.items import *
+from nx.plugins import plugin_path
 
 from caspar import Caspar
 
-from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-import cgi
-import thread
-
-from nx.plugins import plugin_path
-import imp
 
 class PlayoutPlugins():
     def __init__(self, channel):
@@ -98,21 +98,24 @@ class ControlHandler(BaseHTTPRequestHandler):
             self.error(400)
             return
 
-	logging.debug("Requested {} /w params {}".format(method, params))        
+	    logging.debug("Requested {} /w params {}".format(method, params))        
 
-        if   method == "take":    self.result(service.take(params))
-        elif method == "cue":     self.result(service.cue(params)) 
-        elif method == "freeze":  self.result(service.freeze(params)) 
-        elif method == "retake":  self.result(service.retake(params)) 
-        elif method == "abort":   self.result(service.abort(params))
-        elif method == "stat":    self.result(service.stat(params))
-        elif method == "cg_list": self.result(service.cg_list(params))
-        elif method == "cg_exec": self.result(service.cg_exec(params))
-        
-        else:
-            self.error(501) # Not implemented
+        methods = {
+            "take" : service.take,
+            "cue" : service.cue,
+            "freeze" : service.freeze,
+            "retake" : service.retake,
+            "abort" : service.abort,
+            "stat" : service.stat,
+            "cg_list" : service.cg_list,
+            "cg_exec" : service.cg_exec
+            }
 
-	logging.debug("Request {} completed".format(method))
+        if not method in methods:
+            self.error(501)
+            return
+
+        self.result(methods[method](**params))
         
 
 
@@ -155,9 +158,9 @@ class Service(ServicePrototype):
 
 
 
-    def cue(self, params={}):
-        id_channel = params.get("id_channel", False)
-        id_item    = params.get("id_item", False)
+    def cue(self, **kwargs):
+        id_channel = kwargs.get("id_channel", False)
+        id_item    = kwargs.get("id_item", False)
 
         if not (id_item and id_channel):
             return 400, "Bad request"
@@ -173,47 +176,45 @@ class Service(ServicePrototype):
             return 400, "Cannot cue virtual item"
 
         channel = self.caspar[id_channel]
-
         master_asset  = item.get_asset()
         id_playout = master_asset[channel.playout_spec]
         playout_asset = Asset(id_playout)
 
         if not os.path.exists(playout_asset.get_file_path()):
             return 404, "Playout asset is offline"
+        
+        kwargs["mark_in"] = item["mark_in"]
+        kwargs["mark_out"] = item["mark_out"]
 
         fname = os.path.splitext(os.path.basename(playout_asset["path"]))[0].encode("utf-8")
-
-        return channel.cue(fname, 
-                           id_item = id_item
-                          )
+        return channel.cue(fname, **kwargs)
 
 
 
 
-    def take(self,params={}):
-        id_channel = params.get("id_channel", False)
+    def take(self, **kwargs):
+        id_channel = kwargs.get("id_channel", False)
         if not id_channel in self.caspar.channels:
             return 400, "Requested channel is not operated by this service"
         channel = self.caspar[id_channel]
         res = channel.take()
-        print res
         return res
 
-    def freeze(self,params={}):
-        id_channel = params.get("id_channel", False)
+    def freeze(self, **kwargs):
+        id_channel = kwargs.get("id_channel", False)
         if not id_channel in self.caspar.channels:
             return 400, "Requested channel is not operated by this service"
         channel = self.caspar[id_channel]
         return channel.freeze()
 
-    def retake(self,params={}):
+    def retake(self, **kwargs):
         id_channel = params.get("id_channel", False)
         if not id_channel in self.caspar.channels:
             return 400, "Requested channel is not operated by this service"
         channel = self.caspar[id_channel]
         return channel.retake()
 
-    def abort(self,params={}):
+    def abort(self, **kwargs):
         id_channel = params.get("id_channel", False)
         if not id_channel in self.caspar.channels:
             return 400, "Requested channel is not operated by this service"
@@ -221,35 +222,25 @@ class Service(ServicePrototype):
         return channel.abort()
 
 
-
-
-    def stat(self,params={}):
+    def stat(self, **kwargs):
         return "200", "stat"
 
-    def cg_list(self,params={}):
+    def cg_list(self, **kwargs):
         return "200", "cg_list"
 
-    def cg_exec(self,params={}):
+    def cg_exec(self, **kwargs):
         return "200", "cg_exec"
-
 
     def stat(self):
         return "200", "Running"
 
 
 
-
-
-
-
     def channel_main(self, channel):
-
         if not channel.cued_asset and channel.cued_item:
             channel.cued_asset = Item(channel.cued_item).get_asset()
-
         data = {}
         data["id_channel"]    = channel.ident
-
         data["current_item"]  = channel.current_item
         data["cued_item"]     = channel.cued_item
         data["position"]      = channel.get_position()
@@ -262,12 +253,10 @@ class Service(ServicePrototype):
 
         for plugin in channel.plugins:
             plugin.main()
-            #if not plugin.busy:
-            #    thread.start_new_thread(plugin.main, ())
 
         if channel.current_item and not channel.cued_item and not channel._cueing:
             self.cue_next(channel)
-            #thread.start_new_thread(self.cue_next, (channel,))
+
 
 
 
@@ -276,53 +265,79 @@ class Service(ServicePrototype):
         channel.current_asset = itm.get_asset()
         channel.cued_asset = False
 
-        logging.info ("Advanced to {}".format(itm) )
+        logging.info ("Advanced to {}".format(itm))
 
-
-        self.on_change_update(channel)
-        #thread.start_new_thread(self.on_change_update, (channel))
+        db = DB()
+        if channel._last_run:
+            pass        
+            #TODO: Update AsRun
+     #       db.query("UPDATE nebula_asrun SET stop_time = %s WHERE id_run = %s" %(int(time()) , channel._last_run_item  ))
+     #       db.query("INSERT INTO nebula_asrun (id_asset,title, start_time, id_item, id_channel) VALUES (%s,'%s',%s,%s,%s) " % (channel.current_asset.id_asset, db.sanit(channel.current_asset["Title"]), int(time()), channel.current_item, channel.ident ) ) 
+     #       channel._last_run_item = db.lastid()
+     #      db.commit()
         
+        self.cue_next(channel, db=db)        
         for plugin in channel.plugins:
             plugin.on_change()
-            #thread.start_new_thread(plugin.on_change, ())
 
-        
-
-    def on_change_update(self, channel):
-        db = DB()
-
-        # Update AsRun
-
-     #   if channel._last_run:
-     #       db.query("UPDATE nebula_asrun SET stop_time = %s WHERE id_run = %s" %(int(time()) , channel._last_run_item  ))
-     #   db.query("INSERT INTO nebula_asrun (id_asset,title, start_time, id_item, id_channel) VALUES (%s,'%s',%s,%s,%s) " % (channel.current_asset.id_asset, db.sanit(channel.current_asset["Title"]), int(time()), channel.current_item, channel.ident ) ) 
-     #   channel._last_run_item = db.lastid()
-     #   db.commit()
-     #   channel._changed = False
-
-        # Cue next item
-        self.cue_next(channel, db=db)
 
 
     
     def cue_next(self, channel, id_item=False, db=False, level = 0):
         if not db:
             db = DB()
-
         channel._cueing = True
-
         if not id_item:
             id_item = channel.current_item
-
         item_next = get_next_item(id_item, db=db)
         logging.info("Auto-cueing {}".format(item_next))
-
-        stat, res = self.cue({"id_item"    : item_next.id, 
-                              "id_channel" : channel.ident
-                            })
+        stat, res = self.cue(id_item=item_next.id, id_channel=channel.ident)
         if failed(stat):
             if level > 5:
                 logging.error("Cue it yourself....")
                 return
             logging.warning("Unable to cue {}. Trying next one.".format(item_next))
             self.cue_next(channel, id_item=item_next.id, db=db, level=level+1)
+
+
+
+    def on_main(self):
+        db = DB()
+        for id_channel in self.caspar.channels:
+            id_item = self.caspar.channels[id_channel].cued_item # or current???
+            if not id_item:
+                continue
+            current_event = get_item_event(id_item, db=db)
+            if not current_event:
+                continue
+
+            db.query("""SELECT e.id_object FROM nx_events AS e WHERE e.id_channel = {} AND e.start > {} AND e.start <= {} ORDER BY e.start DESC LIMIT 1""".format(
+                    id_channel,
+                    current_event["start"],
+                    time.time()
+                    ))
+            try:
+                next_event_id = db.fetchall()[0][0]
+            except:
+                continue
+
+            next_event = Event(next_event_id, db=db)
+            run_mode = int(next_event["run_mode"]) or RUN_AUTO
+
+            if not run_mode:
+                continue
+
+            elif not next_event.get_bin().items:
+                continue
+
+            elif run_mode == RUN_MANUAL:
+                pass # ?????
+
+            elif run_mode == RUN_SOFT:
+                logging.info("Soft cue")
+                id_item = next_event.get_bin().items[0].id
+                self.cue(id_channel=id_channel, id_item=id_item)
+
+            elif run_mode == RUN_HARD:
+                id_item = next_event.get_bin().items[0].id
+                self.cue(id_channel=id_channel, id_item=id_item, play=True)

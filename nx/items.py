@@ -211,7 +211,10 @@ def get_item_event(id_item, db=False):
         id_item,
         ", ".join([str(f) for f in config["playout_channels"].keys()]) 
         ))
-    return Event(db.fetchall()[0][0], db=db)
+    try:
+        return Event(db.fetchall()[0][0], db=db)
+    except:
+        return False
 
 
 def get_next_item(id_item, db=False):

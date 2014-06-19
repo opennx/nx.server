@@ -105,6 +105,11 @@ ERROR       = 3
 GOOD_NEWS   = 4
 
 
+RUN_AUTO    = 0
+RUN_MANUAL  = 1
+RUN_SOFT    = 2
+RUN_HARD    = 3
+
 
 SUCCESS_OK                = 200
 SUCCESS_CREATED           = 201

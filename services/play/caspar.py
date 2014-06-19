@@ -6,9 +6,6 @@ from nx import *
 import thread
 import telnetlib
 
-
-
-
 def basefname(fname):
     """Platform dependent path splitter (caspar is always on win)"""
     return os.path.splitext(fname.split("\\")[-1])[0]
@@ -18,7 +15,7 @@ class CasparChannel():
     def __init__(self, server, channel):
         self.server  = server  # CasparServer class instance
         self.channel = channel # Caspar channel (that "X" integer in PLAY x-y command)
-        self.fps = 25.0        # FIXME FIXME
+        self.fps = 25.0        # default
 
         self.xstat  = "<channel>init</channel>"  
         self.chdata = {}
@@ -53,11 +50,14 @@ class CasparChannel():
         return dur
 
 
-    def cue(self, fname, mark_in=False, mark_out=False, id_item=False, layer=False, auto=True, play=False):
+    def cue(self, fname, **kwargs):
+        id_item    = kwargs.get("id_item", fname)
+        auto       = kwargs.get("auto", True)
+        play       = kwargs.get("play", False)
+        mark_in    = kwargs.get("mark_in",0)    
+        mark_out   = kwargs.get("mark_out",0)
+        layer      = kwargs.get("layer", self.feed_layer)
     
-        if not id_item:  id_item = fname
-        if not layer:    layer = self.feed_layer
-
         marks = ""
         if mark_in:  marks += " SEEK %d"   % (float(mark_in)*self.fps)
         if mark_out: marks += " LENGTH %d" % (float(mark_out)*self.fps)
