@@ -12,13 +12,19 @@ class Service(ServicePrototype):
         db.query("SELECT id_action, title, config FROM nx_actions")
         for id_action, title, aconfig in db.fetchall():
             try:
-                start_cond = ET.XML(aconfig).find("start_if").text
+                start_cond = ET.XML(aconfig).find("start_if")
             except:
                 logging.debug("No start condition for action {}".format(title))
                 continue
+
+            try:
+                priority = int(start_cond.attrib["priority"])
+            except:
+                priority = 1
+
             if start_cond:
                 logging.debug("Initializing broker condition for {}".format(title))
-                self.conditions[id_action] = (title, start_cond)
+                self.conditions[id_action] = (title, start_cond.text, priority)
 
 
     def on_main(self):
@@ -33,10 +39,10 @@ class Service(ServicePrototype):
         for id_action in self.conditions:
             if "broker/started/{}".format(id_action) in asset.meta:
                 continue
-            cond_title, cond = self.conditions[id_action]
+            cond_title, cond, priority = self.conditions[id_action]
             if eval(cond):
                 logging.info("{} matches action condition {}".format(asset, cond_title))
-                res, msg = send_to(asset.id, id_action, settings={}, id_user=0, restart_existing=False, db=db)
+                res, msg = send_to(asset.id, id_action, settings={}, id_user=0, priority=priority restart_existing=False, db=db)
 
                 if success(res):
                     logging.info(msg)

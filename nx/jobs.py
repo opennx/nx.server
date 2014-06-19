@@ -58,10 +58,6 @@ class Job():
             self.priority  = priority
             self.retries   = retries
             break
-        #else:
-        #    logging.debug("No new job")
-
-
 
 
     def __len__(self):
@@ -81,11 +77,12 @@ class Job():
 
     def abort(self):
         db = DB()
+        #TODO
 
 
     def restart(self):
         db = DB()
-
+        #TODO
 
     def fail(self, message="Failed"):
         db = DB()
@@ -127,7 +124,7 @@ class Job():
 
 
 
-def send_to(id_object, id_action, settings={}, id_user=0, restart_existing=True, db=False):
+def send_to(id_object, id_action, settings={}, id_user=0, priority=1, restart_existing=True, db=False):
     if not db:
         db = DB()
 
@@ -149,6 +146,7 @@ def send_to(id_object, id_action, settings={}, id_user=0, restart_existing=True,
                             VALUES  ({id_object}, {id_action}, '{settings}', 0, 1, -1, 0, {ctime}, 0, 0, 'Pending', {id_user})""".format(
                     id_object = id_object,
                     id_action = id_action,
+                    priority  = priority,
                     settings  = json.dumps(settings),
                     ctime     = time.time(),
                     id_user   = id_user
