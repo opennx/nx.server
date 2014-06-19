@@ -42,7 +42,7 @@ class Service(ServicePrototype):
             cond_title, cond, priority = self.conditions[id_action]
             if eval(cond):
                 logging.info("{} matches action condition {}".format(asset, cond_title))
-                res, msg = send_to(asset.id, id_action, settings={}, id_user=0, priority=priority restart_existing=False, db=db)
+                res, msg = send_to(asset.id, id_action, settings={}, id_user=0, priority=priority, restart_existing=False, db=db)
 
                 if success(res):
                     logging.info(msg)
