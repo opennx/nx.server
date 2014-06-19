@@ -79,8 +79,8 @@ def view_jobs(view=""):
 
 
 
-def job_action(id_job, action):
+def job_action(id_job, action, id_user=0):
     db = DB()
-    id_job = int(request.form.get("id_job"))
-    db.query("UPDATE nx_jobs set id_service=0, progress=-1, retries=0, ctime=%s, stime=0, etime=0, message='Pending', id_user=%s WHERE id_job=%s", (time.time(), current_user.id, id_job))
+    id_job = id_job
+    db.query("UPDATE nx_jobs set id_service=0, progress=-1, retries=0, ctime=%s, stime=0, etime=0, message='Pending', id_user=%s WHERE id_job=%s", (time.time(), id_user, id_job))
     db.commit()

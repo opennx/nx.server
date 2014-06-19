@@ -43,7 +43,7 @@ def index():
 def jobs(view="active"):
     if request.method == "POST" and "id_job" in request.form:
         id_job = int(request.form.get("id_job"))
-        job_action(id_job, "restart")
+        job_action(id_job, "restart", id_user=current_user.id)
         flash("Job {} restarted".format(id_job), "info")
 
     if view == "failed":
