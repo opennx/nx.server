@@ -151,7 +151,7 @@ class MetaTypes(dict):
         elif mtype.class_ == PART:        return json.loads(value)
         elif mtype.class_ == BOOLEAN:     return int(value)
         elif mtype.class_ == STAR:        return int(value)
-        elif mtype.class_ == FRACTION:    return value.strip().replace(":","/")
+        elif mtype.class_ == FRACTION:    return str(value).strip().replace(":","/")
 
         return value
 
