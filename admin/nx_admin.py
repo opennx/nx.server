@@ -10,6 +10,18 @@ from nx.assets import Asset
 
 
 
+
+
+
+def view_browser():
+    db=DB()
+    result = []
+    db.query("SELECT id_object FROM nx_assets ORDER BY ctime DESC")
+    for id_object, in db.fetchall():
+        asset = Asset(id_object, db=db)
+        result.append(asset)
+    return result 
+
 ########################################################################
 ## Services administration
 

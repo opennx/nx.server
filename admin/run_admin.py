@@ -37,6 +37,13 @@ def load_user(id):
 def index():
     return render_template("index.html")
 
+
+@app.route("/browser")
+def browser():
+    assets = view_browser()
+    return render_template("browser.html", assets=assets)
+
+
  
 @app.route("/jobs", methods=['GET', 'POST'])
 @app.route("/jobs/<view>", methods=['GET', 'POST'])
