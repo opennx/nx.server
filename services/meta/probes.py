@@ -28,7 +28,8 @@ def ffprobe(fname):
     return json.loads(proc.stdout().read())
 
 def guess_aspect (w,h):
-    if 0 in [w,h]: return ""
+    if 0 in [w,h]: 
+        return 0
     valid_aspects = [(16, 9), (4, 3), (2.35, 1)]
     ratio = float(w) / float(h)
     return "%s/%s" % min(valid_aspects, key=lambda x:abs((float(x[0])/x[1])-ratio))
@@ -75,7 +76,7 @@ class FFProbe(Probe):
                 ## Frame size
                    
                 try: 
-                    w, h = int(stream["width"]),int(stream["height"])
+                    w, h = int(stream["width"]), int(stream["height"])
                 except: 
                     pass
                 else: 
@@ -89,10 +90,11 @@ class FFProbe(Probe):
                         pass # Pokud uz v meta aspect je a velikost se nezmenila, tak hodnotu neupdatujem. mohl ji zmenit uzivatel                     
                     else:
                         dar = stream.get("display_aspect_ratio", False)
-                        if not dar:
-                            asset["video/aspect_ratio"] = guess_aspect(w, h)
-                        else:
+                        if dar:
                             asset["video/aspect_ratio"] = guess_aspect(*[int(i) for i in dar.split(":")])
+
+                        if not asset["video/aspect_ratio"]:
+                            asset["video/aspect_ratio"] = guess_aspect(w, h)
 
             elif stream["codec_type"] == "audio":
                 asset["audio/codec"] == stream
