@@ -86,14 +86,14 @@ class FFProbe(Probe):
                     
                     if not (w and h):
                         pass
-                    elif "video/aspect_ratio" in old_meta and old_meta.get("video/width",0) == w: 
-                        pass # Pokud uz v meta aspect je a velikost se nezmenila, tak hodnotu neupdatujem. mohl ji zmenit uzivatel                     
+                 #   elif old_meta.get("video/aspect_ratio", 0) and old_meta.get("video/width",0) == w: 
+                 #       pass # Pokud uz v meta aspect je a velikost se nezmenila, tak hodnotu neupdatujem. mohl ji zmenit uzivatel                     
                     else:
                         dar = stream.get("display_aspect_ratio", False)
                         if dar:
                             asset["video/aspect_ratio"] = guess_aspect(*[int(i) for i in dar.split(":")])
 
-                        if not asset["video/aspect_ratio"]:
+                        if asset["video/aspect_ratio"] == "0":
                             asset["video/aspect_ratio"] = guess_aspect(w, h)
 
             elif stream["codec_type"] == "audio":

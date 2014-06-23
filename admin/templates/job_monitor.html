@@ -15,6 +15,7 @@
                 <th style='width:50px;'>#</th>
                 <th>Asset</th>
                 <th>Action</th>
+                <th>Priority</th>
                 <th style='width:160px;'>Progress</th>
                 <th style='width:150px;'>Status</th>
                 <th style='width:50px;'>&nbsp;</th>
@@ -23,9 +24,10 @@
         <tbody id='jobs_body'>
             {% for job in jobs%}
                 <tr>                
-                    <td>{{job.id_job}}</td>
-                    <td class='oneliner'>{{job.asset_title}}</td>
-                    <td>{{job.action_title}}</td>
+                    <td>{{ job.id_job }}</td>
+                    <td class='oneliner'>{{ job.asset_title }}</td>
+                    <td>{{ job.action_title }}</td>
+                    <td>{{ job.priority }}</td>
                     
                     <td id='job_progress_{{job.id_job}}'>
                         {% if job.progress == -2%}

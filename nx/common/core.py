@@ -44,10 +44,12 @@ def failed(ret_code):
 
 def fract2float(fract):
     nd = fract.split("/")
-    if len(nd) == 1 or nd[1] == "1":
-        return float(nd[0])
-    return float(nd[0]) / float(nd[1])
-
+    try:
+        if len(nd) == 1 or nd[1] == "1":
+            return float(nd[0])
+        return float(nd[0]) / float(nd[1])
+    except:
+        return 1
 ########################################################################
 ## Config
 
