@@ -7,13 +7,13 @@ from nx.assets import *
 from nx.common.metadata import meta_types
 from nx.common.filetypes import file_types
 
-from encoders import FFMPEG, FTP
+from encoders import Ffmpeg, Ftp
 
 FORCE_INFO_EVERY = 20
 
 encoders = {
-    "ffmpeg" : FFMPEG,
-    "ftp" : FTP
+    "ffmpeg" : Ffmpeg,
+    "ftp" : Ftp
 }
 
 
@@ -82,7 +82,7 @@ class Service(ServicePrototype):
             if not using in encoders:
                 continue
 
-            logging.info("Configuring task {} of {}".format(id_task+1, len(tasks)) )
+            logging.debug("Configuring task {} of {}".format(id_task+1, len(tasks)) )
             encoder = encoders[using](asset, task, vars)
             err = encoder.configure()
 
@@ -105,19 +105,17 @@ class Service(ServicePrototype):
                     old_progress = progress
 
                 if now - last_info_time > FORCE_INFO_EVERY:
-                    logging.info("{}: {}, {:.2f}% completed".format(asset, msg, progress*100))
+                    logging.debug("{}: {}, {:.2f}% completed".format(asset, msg, progress*100))
                     last_info_time = now
-
                 time.sleep(.01)
 
 
-
-
+            progress, msg = encoder.get_progress()
             if progress == FAILED:
                 job.fail(msg)
                 return
 
-            logging.info("Finalizing task {} of {}".format(id_task+1, len(tasks)) )
+            logging.debug("Finalizing task {} of {}".format(id_task+1, len(tasks)) )
             err = encoder.finalize()
             if err:
                 job.fail(err)

@@ -7,6 +7,7 @@ from nx.common.filetypes import file_types
 import uuid
 import stat
 import subprocess
+import thread
 
 class Encoder():
     def __init__(self, asset, task, vars):
@@ -81,7 +82,7 @@ def filter_arc(w,h,aspect):
 
 
 
-class FFMPEG(Encoder):
+class Ffmpeg(Encoder):
     def configure(self):
         self.ffparams = ["ffmpeg", "-y"]
         self.ffparams.extend(["-i", self.asset.get_file_path()])
@@ -150,9 +151,11 @@ class FFMPEG(Encoder):
     def get_progress(self):
         if not self.proc:
             return 0, "Starting"
-        elif self.proc.poll() == 0:
+
+        if self.proc.poll() == 0:
             return COMPLETED, "Encoding completed"
         elif self.proc.poll() > 0:
+            print (self.proc.stderr.read())
             return FAILED, "Encoding failed"
         else:
             try:    
@@ -225,19 +228,56 @@ class FFMPEG(Encoder):
 #########################################################################
 ## FTP
 
-class FTP(Encoder):
+from ftplib import FTP
+
+class Ftp(Encoder):
     def configure(self):
-        pass
+        asset = self.asset
+        
+        source_storage = int(self.task.find("source_storage").text)
+        source_path = eval(self.task.find("source_path").text)
+        self.target_path = eval(self.task.find("path").text)
+
+        self.host = self.task.find("host").text
+        self.login = self.task.find("login").text
+        self.password = self.task.find("password").text
+
+        self._fpath = os.path.join(storages[source_storage].get_path(), source_path)
+        self._fsize    = os.path.getsize(self._fpath)
+        self._file     = open(self._fpath, 'rb')
+        self._fwritten = 0
+        self.ret_code  = 0
+        self.ret_msg   = ""
+
 
     def run(self):
-        pass
+        self._is_working = True
+        logging.debug("Connecting to ftp://{}".format(self.host))
+        self.ftp = FTP(self.host)
+        self.ftp.login(self.login, self.password)
+        logging.debug("Uploading")
+        thread.start_new_thread(self.upload, ())
+
+
+    def update_progress(self, b):
+        self._fwritten += 1024
+
+    def upload(self):
+        self._is_working = True
+        try:
+            self.ftp.storbinary('STOR {}'.format(self.target_path), self._file, 1024, self.update_progress)
+        except:
+            self.ret_code = FAILED
+            self.ret_msg = str(sys.exc_info())
+        self._is_working = False
 
     def is_working(self):
-        return False
+        return self._is_working
 
     def get_progress(self): 
-        """Should return float between 0.0 and 1.0"""
-        return 0
+        progress = self._fwritten / float(self._fsize)
+        return self.ret_code or progress, self.ret_msg or "Uploading"
 
     def finalize(self):
-        pass
+        self.ftp.quit()
+        self._file.close()
