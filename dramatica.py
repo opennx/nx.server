@@ -6,6 +6,8 @@ from nx.items import Event, Bin, Item
 
 from dramatica.common import DramaticaCache
 from dramatica.scheduling import DramaticaBlock, DramaticaRundown
+from dramatica.templates import DramaticaTemplate
+from dramatica.timeutils import dur
 
 tags = [
     (str, "title"),
@@ -30,16 +32,17 @@ tags = [
     ]
 
 
+
 def nx_assets_connector():
     db = DB()
-    db.query("SELECT id_object FROM nx_assets")
+    db.query("SELECT id_object FROM nx_assets WHERE id_folder IN (1,3,4,5,6,7,8) AND origin IN ('Library', 'Acquisition', 'Edit')")
     for id_object, in db.fetchall():
         asset = Asset(id_object, db=db)
-        if asset["origin"] not in ["Library", "Acquisition", "Edit"]:
+        if str(asset["qc/state"]) == "3": # Temporary fix. qc/state is going to be reimplemented in nx.server
             continue
         yield asset.meta
 
-def nx_history_connector(start=False,stop=False):
+def nx_history_connector(start=False, stop=False, tstart=False):
     db = DB()
     cond = ""
     if start:
@@ -54,6 +57,62 @@ def nx_history_connector(start=False,stop=False):
         for item in ebin.items:
             tstamp += item.get_duration()
             yield (event["id_channel"], tstamp, item["id_asset"])
+
+
+
+class NXTVTemplate(DramaticaTemplate):
+    def apply(self):
+
+        self.add_block("06:00", title="Morning mourning")
+        self.configure(
+            solver="MusicBlock", 
+            genres=["Pop", "Rock", "Alt rock"]
+            )
+
+        self.add_block("10:00", title="Some movie")
+        self.configure(
+            solver="DefaultSolver"
+            )   
+
+        self.add_block("12:00", title="Rocking")
+        self.configure(
+            solver="MusicBlock",
+            genres=["Rock"],
+            intro_jingle="path LIKE '%vedci_zjistili%'",
+            jingles="path LIKE '%vedci_zjistili%'"
+            )   
+
+        self.add_block("16:00", title="Another movie")
+        self.configure(
+            solver="DefaultSolver"
+            )   
+
+        self.add_block("19:00", title="PostX")
+        self.configure(
+            solver="MusicBlock",
+            genres=["Alt rock"],
+            intro_jingle="path LIKE '%postx_short%'",
+            outro_jingle="path LIKE '%postx_short%'",
+            jingles="path LIKE '%postx_short%'"
+            )   
+
+        self.add_block("21:00", title="Movie of the day")
+        self.configure(
+            solver="DefaultSolver"
+            )   
+
+        self.add_block("23:00", title="Nachtmetal")
+        self.configure(
+            solver="MusicBlock",
+            genres=["Metal"],
+            intro_jingle="path LIKE '%nachtmetal_intro%'",
+            jingles="path LIKE '%nachtmetal_short%'",
+            target_duration=dur("02:00:00"),
+            run_mode=2
+            )   
+
+
+
 
 
 
@@ -106,11 +165,6 @@ class Session():
     def solve(self, id_event=False):
         """Solve one specified event, or entire rundown"""
         if not id_event:
-            self.cache.load_history(
-                nx_history_connector(start=self.start_time, stop=self.end_time),
-                start=self.start_time,
-                stop=self.end_time
-                )
             self.rundown.solve()
         else:
             pass
@@ -122,14 +176,22 @@ class Session():
         if not self.rundown:
             return
 
-        for block in self.rundown.block:
-            pass
+        for block in self.rundown.blocks:
+            print block.meta
+            print "***********************************************"
 
 
 
 
 if __name__ == "__main__":
     session = Session()
-    session.open_rundown(date="2014-06-17")
+    session.open_rundown(date="2014-07-17")
+
+    template = NXTVTemplate(session.rundown)
+    template.apply()
+
     session.solve()
+
+    #session.save()
+
     print(session.rundown.__str__().encode("utf-8"))

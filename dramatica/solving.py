@@ -3,6 +3,15 @@ import random
 
 from .timeutils import *
 
+SAFE_OVER = 120
+ASSET_TO_BLOCK_INHERIT = [
+    "title",
+    "description",
+    "promoted"
+    ]
+
+
+
 class DramaticaRule(object):
     def __init__(self, solver, asset=False):
         self.solver = solver
@@ -62,7 +71,7 @@ class DramaticaSolver(object):
                 tweight += lweight*weight
 
             if tweight != 0:
-                self.block.cache.set_weight(id_asset, weight, auto_commit=False)
+                self.block.cache.set_weight(id_asset, tweight, auto_commit=False)
             if tweight >= 0:
                 self.pool_ids.append(id_asset)
         self.block.cache.conn.commit()
@@ -87,7 +96,7 @@ class DramaticaSolver(object):
         conds = ["`dramatica/weight` >= 0", "duration > 0"] + conds
         conds = " AND ".join(conds)
 
-        q = "SELECT id_object FROM assets WHERE {}  ORDER BY {} LIMIT 1".format(conds, order)
+        q = "SELECT id_object FROM assets WHERE {}  ORDER BY {}, RANDOM() LIMIT 1".format(conds, order)
         self.block.cache.cur.execute(q)
         try:
             id_asset = self.block.cache.cur.fetchall()[0][0]
@@ -103,6 +112,7 @@ class DramaticaSolver(object):
 ## Solver core
 ########################################################################3
 ## TESTING MODS
+
 
 class GenreRule(DramaticaBlockRule):
     def rule(self):
@@ -134,56 +144,77 @@ class DistanceRule(DramaticaBlockRule):
             self.block.cache.update_weight(id_asset, w, auto_commit=False)
         self.block.cache.conn.commit()
 
-class BlockRepeatRule(DramaticaItemRule):
+
+class MatureContentRule(DramaticaBlockRule):
     def rule(self):
-        if self.asset.id in [a.id for a in self.block.items]:
+        if self.asset["contains/nudity"] and self.block["start"] < self.block.rundown.clock(22,0):
+            return -1
+        return 0
+
+
+class RundownRepeatRule(DramaticaBlockRule):
+    def rule(self):
+        if self.block.rundown.has_asset(self.asset.id):
+            if self.asset["id_folder"] in [3,4,5]: # Do not repeat movies and series in same day
+                return -1
             return 0
         return 1
 
 
 
+
 class DefaultSolver(DramaticaSolver):
     rules = [
+        [MatureContentRule, 1],
         [GenreRule, 2],
         [PromotedRule, 1],
-        [DistanceRule, 1]
+        [DistanceRule, 1],
+        [RundownRepeatRule, 1]
         ]
 
     def solve(self):
+        if not self.block.items:
+            asset = self.get("id_folder IN (3 )")
+            self.block.add(asset)
+            for key in ASSET_TO_BLOCK_INHERIT:
+                if asset[key]:
+                    self.block[key] = asset[key]
+
         suggested = suggested_duration(self.block.duration)
-        print suggested
 
         if self.block.remaining > (suggested - self.block.duration):
-
             asset = self.get(
-                    "duration < {}".format(self.block.target_duration - suggested),  #FIX MARK IN AND OUT
-                    "duration > {}".format(suggested-self.block.duration),
+                    "io_duration < {}".format(self.block.target_duration - suggested),
+                    "io_duration > {}".format(suggested-self.block.duration),
                     "`dramatica/weight` > 0",
-                    order="duration DESC"
+                    order="(id_folder IN (3,4,5)) DESC, `dramatica/weight` DESC, io_duration DESC"
                 ) 
 
             if asset:
-                print asset, "to ", self.block["title"]
                 n = self.block.rundown.insert(
                         self.block.block_order+1, 
-                        start=self.block["start"] +  suggested,
-                        title=asset["title"],
-                        description=asset["description"]
+                        start=self.block["start"] +  suggested
                     )
                 n.add(asset)
+                for key in ASSET_TO_BLOCK_INHERIT:
+                    if asset[key]:
+                        n[key] = asset[key]
 
 
         while self.block.remaining > 0:
-
-            asset = self.get(order="ABS({} - duration )".format(self.block.remaining)) # FIX MARK IN AND OUT
+            asset = self.get(order="ABS({} - io_duration )".format(self.block.remaining))
             if self.block.remaining - asset.duration < 0:
                 self.block.add(asset)
                 break
 
-            asset = self.get("id_folder = 1") ### MOOD/BPM SELECTOR GOES HERE
-            self.block.add(asset)
+            asset = self.get(
+                "id_folder IN (1, 4, 8)", 
+                "io_duration < {}".format(self.block.remaining + SAFE_OVER),
+                order = "id_folder = 8 DESC, `dramatica/weight` DESC, RANDOM()"
+                ) ### Fillers
 
-            print (self.block.remaining, asset, asset.duration)
+            
+            self.block.add(asset)
 
 
 
@@ -193,6 +224,7 @@ class DefaultSolver(DramaticaSolver):
 class MusicBlockSolver(DramaticaSolver):
     full_clear = True
     rules = [
+        [MatureContentRule, 1],
         [GenreRule, 2],
         [PromotedRule, 1],
         [DistanceRule, 1]
@@ -219,7 +251,7 @@ class MusicBlockSolver(DramaticaSolver):
                 self.block.add(self.get(jingle_selector, allow_reuse=True))
                 last_jingle = self.block.duration
 
-            asset = self.get("id_folder = 1", order="ABS({} - duration )".format(self.block.remaining)) # FIX MARK IN AND OUT
+            asset = self.get("id_folder = 1", order="ABS({} - io_duration )".format(self.block.remaining)) # FIX MARK IN AND OUT
             if self.block.remaining - asset.duration < 0:
                 self.block.add(asset)
                 break

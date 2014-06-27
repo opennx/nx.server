@@ -97,11 +97,6 @@ class DramaticaBlock(DramaticaObject):
 
 
 
-
-
-
-
-
 class DramaticaRundown(DramaticaObject):
     default = {
         "day"        : today(),
@@ -146,6 +141,15 @@ class DramaticaRundown(DramaticaObject):
         self.blocks.insert(index, DramaticaBlock(self, **kwargs))
         return self.blocks[index]
 
+    def has_asset(self, id_asset):
+        result = []
+        t = self.day_start
+        for block in self.blocks:
+            for item in block.items:
+                if item.id == id_asset:
+                    result.append(t)
+                t+= item.duration
+        return result
 
     def solve(self):
         i = 0

@@ -1,5 +1,13 @@
 import sqlite3
 
+
+def io_dur(dur, mki, mko):
+    if not dur: return 0
+    if mko > 0: dur -= dur - mko
+    if mki > 0: dur -= mki
+    return dur
+
+
 class DramaticaObject(object):
     default = {
         "title" : "Unnamed object"
@@ -51,7 +59,10 @@ class DramaticaCache(object):
         self.conn = sqlite3.connect(":memory:")
         self.cur = self.conn.cursor()
         self.assets = {}
-        self.tags = tags + [(int, "dramatica/weight")]
+        self.tags = tags + [
+            (int, "dramatica/weight"),
+            (float, "io_duration")
+            ]
         tformat = ", ".join(["`{}` {}".format(tag, {int:"INTEGER", str:"TEXT", float:"REAL"}[t]) for t, tag in self.tags])
         self.cur.execute("CREATE TABLE assets (id_object INTEGER PRIMARY KEY, {})".format(tformat))
         self.cur.execute("CREATE TABLE history (id_channel INTEGER, tstamp INTEGER, id_asset INTEGER)")
@@ -61,6 +72,7 @@ class DramaticaCache(object):
         self.cur.execute("DELETE FROM assets;")
         for asset in data_source:
             id_object = asset["id_object"]
+            asset["io_duration"] = io_dur(asset.get("duration",0), asset.get("mark_in", 0), asset.get("mark_out", 0))
             self.cur.execute("INSERT INTO assets VALUES (?, {})".format(",".join(["?"]*len(self.tags))), [id_object] + [asset.get(k, None) for t, k in self.tags ])
             self.assets[id_object] = DramaticaAsset(**asset)
         self.conn.commit()
@@ -124,6 +136,7 @@ class DramaticaCache(object):
     
 
     def run_distance(self, id_asset, tstamp):
+        # TODO: Ignore day of tstamp
         self.cur.execute("SELECT tstamp FROM history WHERE id_asset = ? ORDER BY ABS(tstamp - ?) ASC", [id_asset, tstamp])
         res = self.cur.fetchall()
         if not res:
