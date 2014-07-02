@@ -8,6 +8,7 @@ from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 import ssl
 import cgi
 import thread
+import zlib
 
 class AdminHandler(BaseHTTPRequestHandler):
     def log_request(self, code='-', size='-'): 
@@ -25,8 +26,8 @@ class AdminHandler(BaseHTTPRequestHandler):
     def _echo(self,istring):
         self.wfile.write(istring)
 
-    def result(self, response, data):
-        self._do_headers(response=response)
+    def result(self, response, data, mime="application/json"):
+        self._do_headers(mime=mime, response=response)
         if data:
             self._echo(data)
         else:
@@ -63,7 +64,11 @@ class AdminHandler(BaseHTTPRequestHandler):
      
         if method in methods:    
             response, data = methods[method](auth_key, params)
-            self.result(response, json.dumps(data))
+            data = json.dumps(data)
+            if params.get("use_zlib", False):
+                self.result(response, zlib.compress(data), "application/zlib")
+            else:
+                self.result(response, data)
         else:                    
             logging.error("%s not implemented" % method)
             self.result(ERROR_NOT_IMPLEMENTED,False)
