@@ -48,7 +48,7 @@ class FFProbe(Probe):
         streams = dump["streams"]
         format  = dump["format"]
 
-        asset["format"]   = format.get("format_name", "")
+        asset["file/format"]   = format.get("format_name", "")
         asset["duration"] = format.get("duration", "")
 
         ## Streams

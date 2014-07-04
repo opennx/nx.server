@@ -129,30 +129,22 @@ class MetaTypes(dict):
         if  key == "path":                return value.replace("\\","/")
 
         elif mtype.class_ == TEXT:        return value.strip()
+        elif mtype.class_ == BLOB:        return value.strip()
         elif mtype.class_ == INTEGER:     return int(value)
         elif mtype.class_ == NUMERIC:     return float(value)
-        elif mtype.class_ == BLOB:        return value.strip()
-        elif mtype.class_ == DATE:        return float(value)
-        elif mtype.class_ == TIME:        return float(value)
+        elif mtype.class_ == BOOLEAN:     return int(value)
         elif mtype.class_ == DATETIME:    return float(value)
         elif mtype.class_ == TIMECODE:    return float(value)
-        elif mtype.class_ == DURATION:    return float(value)
-        elif mtype.class_ == REGION:      return json.loads(value)
         elif mtype.class_ == REGIONS:     return json.loads(value)
-        elif mtype.class_ == SELECT:      return value.strip()
-        elif mtype.class_ == ISELECT:     return int(value)
-        elif mtype.class_ == LIST:        return value.strip()
-        elif mtype.class_ == COMBO:       return value.strip()
-        elif mtype.class_ == FOLDER:      return int(value)
-        elif mtype.class_ == STATUS:      return int(value)
-        elif mtype.class_ == STATE:       return int(value)
-        elif mtype.class_ == FILESIZE:    return int(value)
-        elif mtype.class_ == MULTISELECT: return json.loads(value)
-        elif mtype.class_ == PART:        return json.loads(value)
-        elif mtype.class_ == BOOLEAN:     return int(value)
-        elif mtype.class_ == STAR:        return int(value)
         elif mtype.class_ == FRACTION:    return str(value).strip().replace(":","/")
-
+    
+        elif mtype.class_ == SELECT:      return value
+        elif mtype.class_ == CS_SELECT:   return value
+        elif mtype.class_ == ENUM:        return int(value)
+        elif mtype.class_ == CS_ENUM:     return int(value)
+        elif mtype.class_ == LIST:        return value
+        elif mtype.class_ == CS_LIST:     return value
+    
         return value
 
 meta_types = MetaTypes()

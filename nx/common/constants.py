@@ -53,29 +53,18 @@ RESET    = 4           # Reset metadata action has been invoked. Meta service wi
 
 # meta_classes
 TEXT         = 0       # Single-line plain text (default)
-INTEGER      = 1       # Integer only value (for db keys etc)
-NUMERIC      = 2       # Any integer of float number. 'min', 'max' and 'step' values can be provided in config
-BLOB         = 3       # Multiline text. 'syntax' can be provided in config
-DATE         = 4       # Date information. Stored as timestamp, presented as YYYY-MM-DD or calendar
-TIME         = 5       # Clock information Stored as timestamp, presened as HH:MM #TBD
-DATETIME     = 6       # Date and time information. Stored as timestamp
-TIMECODE     = 7       # Timecode information, stored as float(seconds), presented as HH:MM:SS:FF or HH:MM:SS.CS (centiseconds)
-DURATION     = 8       # Similar to TIMECODE, Marks and subclips are visualized 
-REGION       = 9       # Single time region stored as ///// TBD
-REGIONS      = 10      # Multiple time regions stored as json {"region_name":(float(start_second),float(end_second), "second_region_name":(float(start_second),float(end_second)}
-SELECT       = 11      # Select box ops stored as {'value':'title', 'another_value':'another title'}
-ISELECT      = 12      # Select box with integer value {0:'title',1:'another title'}
-LIST         = 13      # Similar to SELECT, but /w value=title ... ops stored as list [value1, value2, value3]
-COMBO        = 14      # Similar to LIST. Free text can be also provided instead of predefined options
-FOLDER       = 15      # Folder selector. Stored as int(id_folder), Represented as text / select. including color etc.
-STATUS       = 16      # Asset status representation (with colors or icons). stored as int
-STATE        = 17      # Asset approval state representation. stored as int
-FILESIZE     = 18      # Stored as int, displayed as K, M... etc.
-MULTISELECT  = 19      # Stored as json list. config is simialar to select
-PART         = 20      # Part X of Y. Stored as (X,Y) JSON tuple, where X and Y are integers
-BOOLEAN      = 21      # 1/0 checkbox
-STAR         = 22      # Same as boolean, but representated as shiny star in browser.
-FRACTION     = 23      # 16/9 etc...
+BLOB         = 1       # Multiline text. 'syntax' can be provided in config
+INTEGER      = 2       # Integer only value (for db keys etc)
+NUMERIC      = 3       # Any integer of float number. 'min', 'max' and 'step' values can be provided in config
+BOOLEAN      = 4       # 1/0 checkbox
+DATETIME     = 5       # Date and time information. Stored as timestamp
+TIMECODE     = 6       # Timecode information, stored as float(seconds), presented as HH:MM:SS:FF or HH:MM:SS.CS (centiseconds)
+REGIONS      = 7
+FRACTION     = 8       # 16/9 etc...
+SELECT       = 9       # Select box ops stored as {'value':'title', 'another_value':'another title'}
+CS_SELECT    = 10      
+ENUM         = 11      # Similar to select - for integer values
+CS_ENUM      = 12
 
 # storage types
 
@@ -97,6 +86,8 @@ PLAYOUT   = 0
 INGEST    = 1
 CAMPAIGN  = 2
 
+#################################################
+## Log levels
 
 DEBUG       = 0
 INFO        = 1
@@ -104,12 +95,18 @@ WARNING     = 2
 ERROR       = 3
 GOOD_NEWS   = 4
 
+## Log level
+#################################################
+## Block playback modes
 
-RUN_AUTO    = 0
-RUN_MANUAL  = 1
-RUN_SOFT    = 2
-RUN_HARD    = 3
+RUN_AUTO    = 0    # First item of this block is cued right after last item of previous block
+RUN_MANUAL  = 1    # Playback stops at the end of the last item of previous block
+RUN_SOFT    = 2    # First item of this block is cued if previous block is running and current_time >= scheduled_time
+RUN_HARD    = 3    # First item of this block starts immediately if previous block is running and current_time >= scheduled_time
 
+## Block playback modes
+#################################################
+## Hive / Play response codes
 
 SUCCESS_OK                = 200
 SUCCESS_CREATED           = 201
@@ -126,7 +123,3 @@ ERROR_NOT_IMPLEMENTED     = 503
 ERROR_TIMEOUT             = 504
 ERROR_SERVICE_UNAVAILABLE = 503
 
-
-
-## Constants
-########################################################################
