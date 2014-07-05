@@ -186,9 +186,9 @@ def hive_bin_order(auth_key, params):
     sender = params.get("sender", False)
 
     id_channel = params.get("id_channel", False) # Optional. Just for playlist-bin. 
-    append_cond = True
+    append_cond = "True"
     if id_channel:
-        append_cond = config["playout_channels"][id_channel].get("scheduler_accepts", True)
+        append_cond = config["playout_channels"][id_channel].get("rundown_accepts", "True")
 
 
     if not (id_bin and order):
@@ -212,7 +212,12 @@ def hive_bin_order(auth_key, params):
 
         elif object_type == ASSET:
             asset = Asset(id_object, db=db)
-            if not asset or not eval(append_cond):
+            try:
+                can_append = eval(append_cond)
+            except:
+                logging.error("Unable to evalueate rundown accept condition: {}".format(append_cond))
+                continue
+            if not asset or not can_append:
                 continue
 
             item = Item(db=db)
