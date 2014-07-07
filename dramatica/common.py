@@ -26,6 +26,10 @@ class DramaticaObject(object):
 
 
 class DramaticaAsset(DramaticaObject):
+    default = {
+        "is_optional" : 1
+    }
+
     def __init__(self, **kwargs):
         super(DramaticaAsset, self).__init__(**kwargs)
         self.veto = False

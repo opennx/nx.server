@@ -35,7 +35,7 @@ tags = [
 
 def nx_assets_connector():
     db = DB()
-    db.query("SELECT id_object FROM nx_assets WHERE id_folder IN (1,3,4,5,6,7,8) AND origin IN ('Library', 'Acquisition', 'Edit')")
+    db.query("SELECT id_object FROM nx_assets WHERE id_folder IN (1,2,3,4,5,7,8) AND media_type = 0 AND origin IN ('Library', 'Acquisition', 'Edit')")
     for id_object, in db.fetchall():
         asset = Asset(id_object, db=db)
         if str(asset["qc/state"]) == "3": # Temporary fix. qc/state is going to be reimplemented in nx.server
@@ -127,7 +127,7 @@ class Session():
         self.rundown = False
         self.start_time = self.end_time = self.id_channel = 0
 
-    def open_rundown(self, id_channel=1, date=time.strftime("%Y-%m-%d")):
+    def open_rundown(self, id_channel=1, date=time.strftime("%Y-%m-%d"), clear=False):
         day_start = config["playout_channels"][id_channel].get("day_start", (6,0))
 
         self.id_channel = id_channel
@@ -145,20 +145,23 @@ class Session():
                 id_channel=id_channel
             )
 
+        if clear:
+            self.clear()
+            return
+
         db = DB()
         db.query("SELECT id_object FROM nx_events WHERE id_channel = %s and start >= %s and start < %s ORDER BY start ASC", (id_channel, self.start_time, self.end_time))
         for id_event, in db.fetchall():
             event = Event(id_event, db=db)
             ebin = event.get_bin()
-
+            event.meta["id_event"] = event.id
             block = DramaticaBlock(self.rundown, **event.meta)
             block.config = json.loads(block["dramatica/config"] or "{}")
 
             for eitem in ebin.items:
+                eitem.meta["id_item"] = eitem.id
                 item = self.cache[eitem["id_asset"]]
                 block.add(item, **eitem.meta)
-
-
             self.rundown.add(block)
 
 
@@ -175,23 +178,88 @@ class Session():
     def save(self):
         if not self.rundown:
             return
+        print ""
 
+        db = DB()
         for block in self.rundown.blocks:
-            print block.meta
+            if block["id_event"]:
+                event = Event(block["id_event"], db=db)
+                ebin = event.get_bin()
+                #logging.info("Updating {}".format(event))
+            else:
+                event = Event(db=db)
+                ebin = Bin(db=db)
+                #logging.info("Creating new {}".format(event))
+                ebin.save()
+
+
+            print ["New", "Updated"][bool(event.id)]
+            print block["title"]
+            print time.strftime("%H:%M", time.localtime(block["start"]))
+
+            old_items = [item for item in ebin.items]
+
+            for pos, bitem in enumerate(block.items):
+                if bitem["id_item"]:
+                    item = Item(bitem["id_item"], db=db)
+                else:
+                    item = Item(db=db)
+
+                item["id_bin"] = ebin.id
+                item["id_asset"] = bitem.id
+                item["position"] = pos
+                
+                for key in ["mark_in", "mark_out", "promoted", "is_optional"]:
+                    if bitem[key]:
+                        item.meta[key] = bitem[key]
+
+                item.save()
+                ebin.items.append(item)
+
+            for item in old_items:
+                if item.id not in [i.id for i in ebin.items]:
+                    item.delete()
+
+            for key in block.meta:
+                event[key] = block[key]
+
+            ebin.save()
+            event["id_magic"] = ebin.id
+            event["id_channel"] = self.id_channel
+            event["dramatica/config"] = json.dumps(block.config)
+            event["start"] = block["start"]
+            event.save()
+
             print "***********************************************"
+
+
+    def clear(self):
+        if not self.rundown:
+            return
+        db = DB()
+        db.query("SELECT id_object FROM nx_events WHERE id_channel = %s and start >= %s and start < %s ORDER BY start ASC", (self.id_channel, self.start_time, self.end_time))
+        for id_event, in db.fetchall():
+            id_event = int(id_event)
+            event = Event(id_event, db=db)
+            if not event:
+                logging.warning("Unable to delete non existent event ID {}".format(id_event))
+                continue
+            pbin = event.get_bin()
+            pbin.delete()
+            event.delete()
 
 
 
 
 if __name__ == "__main__":
     session = Session()
-    session.open_rundown(date="2014-07-17")
-
-    template = NXTVTemplate(session.rundown)
-    template.apply()
+    full = True
+    session.open_rundown(date="2014-07-07", clear=full)
+    if full:
+        template = NXTVTemplate(session.rundown)
+        template.apply()
 
     session.solve()
+    session.save()
 
-    #session.save()
-
-    print(session.rundown.__str__().encode("utf-8"))
+    #print(session.rundown.__str__().encode("utf-8"))

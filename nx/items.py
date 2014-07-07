@@ -131,6 +131,7 @@ class Bin(NXObject):
     def delete_childs(self, db):
         for item in self.items:
             if item.id > 0:
+                item.db = db
                 item.delete()
         return True
 

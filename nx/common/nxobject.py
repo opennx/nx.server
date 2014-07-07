@@ -176,11 +176,10 @@ class NXServerObject(NXBaseObject):
         logging.debug("Deleting {!r}".format(self))
         if not self.db:
             self.db = DB()
-        db = self.db
-        if self.delete_childs(db):
-            db.query("DELETE FROM nx_meta WHERE id_object = %s and object_type = %s", [self.id, self.id_object_type()] )
-            db.query("DELETE FROM nx_{}s WHERE id_object = %s".format(self.object_type), [self.id])
-            db.commit()
+        if self.delete_childs(self.db):
+            self.db.query("DELETE FROM nx_meta WHERE id_object = %s and object_type = %s", [self.id, self.id_object_type()] )
+            self.db.query("DELETE FROM nx_{}s WHERE id_object = %s".format(self.object_type), [self.id])
+            self.db.commit()
             cache.delete("{0}{1}".format(self.ns_prefix, self.id))
             logging.info("{!r} deleted.".format(self))
             return True    

@@ -42,7 +42,7 @@ class DramaticaSolver(object):
         if self.full_clear:
             block.items = []
         else:
-            _newitems = [item for item in block.items if not (item["dramatica/config"] or item["dramatica/solved"])]
+            _newitems = [item for item in block.items if not (str(item["is_optional"]) == 1 or item["dramatica/config"])]
             block.items = _newitems
 
         self.create_pool()
@@ -96,7 +96,7 @@ class DramaticaSolver(object):
         conds = ["`dramatica/weight` >= 0", "duration > 0"] + conds
         conds = " AND ".join(conds)
 
-        q = "SELECT id_object FROM assets WHERE {}  ORDER BY {}, RANDOM() LIMIT 1".format(conds, order)
+        q = "SELECT id_object FROM assets WHERE {} ORDER BY {}, RANDOM() LIMIT 1".format(conds, order)
         self.block.cache.cur.execute(q)
         try:
             id_asset = self.block.cache.cur.fetchall()[0][0]
@@ -117,7 +117,7 @@ class DramaticaSolver(object):
 class GenreRule(DramaticaBlockRule):
     def rule(self):
         genres = self.block.config.get("genres",[])
-        if self.asset["genre/music"] in genres or self.asset["genre/movie"] in genres:
+        if self.asset["genre"] in genres:
             return 1
         return 0
 
@@ -155,10 +155,15 @@ class MatureContentRule(DramaticaBlockRule):
 class RundownRepeatRule(DramaticaBlockRule):
     def rule(self):
         if self.block.rundown.has_asset(self.asset.id):
-            if self.asset["id_folder"] in [3,4,5]: # Do not repeat movies and series in same day
+            if self.asset["id_folder"] in [1, 2]: # Do not repeat movies and series in same day
                 return -1
             return 0
         return 1
+
+
+
+
+
 
 
 
@@ -172,10 +177,13 @@ class DefaultSolver(DramaticaSolver):
         [RundownRepeatRule, 1]
         ]
 
+    block_source = "id_folder IN (1, 2)"
+    fill_source =  "id_folder IN (3,5,7,8)"
+    
     def solve(self):
         if not self.block.items:
-            asset = self.get("id_folder IN (3 )")
-            self.block.add(asset)
+            asset = self.get(self.block_source)
+            self.block.add(asset, is_optional=0)
             for key in ASSET_TO_BLOCK_INHERIT:
                 if asset[key]:
                     self.block[key] = asset[key]
@@ -184,16 +192,18 @@ class DefaultSolver(DramaticaSolver):
 
         if self.block.remaining > (suggested - self.block.duration):
             asset = self.get(
+                    self.block_source,
                     "io_duration < {}".format(self.block.target_duration - suggested),
                     "io_duration > {}".format(suggested-self.block.duration),
                     "`dramatica/weight` > 0",
-                    order="(id_folder IN (3,4,5)) DESC, `dramatica/weight` DESC, io_duration DESC"
+                    order="`dramatica/weight` DESC, io_duration DESC".format(block_source=self.block_source)
                 ) 
 
             if asset:
                 n = self.block.rundown.insert(
                         self.block.block_order+1, 
-                        start=self.block["start"] +  suggested
+                        start=self.block["start"] +  suggested,
+                        is_optional = 0
                     )
                 n.add(asset)
                 for key in ASSET_TO_BLOCK_INHERIT:
@@ -208,9 +218,9 @@ class DefaultSolver(DramaticaSolver):
                 break
 
             asset = self.get(
-                "id_folder IN (1, 4, 8)", 
+                self.fill_source, 
                 "io_duration < {}".format(self.block.remaining + SAFE_OVER),
-                order = "id_folder = 8 DESC, `dramatica/weight` DESC, RANDOM()"
+                order = "`dramatica/weight` DESC, RANDOM()"
                 ) ### Fillers
 
             
@@ -225,11 +235,13 @@ class MusicBlockSolver(DramaticaSolver):
     full_clear = True
     rules = [
         [MatureContentRule, 1],
-        [GenreRule, 2],
+        [GenreRule, 3],
         [PromotedRule, 1],
         [DistanceRule, 1]
     ]
 
+    song_source = "id_folder = 5"
+   
     def solve(self):
         jingle_span = 600
         promo_span = 1000
@@ -251,12 +263,16 @@ class MusicBlockSolver(DramaticaSolver):
                 self.block.add(self.get(jingle_selector, allow_reuse=True))
                 last_jingle = self.block.duration
 
-            asset = self.get("id_folder = 1", order="ABS({} - io_duration )".format(self.block.remaining)) # FIX MARK IN AND OUT
+            asset = self.get(
+                self.song_source, 
+                "id_object in (SELECT id_object FROM assets ORDER BY duration LIMIT 1 OFFSET (SELECT COUNT(*) FROM assets) / 2)", 
+                order="ABS({} - io_duration )".format(self.block.remaining)
+                )
             if self.block.remaining - asset.duration < 0:
                 self.block.add(asset)
                 break
 
-            asset = self.get("id_folder = 1") ### MOOD/BPM SELECTOR GOES HERE
+            asset = self.get(self.song_source) ### MOOD/BPM SELECTOR GOES HERE
             self.block.add(asset)
 
         outro_jingle = self.block.config.get("outro_jingle", False)

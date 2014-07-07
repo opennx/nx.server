@@ -215,7 +215,7 @@ def hive_bin_order(auth_key, params):
             try:
                 can_append = eval(append_cond)
             except:
-                logging.error("Unable to evalueate rundown accept condition: {}".format(append_cond))
+                logging.error("Unable to evaluate rundown accept condition: {}".format(append_cond))
                 continue
             if not asset or not can_append:
                 continue

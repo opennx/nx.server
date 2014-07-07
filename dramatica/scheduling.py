@@ -16,7 +16,6 @@ class DramaticaBlock(DramaticaObject):
         self.cache = rundown.cache
         self.items = []
         self.config = {} # solver settings (event "dramatica/config" meta)
-        self.solved = False
 
     @property
     def block_order(self):
