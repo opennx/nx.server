@@ -71,6 +71,7 @@ class Job():
                     id_job   = self.id_job
                     )
                 )
+        messaging.send("job_progress", id_job=self.id_job, id_object=self.id_object, id_action=self.id_action, progress=progress)
         db.commit()
 
 
@@ -121,6 +122,7 @@ class Job():
                 )
         db.commit()
         logging.goodnews("Job ID {} : {}".format(self.id_job, message))
+        messaging.send("job_progress", id_job=self.id_job, id_object=self.id_object, id_action=self.id_action, progress=-2)
 
 
 

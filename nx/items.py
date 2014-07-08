@@ -183,7 +183,7 @@ def bin_refresh(bins, sender=False, db=False):
         if not chg in changed_rundowns:
             changed_rundowns.append(chg)
     if changed_rundowns:
-        messaging.send("rundown_change", {"sender":sender, "rundowns":changed_rundowns})
+        messaging.send("rundown_change", sender=sender, rundowns=changed_rundowns)
     return 202, "OK"
 
         

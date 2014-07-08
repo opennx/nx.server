@@ -249,7 +249,7 @@ class Service(ServicePrototype):
         data["cued_title"]    = channel.cued_asset["title"]    if channel.cued_asset    else "(no clip)"
         data["request_time"]  = channel.request_time
 
-        messaging.send("playout_status", data)
+        messaging.send("playout_status", **data)
 
         for plugin in channel.plugins:
             plugin.main()

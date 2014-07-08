@@ -87,7 +87,7 @@ class Messaging():
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 255)
   
-    def send(self, method, data=None):
+    def send(self, method, **data):
         """
         message = [timestamp, site_name, host, method, DATA] 
         """        
@@ -132,7 +132,7 @@ class Logging():
                 print ("{0:<10} {1:<15} {2}".format(self._typeformat(msgtype), config['user'], message))
             except:
                 print (message.encode("utf-8"))
-        messaging.send("log",[config['user'], msgtype, message])
+        messaging.send("log", user=config['user'], msg_type=msgtype, message=message)
 
     def debug   (self,msg): self._send(DEBUG,msg) 
     def info    (self,msg): self._send(INFO,msg) 

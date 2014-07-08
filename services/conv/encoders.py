@@ -166,7 +166,7 @@ class Ffmpeg(Encoder):
                 for k in ln:
                     if k.startswith("time="):
                         try:
-                            PZ = self.asset.get_duration()
+                            PZ = self.asset["duration"]
                             hh, mm, ss = k.replace("time=","").split(":")
                             PC = (int(hh)*3600) + (int(mm)*60) + float(ss)
                             self.progress = PC / PZ

@@ -204,9 +204,13 @@ def hive_bin_order(auth_key, params):
         params      = obj["params"]
 
         if object_type == ITEM:
-            item = Item(id_object, db=db)
-            if not item:
-                continue
+            if not id_object:
+                item = Item(db=db)
+                item["id_asset"] = obj["id_asset"]
+                item.meta.update(obj.meta)
+            else:
+                item = Item(id_object, db=db)
+
             if not item["id_bin"] in affected_bins: 
                 affected_bins.append(item["id_bin"])
 
