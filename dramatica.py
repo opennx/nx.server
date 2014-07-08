@@ -7,7 +7,7 @@ from nx.items import Event, Bin, Item
 from dramatica.common import DramaticaCache
 from dramatica.scheduling import DramaticaBlock, DramaticaRundown
 from dramatica.templates import DramaticaTemplate
-from dramatica.timeutils import dur
+from dramatica.timeutils import *
 
 tags = [
     (str, "title"),
@@ -63,6 +63,17 @@ def nx_history_connector(start=False, stop=False, tstart=False):
 class NXTVTemplate(DramaticaTemplate):
     def apply(self):
 
+        MAIN_GENRES = {
+            MON : ["horror"], 
+            TUE : ["political", "social", "conspiracy"],
+            WED : ["arts"],
+            THU : ["technology"],
+            FRI : ["rock"],
+            SAT : ["rock"],
+            SUN : ["drama", "comedy"]
+        }[self.dow]
+
+
         self.add_block("06:00", title="Morning mourning")
         self.configure(
             solver="MusicBlock", 
@@ -98,7 +109,8 @@ class NXTVTemplate(DramaticaTemplate):
 
         self.add_block("21:00", title="Movie of the day")
         self.configure(
-            solver="DefaultSolver"
+            solver="DefaultSolver",
+            genres=MAIN_GENRES
             )   
 
         self.add_block("23:00", title="Nachtmetal")
@@ -185,11 +197,9 @@ class Session():
             if block["id_event"]:
                 event = Event(block["id_event"], db=db)
                 ebin = event.get_bin()
-                #logging.info("Updating {}".format(event))
             else:
                 event = Event(db=db)
                 ebin = Bin(db=db)
-                #logging.info("Creating new {}".format(event))
                 ebin.save()
 
 
@@ -228,6 +238,8 @@ class Session():
             event["id_channel"] = self.id_channel
             event["dramatica/config"] = json.dumps(block.config)
             event["start"] = block["start"]
+            if "run_mode" in block.meta:
+                event["run_mode"] = block["run_mode"]
             event.save()
 
             print "***********************************************"
@@ -254,12 +266,12 @@ class Session():
 if __name__ == "__main__":
     session = Session()
     full = True
-    session.open_rundown(date="2014-07-07", clear=full)
-    if full:
-        template = NXTVTemplate(session.rundown)
-        template.apply()
+    session.open_rundown(date="2014-07-10", clear=full)
+    #if full:
+    #    template = NXTVTemplate(session.rundown)
+    #    template.apply()
 
-    session.solve()
-    session.save()
+    #session.solve()
+    #session.save()
 
     #print(session.rundown.__str__().encode("utf-8"))

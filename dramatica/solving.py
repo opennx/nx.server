@@ -212,7 +212,7 @@ class DefaultSolver(DramaticaSolver):
 
 
         while self.block.remaining > 0:
-            asset = self.get(order="ABS({} - io_duration )".format(self.block.remaining))
+            asset = self.get(self.fill_source, order="ABS({} - io_duration )".format(self.block.remaining))
             if self.block.remaining - asset.duration < 0:
                 self.block.add(asset)
                 break
@@ -265,8 +265,7 @@ class MusicBlockSolver(DramaticaSolver):
 
             asset = self.get(
                 self.song_source, 
-                "id_object in (SELECT id_object FROM assets ORDER BY duration LIMIT 1 OFFSET (SELECT COUNT(*) FROM assets) / 2)", 
-                order="ABS({} - io_duration )".format(self.block.remaining)
+                order="`dramatica/weight` DESC, ABS({} - io_duration )".format(self.block.remaining)
                 )
             if self.block.remaining - asset.duration < 0:
                 self.block.add(asset)

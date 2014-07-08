@@ -8,6 +8,10 @@ class DramaticaTemplate(DramaticaObject):
         self.rundown = rundown
         self.cache = rundown.cache
 
+    @property 
+    def dow(self):
+        return self.rundown.dow
+
     def add_block(self, clock, **kwargs):
         if type(clock) == str:
             hh, mm = [int(i) for i in clock.split(":")]
