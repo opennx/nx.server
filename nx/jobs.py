@@ -103,6 +103,7 @@ class Job():
                 )
         db.commit()
         logging.error("Job ID {} : {}".format(self.id_job, message))
+        messaging.send("job_progress", id_job=self.id_job, id_object=self.id_object, id_action=self.id_action, progress=-3)
 
 
     def done(self, message="Completed"):

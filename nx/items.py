@@ -168,17 +168,12 @@ def bin_refresh(bins, sender=False, db=False):
     if not db:
         db = DB()
     for id_bin in bins:
-        pbin = Bin(id_bin, db=db)
-        for item in pbin.items:
-            cache.delete("i{}".format(item.id))
         cache.delete("b{}".format(id_bin))
     bq = ", ".join([str(b) for b in bins])
     changed_rundowns = []
-    q = "SELECT e.id_channel, e.start FROM nx_events as e, nx_channels as c WHERE c.channel_type = 0 AND c.id_channel = e.id_channel AND id_magic in ({})".format(bq)
-    print q
-    db.query(q)
+    db.query("SELECT e.id_channel, e.start FROM nx_events as e, nx_channels as c WHERE c.channel_type = 0 AND c.id_channel = e.id_channel AND id_magic in ({})".format(bq))
     for id_channel, start_time in db.fetchall():
-        start_time = time.strftime("%Y-%m-%d",time.localtime(start_time))
+        start_time = time.strftime("%Y-%m-%d", time.localtime(start_time))
         chg = [id_channel, start_time]
         if not chg in changed_rundowns:
             changed_rundowns.append(chg)
@@ -242,3 +237,11 @@ def get_next_item(id_item, db=False):
             logging.warning("There is no non-empty after this one. Looping current")
             return current_bin.items[0]
 
+
+def get_item_runs(id_channel, from_ts, to_ts, db=False):
+    db = db or DB()
+    db.query("SELECT id_item, start, stop FROM nx_asrun WHERE start >= %s and start < %s ORDER BY start ASC", [int(from_ts), int(to_ts)] )
+    result = {}
+    for id_item, start, stop in db.fetchall():
+        result[id_item] = (start, stop)
+    return result

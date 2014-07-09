@@ -122,53 +122,78 @@ def hive_scheduler(auth_key, params):
 
 def hive_rundown(auth_key, params):
     date = params.get("date",time.strftime("%Y-%m-%d"))
-    id_channel = int(params.get("id_channel",1))
+    try:
+        id_channel = int(params["id_channel"])
+        channel_config = config["playout_channels"][id_channel]
+    except:
+        return 400, "No such playout channel"
 
     db = DB()
 
-    start_time = datestr2ts(date, *config["playout_channels"][id_channel].get("day_start", [6,0]))
+    start_time = datestr2ts(date, *channel_config.get("day_start", [6,0]))
     end_time   = start_time + (3600*24)
-    ts_broadcast = 0
+    item_runs  = get_item_runs(id_channel, start_time, end_time, db=db)
     data = []
+
     db.query("SELECT id_object FROM nx_events WHERE id_channel = %s AND start >= %s AND start < %s ORDER BY start ASC", (id_channel, start_time, end_time))
+    
+    ts_broadcast = 0
     for id_event, in db.fetchall():
         event = Event(id_event)
-        pbin   = event.get_bin()
+        pbin  = event.get_bin()
 
         event_meta = event.meta
         event_meta["rundown_scheduled"] = ts_scheduled = event["start"]
-        if not ts_broadcast:
-            ts_broadcast = ts_scheduled
-        event_meta["rundown_broadcast"] = ts_broadcast
+        event_meta["rundown_broadcast"] = ts_broadcast = ts_broadcast or ts_scheduled
 
+        # Reset broadcast time indicator after empty blocks and if run mode is not AUTO (0)
         if not pbin.items:
             ts_broadcast = 0
-
+        elif event["run_mode"]:
+            ts_broadcast = 0
+        
         bin_meta   = pbin.meta
         items = []
-
         for item in pbin.items:
             i_meta = item.meta
             a_meta = item.get_asset().meta if item["id_asset"] else {}
             
-            i_meta["rundown_broadcast"] = ts_broadcast
+            as_start, as_stop = item_runs.get(item.id, (0, 0))
+            if as_start:
+                ts_broadcast = as_start
+
             i_meta["rundown_scheduled"] = ts_scheduled
+            i_meta["rundown_broadcast"] = ts_broadcast
+
             ts_scheduled += item.get_duration()
             ts_broadcast += item.get_duration()
 
             # ITEM STATUS
-            if not item["id_asset"]:
-                i_meta["rundown_status"] = 2
+            #
+            # -1 : AIRED
+            # -2 : Partialy aired. Probably still on air or play service was restarted during broadcast
+            #  0 : Master asset is offline. Show as "OFFLINE"
+            #  1 : Master asset is online, but playout asset does not exist or is offline 
+            #  2 : Playout asset is online. Show as "READY" 
+
+            if as_start and as_stop:
+                i_meta["rundown_status"] = -1 # AIRED
+            elif as_start:
+                i_meta["rundown_status"] = -2 #  PART AIRED
+            elif not item["id_asset"]:
+                i_meta["rundown_status"] = 2 # Virtual item or something... show as ready
             elif item.get_asset()["status"] != ONLINE:
-                i_meta["rundown_status"] = 0
+                i_meta["rundown_status"] = 0 # Master asset is not online: Rundown status = OFFLINE
             else:
                 id_playout = item["id_playout/{}".format(id_channel)]
-                if not id_playout or Asset(id_playout)["status"] != ONLINE:
+                if not id_playout or Asset(id_playout)["status"] not in [ONLINE, CREATING]: # Master asset exists, but playout asset is not online.... (not scheduled / pending)
                     i_meta["rundown_status"] = 1
                 else:
-                    i_meta["rundown_status"] = 2
+                    i_meta["rundown_status"] = 2 # Playout asset is ready
 
             items.append((i_meta, a_meta))
+
+
 
         data.append({
                 "event_meta" : event_meta,
@@ -230,11 +255,11 @@ def hive_bin_order(auth_key, params):
 
         else:
             continue
-        
-        item["position"] = pos
-        item["id_bin"]   = id_bin
-        item.save()
 
+        if not item or item["position"] != pos or item["id_bin"] != id_bin:
+            item["position"] = pos
+            item["id_bin"]   = id_bin
+            item.save()
         pos += 1
 
     bin_refresh(affected_bins, sender, db)

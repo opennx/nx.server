@@ -268,13 +268,19 @@ class Service(ServicePrototype):
         logging.info ("Advanced to {}".format(itm))
 
         db = DB()
-        if channel._last_run:
-            pass        
-            #TODO: Update AsRun
-     #       db.query("UPDATE nebula_asrun SET stop_time = %s WHERE id_run = %s" %(int(time()) , channel._last_run_item  ))
-     #       db.query("INSERT INTO nebula_asrun (id_asset,title, start_time, id_item, id_channel) VALUES (%s,'%s',%s,%s,%s) " % (channel.current_asset.id_asset, db.sanit(channel.current_asset["Title"]), int(time()), channel.current_item, channel.ident ) ) 
-     #       channel._last_run_item = db.lastid()
-     #      db.commit()
+        if channel._last_run:           
+            db.query("UPDATE nx_asrun SET stop = %s WHERE id_run = %s",  [int(time.time()) , channel._last_run])
+        db.query("INSERT INTO nx_asrun (id_channel, start, stop, title, id_item, id_asset) VALUES (%s,%s,%s,%s,%s,%s) ",
+            [
+            channel.ident,
+            int(time.time()),
+            0,
+            db.sanit(channel.current_asset["title"]), 
+            channel.current_item, 
+            channel.current_asset.id
+            ]) 
+        channel._last_run = db.lastid()
+        db.commit()
         
         self.cue_next(channel, db=db)        
         for plugin in channel.plugins:
