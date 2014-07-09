@@ -143,13 +143,13 @@ if config["cache_driver"] == "memcached":
         def save(self,key,value):
             for i in range(10):
                 try:
-                    conn = self._conn()
-                    val = conn.set(str("%s_%s"%(self.site,key)), str(value))
+                    val = self.lconn.set(str("%s_%s"%(self.site,key)), str(value))
                     break
                 except:  
                     print ("MEMCACHE SAVE FAILED %s" % key)
                     print (str(sys.exc_info()))
                     time.sleep(1)
+                    self._conn()
                 else:
                     critical_error ("Memcache save failed. This should never happen. Check MC server")
                     sys.exit(-1)
@@ -158,8 +158,7 @@ if config["cache_driver"] == "memcached":
         def delete(self,key):
             for i in range(10):
                 try:
-                    conn = self._conn()
-                    conn.delete("%s_%s"%(self.site,key))
+                    self.lconn.delete("%s_%s"%(self.site,key))
                     break
                 except: 
                     print ("MEMCACHE DELETE FAILED %s" % key)
