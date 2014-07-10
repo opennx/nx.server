@@ -33,8 +33,12 @@ class ServicePrototype(object):
         db.query("UPDATE nx_services SET state=3 WHERE id_service=%d"%self.id_service)
         db.commit()
 
-    def shutdown(self):
+    def shutdown(self, no_restart=False):
         logging.info("Shutting down")
+        if no_restart:
+            db = DB()
+            db.query("UPDATE nx_services SET autostart=0 WHERE id_service=%s", [self.id_service])
+            db.commit()
         sys.exit(0)
 
     def heartbeat(self):

@@ -3,10 +3,14 @@ from nx import *
 __all__ = ["plugin_path","PlayoutPlugin"]
 
 
-
-plugin_path = os.path.join(storages[int(config["plugin_storage"])].get_path(), config["plugin_root"])
-if not os.path.exists(plugin_path) and ismount(storages[int(config["plugin_storage"])].get_path()):
-    os.mkdirs(plugin_path)
+try:
+    plugin_path = os.path.join(storages[int(config["plugin_storage"])].get_path(), config["plugin_root"])
+except:
+    logging.error("Unable to load plugin path")
+    plugin_path = False
+else:
+    if not os.path.exists(plugin_path) and ismount(storages[int(config["plugin_storage"])].get_path()):
+        os.mkdirs(plugin_path)
 
 
 class PlayoutPlugin(object):

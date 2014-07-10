@@ -9,14 +9,17 @@ MAX_RETRIES = 3
 
 class Job():
     def __init__(self, id_service,  actions=[]):
-
-        qactions = ", ".join([str(k) for k in actions])
-    
+        
         self.id_job    = False
         self.id_object = False
         self.id_action = False
         self.settings  = False
         self.retries   = False
+
+        if not actions:
+            return
+
+        qactions = ", ".join([str(k) for k in actions])
 
         db = DB()
         db.query("""UPDATE nx_jobs 

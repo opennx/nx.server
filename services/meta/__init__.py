@@ -18,6 +18,12 @@ class Service(ServicePrototype):
             self.filters = ""
 
     def on_main(self):
+        self.mounted_storages = []
+        for id_storage in storages:
+            sp = storages[id_storage].get_path()
+            if os.path.exists(sp) and len(os.listdir(sp)) != 0:
+                self.mounted_storages.append(id_storage)
+
         db = DB()
         db.query("SELECT id_object FROM nx_assets {} WHERE media_type=0".format(self.filters))
         for id_asset, in db.fetchall():
@@ -26,7 +32,10 @@ class Service(ServicePrototype):
     def _proc(self, id_asset, db):
         asset = Asset(id_asset, db = db)
         fname = asset.get_file_path()
-        
+
+        if asset["id_storage"] not in self.mounted_storages:
+            return
+
         if not os.path.exists(fname):
             if asset["status"] == ONLINE:
                 logging.warning("Turning offline %s" % asset)

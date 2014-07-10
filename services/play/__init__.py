@@ -18,6 +18,8 @@ from caspar import Caspar
 class PlayoutPlugins():
     def __init__(self, channel):
         self.plugins = []
+        if not plugin_path:
+            return
         bpath = os.path.join(plugin_path, "playout")
         if not os.path.exists(bpath):
             logging.warning("Playout plugins directory does not exist")
@@ -124,7 +126,7 @@ class Service(ServicePrototype):
     def on_init(self):
         if not config["playout_channels"]:
             logging.error("No playout channel configured")
-            self.shutdown()
+            self.shutdown(no_restart=True)
 
         self.caspar = Caspar()
         for id_channel in config["playout_channels"]:
