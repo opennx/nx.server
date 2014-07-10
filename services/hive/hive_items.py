@@ -10,23 +10,56 @@ BLOCK_MODES = ["LINK", "MANUAL", "SOFT AUTO", "HARD AUTO"]
 ## MACRO SCHEDULING BEGIN
   
 
-def hive_get_day_events(auth_key,params={}):
-    id_channel = int(params.get("id_channel",1))
-    date = params.get("date",time.strftime("%Y-%m-%d"))
-    num_days = params.get("num_days",1)
+def hive_get_events(auth_key, params={}):
+    start_time = params.get("start_time", 0)
+    end_time = params.get("end_time", start_time + (3600*24*7))
+    extend = params.get("extend", False)
+    id_channel = params.get("id_channel", False)
+
+    if not id_channel:
+        return 400, "No such playout channel"
+
+    db = DB()
+    db.query("SELECT id_object FROM nx_events WHERE id_channel = %s AND start >= %s AND start < %s ORDER BY start ASC", (id_channel, start_time, end_time))
+    res = db.fetchall()
+
+    if extend:
+        db.query("SELECT id_object FROM nx_events WHERE id_channel = %s AND start < %s ORDER BY start DESC LIMIT 1", (id_channel, start_time))
+        res = db.fetchall() + res
+
     result = []
-    for event in get_day_events(id_channel, date, num_days):
+    for id_event, in res:
+        event = Event(id_event, db=db)
+        pbin  = event.get_bin()
+        event["duration"] = pbin.get_duration()
         result.append(event.meta)
-    return 200, {"events": result}
+    return 200, {"events" : result}
 
 
-def hive_set_day_events(auth_key, params={}):
-    id_channel = int(params.get("id_channel",False))
-    updated = created = deleted = 0
-    
+
+ASSET_TO_EVENT_INHERIT = [
+    "title",          
+    "title/subtitle", 
+    "title/alternate",
+    "title/series",   
+    "title/original", 
+    "description",    
+    "promoted"
+    ]
+
+
+def hive_set_events(auth_key, params={}):
+    delete = params.get("delete", [])
+    events = params.get("events", [])
+    id_channel = params.get("id_channel", False)
+
+    db = DB()
+
+    print events
+
+    deleted = created = updated = 0
     for id_event in params.get("delete", []):
-        id_event = int(id_event)
-        event = Event(id_event)
+        event = Event(id_event, db=db)
         if not event:
             logging.warning("Unable to delete non existent event ID {}".format(id_event))
             continue
@@ -34,85 +67,47 @@ def hive_set_day_events(auth_key, params={}):
         pbin.delete()
         event.delete()
         deleted += 1
-    
-    for event_data in params.get("events",[]):
-        id_event = event_data.get("id_object",False)
+
+    for event_data in params.get("events", []):
+        id_event = event_data.get("id_object", False)
         if id_event:
-            event = Event(id_event)
+            event = Event(id_event, db=db)
+            updated +=1
         else:
-            event = Event()
-            pbin = Bin()
+            event = Event(db=db)
+            pbin = Bin(db=db)
             pbin.save()
             event["id_magic"] = pbin.id
             event["id_channel"] = id_channel
+            created +=1
+
+        id_asset = event_data.get("id_asset", False)
+        if id_asset and id_asset != event["id_asset"]:
+            asset = Asset(id_asset, db=db)
+            if asset:
+
+                pbin.delete_childs(db=db)
+                pbin.items = []
+                
+                if not event["dramatica/config"]:
+                    item = Item(db=db)
+                    item["id_asset"] = asset.id
+                    item["position"] = 0
+                    item["id_bin"] = pbin.id
+                    item.save()
+                    pbin.items.append(item)
+                    pbin.save()
+        
+                for key in ASSET_TO_EVENT_INHERIT:
+                    if asset[key]:
+                        event[key] = asset[key]
+
         for key in event_data:
             event.meta[key] = event_data[key]
+
         event.save()
 
-    return 202 , "Somewhat happened"
-
-
-
-def hive_event_from_asset(auth_key, params):
-    id_asset = params.get("id_asset", False)
-    id_channel = params.get("id_channel", False)
-    timestamp = params.get("timestamp", False)
-    asset = Asset(id_asset)
-
-    if not (id_asset and id_channel and timestamp and asset):
-        return 400, "e eeee"
-
-    db = DB()
-    
-    event = Event(db=db)
-    pbin = Bin(db=db)
-    pbin.save()
-
-    event["id_magic"] = pbin.id
-    event["id_channel"] = id_channel
-    event["start"] = timestamp
-    event["title"] = asset["title"]
-    event["promoted"] = asset["promoted"]
-    event["description"] = asset["description"]
-    event["dramatica/config"] = asset["dramatica/config"]
-    event.save()
-    
-    if not event["dramatica/config"]:
-        item = Item(db=db)
-        item["id_asset"] = asset.id
-        item["position"] = 0
-        item["id_bin"] = pbin.id
-        item.save()
-        pbin.items.append(item)
-        
-    pbin.save()
-
-    return 201, "Created"
-
-
-
-def hive_scheduler(auth_key, params):
-    date = params.get("date",time.strftime("%Y-%m-%d"))
-    id_channel = int(params.get("id_channel",1))
-
-    start_time = datestr2ts(date, *config["playout_channels"][id_channel].get("day_start", [6,0]))
-    end_time   = start_time + (3600*24*7)
-
-    db = DB()
-    db.query("SELECT id_object FROM nx_events WHERE id_channel = %s AND start >= %s AND start < %s ORDER BY start ASC", (id_channel, start_time, end_time))
-    res = db.fetchall()
-    db.query("SELECT id_object FROM nx_events WHERE id_channel = %s AND start < %s ORDER BY start DESC LIMIT 1", (id_channel, start_time))
-    res = db.fetchall() + res
-
-    result = []
-    for id_event, in res:
-        event = Event(id_event)
-        pbin  = event.get_bin()
-        event["duration"] = pbin.get_duration()
-        result.append(event.meta)
-    return 200, {"data":result}
-
-
+    return 200, "TODO: Statistics"
 
 ## MACRO SCHEDULING END
 ##################################################################################
