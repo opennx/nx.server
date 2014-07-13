@@ -43,7 +43,7 @@ class NXBaseObject(object):
   
     def save(self, set_mtime=True):
         if set_mtime:
-            self["mtime"] = time.time()
+            self["mtime"] = int(time.time())
         return self._save()
 
     def delete(self):

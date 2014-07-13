@@ -93,7 +93,12 @@ def load_site_settings():
     db.query("SELECT id_view, config FROM nx_views")
     for id_view, view_config in db.fetchall():
         view_config = ET.XML(view_config)
-        view = {"query": view_config.find("query").text.strip()}
+        view = {}
+        for elm in ["query", "folders", "origins", "media_types", "content_types", "statuses"]:
+            try:
+                view[elm] = view_config.find(elm).text.strip()
+            except:
+                continue
         config["views"][id_view] = view
 
     db.query("SELECT id_channel, channel_type, title, config FROM nx_channels")

@@ -1,3 +1,5 @@
+import hashlib
+
 from nx import *
 from nx.assets import *
 from nx.jobs import send_to
@@ -6,27 +8,54 @@ def hive_browse(auth_key, params):
     db = DB()
     conds = []
 
+    id_view = params.get("view", 1)
+    view_config = config["views"][id_view]
+
+    if "folders" in view_config:
+        conds.append("id_folder IN ({})".format(view_config["folders"]))
+    if "media_types" in view_config:
+        conds.append("media_type IN ({})".format(view_config["media_types"]))
+    if "content_types" in view_config:
+        conds.append("content_type IN ({})".format(view_config["content_types"]))
+    if "origins" in view_config:
+        conds.append("origin IN ({})".format(view_config["origins"]))
+    if "statuses" in view_config:
+        conds.append("status IN ({})".format(view_config["statuses"]))
+    if "query" in view_config:
+        conds.append("id_object in ({})".format(view_config["query"]))
+
+    # TODO: PLEASE REWRITE ME
     if params.get("fulltext", False):
         fulltext_base = "id_object IN (SELECT id_object FROM nx_meta WHERE object_type=0 AND {})"
-        element_base  = "LOWER(unaccent(value)) LIKE LOWER(unaccent('%{}%'))"
+        element_base  = "unaccent(value) ILIKE unaccent('%{}%')"
         fulltext_cond = " AND ".join([element_base.format(db.sanit(elm)) for elm in params["fulltext"].split()])
         conds.append(fulltext_base.format(fulltext_cond))
 
-    if params.get("view", False):
-        conds.append("id_object in ({})".format(config["views"][params["view"]]["query"]))
-
     query_conditions = " WHERE {}".format(" AND ".join(conds)) if conds else ""
-    query = "SELECT id_object FROM nx_assets{}".format(query_conditions)
+    query = "SELECT id_object, mtime FROM nx_assets{}".format(query_conditions)
 
-    print query
-
-    asset_data = []
     db.query(query)
-    for id_asset, in db.fetchall():
-        asset = Asset(id_asset)
-        asset_data.append(asset.meta)
-    
-    return 200, {"asset_data" : asset_data}
+    return 200, {"result": db.fetchall(), "asset_data":[]}
+
+    #print query
+
+    #asset_data = []
+    #db.query(query)
+    #for id_asset, in db.fetchall():
+    #    asset = Asset(id_asset, db=db)
+    #    asset_data.append(asset.meta)
+    #return 200, {"asset_data" : asset_data}
+
+def hive_get_assets(auth_key, params):
+    asset_ids = params.get("asset_ids", [])
+    db = DB()
+    result = {}
+    for id_asset in asset_ids:
+        asset = Asset(id_asset, db=db)
+        result[id_asset] = asset.meta
+    return 200, result
+
+
 
 
 def hive_actions(auth_key, params):

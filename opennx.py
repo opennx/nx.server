@@ -149,19 +149,21 @@ class ServiceMonitor():
             
     def start_service(self, id_service, title, db=False):
         logging.info("Starting service %d - %s"%(id_service, title))
-        self.services[id_service] = (subprocess.Popen([python_cmd, "run_service.py", str(id_service)]), title )
+        self.services[id_service] = (subprocess.Popen([python_cmd, "run_service.py", str(id_service), "\"{}\"".format(title)]), title )
         # PID & Heartbeat should be updated by run_service py
     
     def stop_service(self, id_service, title, db=False):
         logging.info("Stopping service %d - %s"%(id_service, title))
         #well... service should stop itself :-/
 
-    def kill_service(self, pid):    
-        pid = self.services[id_service][0].pid
+    def kill_service(self, pid=False, id_service=False):    
+        if id_service in self.services:
+            pid = self.services[id_service][0].pid
         if pid == os.getpid() or pid == 0: 
             return
+        logging.info("Attempting to kill PID {}".format(pid))
         if PLATFORM == "linux":
-            os.system (os.path.join(NX_ROOT,"killgroup.sh %s 2> /dev/null"%str(pid)   ))
+            os.system (os.path.join(NX_ROOT,"killgroup.sh %s"%str(pid)   ))
         elif PLATFORM == "windows":
             os.system ("taskkill /F /PID %s" % pid)
 
@@ -186,5 +188,10 @@ if __name__ == "__main__":
         logging.debug("Starting admin interface")
         admin = subprocess.Popen([os.path.join("admin", "run_admin.py"), format(NX_ROOT)])
 
-    while True:
-        time.sleep(1)
+    try:
+        while True:
+            time.sleep(1)
+    except (KeyboardInterrupt):
+        services = service_monitor.services.keys()
+        for id_service in services:
+            service_monitor.kill_service(id_service=id_service)

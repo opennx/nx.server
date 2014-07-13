@@ -36,10 +36,13 @@ if __name__ == "__main__":
     service = Service(id_service, settings)
 
     while True:
-        service.on_main()
-        last_run = time.time()
-        while True:
-            time.sleep(min(loop_delay, 2))
-            service.heartbeat()
-            if time.time() - last_run >= loop_delay:
-                break
+        try:
+            service.on_main()
+            last_run = time.time()
+            while True:
+                time.sleep(min(loop_delay, 2))
+                service.heartbeat()
+                if time.time() - last_run >= loop_delay:
+                    break
+        except (KeyboardInterrupt):
+            sys.exit(0)

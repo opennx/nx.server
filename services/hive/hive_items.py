@@ -116,7 +116,7 @@ def hive_set_events(auth_key, params={}):
 
 
 def hive_rundown(auth_key, params):
-    date = params.get("date",time.strftime("%Y-%m-%d"))
+    start_time = params.get("start_time", 0)
     try:
         id_channel = int(params["id_channel"])
         channel_config = config["playout_channels"][id_channel]
@@ -124,8 +124,6 @@ def hive_rundown(auth_key, params):
         return 400, "No such playout channel"
 
     db = DB()
-
-    start_time = datestr2ts(date, *channel_config.get("day_start", [6,0]))
     end_time   = start_time + (3600*24)
     item_runs  = get_item_runs(id_channel, start_time, end_time, db=db)
     data = []
