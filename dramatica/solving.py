@@ -173,7 +173,7 @@ class DefaultSolver(DramaticaSolver):
         [MatureContentRule, 1],
         [GenreRule, 2],
         [PromotedRule, 1],
-        [DistanceRule, 1],
+        [DistanceRule, 2],
         [RundownRepeatRule, 1]
         ]
 
@@ -183,7 +183,7 @@ class DefaultSolver(DramaticaSolver):
     def solve(self):
         if not self.block.items:
             asset = self.get(self.block_source)
-            self.block.add(asset, is_optional=0)
+            self.block.add(asset, is_optional=0, id_asset=asset.id)
             for key in ASSET_TO_BLOCK_INHERIT:
                 if asset[key]:
                     self.block[key] = asset[key]
@@ -203,6 +203,7 @@ class DefaultSolver(DramaticaSolver):
                 n = self.block.rundown.insert(
                         self.block.block_order+1, 
                         start=self.block["start"] +  suggested,
+                        id_asset = asset.id,
                         is_optional = 0
                     )
                 n.add(asset)
@@ -255,6 +256,7 @@ class MusicBlockSolver(DramaticaSolver):
         if intro_jingle:
             self.block.add(self.get(intro_jingle, allow_reuse=True))
 
+        bpm_mod = True
         while self.block.remaining > 0:
             if self.block.remaining > promo_span and self.block.duration - last_promo > promo_span:
                 pass #TODO
@@ -271,7 +273,13 @@ class MusicBlockSolver(DramaticaSolver):
                 self.block.add(asset)
                 break
 
-            asset = self.get(self.song_source) ### MOOD/BPM SELECTOR GOES HERE
+            bpm_mod = not bpm_mod
+            if bpm_mod:
+                bpm_cond = "`audio/bpm` < (SELECT id_object FROM assets ORDER BY `audio/bpm` LIMIT 1 OFFSET (SELECT COUNT(*) FROM assets) / 2)"
+            else:
+                bpm_cond = "`audio/bpm` > (SELECT id_object FROM assets ORDER BY `audio/bpm` LIMIT 1 OFFSET (SELECT COUNT(*) FROM assets) / 2)"
+
+            asset = self.get(self.song_source, ordrer="`dramatica/weight` DESC, {} DESC, RANDOM()".format(bpm_cond) ) ### MOOD/BPM SELECTOR GOES HERE
             self.block.add(asset)
 
         outro_jingle = self.block.config.get("outro_jingle", False)

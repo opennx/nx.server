@@ -74,15 +74,29 @@ class NXTVTemplate(DramaticaTemplate):
         }[self.dow]
 
 
+        JINGLE_FEED = {
+            MON : "path like '%horror_%'",
+            TUE : "path like '%paranoia_%'",
+            WED : "path like '%art_%'",
+            THU : "path like '%tech_%'",
+            FRI : "path like '%generic_%'",
+            SAT : "path like '%generic_%'",
+            SUN : "path like '%generic_%'"
+        }[self.dow]
+
+
         self.add_block("06:00", title="Morning mourning")
         self.configure(
             solver="MusicBlock", 
-            genres=["Pop", "Rock", "Alt rock"]
+            genres=["Pop", "Rock", "Alt rock"],
+            target_duration=dur("01:00:00"),
+            run_mode=2
             )
 
         self.add_block("10:00", title="Some movie")
         self.configure(
-            solver="DefaultSolver"
+            solver="DefaultSolver",
+            run_mode=2
             )   
 
         self.add_block("12:00", title="Rocking")
@@ -93,9 +107,10 @@ class NXTVTemplate(DramaticaTemplate):
             jingles="path LIKE '%vedci_zjistili%'"
             )   
 
-        self.add_block("16:00", title="Another movie")
+        self.add_block("15:00", title="Another movie")
         self.configure(
-            solver="DefaultSolver"
+            solver="DefaultSolver",
+            genres=MAIN_GENRES
             )   
 
         self.add_block("19:00", title="PostX")
@@ -120,7 +135,6 @@ class NXTVTemplate(DramaticaTemplate):
             intro_jingle="path LIKE '%nachtmetal_intro%'",
             jingles="path LIKE '%nachtmetal_short%'",
             target_duration=dur("02:00:00"),
-            run_mode=2
             )   
 
 
@@ -238,8 +252,11 @@ class Session():
             event["id_channel"] = self.id_channel
             event["dramatica/config"] = json.dumps(block.config)
             event["start"] = block["start"]
-            if "run_mode" in block.meta:
-                event["run_mode"] = block["run_mode"]
+
+            for key in ["run_mode", "id_asset"]:
+                if key in block.meta:
+                    event[key] = block[key]
+
             event.save()
 
             print "***********************************************"
@@ -266,12 +283,12 @@ class Session():
 if __name__ == "__main__":
     session = Session()
     full = True
-    session.open_rundown(date="2014-07-10", clear=full)
-    #if full:
-    #    template = NXTVTemplate(session.rundown)
-    #    template.apply()
+    session.open_rundown(date="2014-07-15", clear=full)
+    if full:
+        template = NXTVTemplate(session.rundown)
+        template.apply()
 
-    #session.solve()
+    session.solve()
     #session.save()
 
-    #print(session.rundown.__str__().encode("utf-8"))
+    print(session.rundown.__str__().encode("utf-8"))

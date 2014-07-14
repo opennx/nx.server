@@ -98,6 +98,7 @@ def hive_set_events(auth_key, params={}):
                     pbin.items.append(item)
                     pbin.save()
         
+                event["id_asset"] = asset.id
                 for key in ASSET_TO_EVENT_INHERIT:
                     if asset[key]:
                         event[key] = asset[key]

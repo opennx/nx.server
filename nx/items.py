@@ -219,9 +219,11 @@ def get_next_item(id_item, db=False):
     logging.debug("Looking for item following item ID {}".format(id_item))
     current_item = Item(id_item, db=db)
     current_bin = Bin(current_item["id_bin"])
-    try:
-        return current_bin.items[current_item["position"]]
-    except:
+
+    for item in current_bin.items:
+        if item["position"] > current_item["position"]:
+            return item
+    else:
         if not db:
             db = DB()
         current_event = get_item_event(id_item, db=db)

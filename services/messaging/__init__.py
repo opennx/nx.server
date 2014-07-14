@@ -45,7 +45,10 @@ class Service(ServicePrototype):
                 continue
 
             if site_name == config["site_name"]:
-                self.send_message("{}\n".format(message.replace("\n","")))
+                try:
+                    self.send_message("{}\n".format(message.replace("\n","")))
+                except:
+                    pass
 
     
     def send_message(self, message):

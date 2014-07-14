@@ -19,14 +19,20 @@ def is_installed(rname):
 class Service(ServicePrototype):
     def on_init(self):
 
-        try:     self.exec_require = config.find("require").text
-        except:  self.exec_require = ""
+        try:     
+            self.exec_require = self.settings.find("require").text
+        except:  
+            self.exec_require = ""
 
-        try:     self.exec_init = config.find("init").text
-        except:  self.exec_init = ""
+        try:     
+            self.exec_init = self.settings.find("init").text
+        except:  
+            self.exec_init = ""
 
-        try:     self.exec_main = config.find("main").text
-        except:  self.exec_main = ""
+        try:
+            self.exec_main = self.settings.find("main").text
+        except:  
+            self.exec_main = ""
 
         try:
             exec(self.exec_require)

@@ -53,7 +53,8 @@ class DramaticaBlock(DramaticaObject):
     def broadcast_start(self):
         if self.block_order == 0:
             return self.scheduled_start
-            #return self.rundown.day_start
+        elif self.config.get("run_mode", False):
+            return self.scheduled_start
         return self.rundown.blocks[self.block_order-1].broadcast_end
 
     @property 
