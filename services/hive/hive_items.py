@@ -136,15 +136,15 @@ def hive_rundown(auth_key, params):
         event = Event(id_event)
         pbin  = event.get_bin()
 
-        event_meta = event.meta
-        event_meta["rundown_scheduled"] = ts_scheduled = event["start"]
-        event_meta["rundown_broadcast"] = ts_broadcast = ts_broadcast or ts_scheduled
-
         # Reset broadcast time indicator after empty blocks and if run mode is not AUTO (0)
         if not pbin.items:
             ts_broadcast = 0
         elif event["run_mode"]:
             ts_broadcast = 0
+
+        event_meta = event.meta
+        event_meta["rundown_scheduled"] = ts_scheduled = event["start"]
+        event_meta["rundown_broadcast"] = ts_broadcast = ts_broadcast or ts_scheduled
         
         bin_meta   = pbin.meta
         items = []

@@ -254,7 +254,10 @@ class Service(ServicePrototype):
         messaging.send("playout_status", **data)
 
         for plugin in channel.plugins:
-            plugin.main()
+            try:
+                plugin.main()
+            except:
+                logging.error("Plugin error {}".format(str(sys.exc_info())))
 
         if channel.current_item and not channel.cued_item and not channel._cueing:
             self.cue_next(channel)
@@ -286,7 +289,10 @@ class Service(ServicePrototype):
         
         self.cue_next(channel, db=db)        
         for plugin in channel.plugins:
-            plugin.on_change()
+            try:
+                plugin.on_change()
+            except:
+                logging.error("Plugin OnChange error {}".format(str(sys.exc_info())))
 
 
 
