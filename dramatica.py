@@ -9,7 +9,7 @@ from dramatica.scheduling import DramaticaBlock, DramaticaRundown
 from dramatica.templates import DramaticaTemplate
 from dramatica.timeutils import *
 
-tags = [
+NX_TAGS = [
     (str, "title"),
     (str, "description"),
     (str, "genre/music"),
@@ -28,14 +28,15 @@ tags = [
     (int, "id_folder"),
     (float, "duration"),
     (float, "mark_in"),
-    (float, "mark_out")
+    (float, "mark_out"),
+    (float, "audio/bpm")
     ]
 
 
 
 def nx_assets_connector():
     db = DB()
-    db.query("SELECT id_object FROM nx_assets WHERE id_folder IN (1,2,3,4,5,7,8) AND media_type = 0 AND origin IN ('Library', 'Acquisition', 'Edit')")
+    db.query("SELECT id_object FROM nx_assets WHERE id_folder IN (1,2,3,4,5,7,8) AND media_type = 0 AND content_type=1 AND origin IN ('Library', 'Acquisition', 'Edit')")
     for id_object, in db.fetchall():
         asset = Asset(id_object, db=db)
         if str(asset["qc/state"]) == "3": # Temporary fix. qc/state is going to be reimplemented in nx.server
@@ -49,7 +50,7 @@ def nx_history_connector(start=False, stop=False, tstart=False):
         cond += " AND start > {}".format(start)
     if stop:
         cond += " AND stop < {}".format(start)
-    db.query("SELECT id_object FROM nx_events WHERE id_channel in ({}) ORDER BY start ASC".format(", ".join([str(i) for i in config["playout_channels"] ])))
+    db.query("SELECT id_object FROM nx_events WHERE id_channel in ({}){} ORDER BY start ASC".format(", ".join([str(i) for i in config["playout_channels"] ]), cond ))
     for id_object, in db.fetchall():
         event = Event(id_object, db=db)
         ebin = event.get_bin()
@@ -58,95 +59,9 @@ def nx_history_connector(start=False, stop=False, tstart=False):
             tstamp += item.get_duration()
             yield (event["id_channel"], tstamp, item["id_asset"])
 
-
-
-class NXTVTemplate(DramaticaTemplate):
-    def apply(self):
-
-        MAIN_GENRES = {
-            MON : ["horror"], 
-            TUE : ["political", "social", "conspiracy"],
-            WED : ["arts"],
-            THU : ["technology"],
-            FRI : ["rock"],
-            SAT : ["rock"],
-            SUN : ["drama", "comedy"]
-        }[self.dow]
-
-
-        JINGLE_FEED = {
-            MON : "path like '%horror_%'",
-            TUE : "path like '%paranoia_%'",
-            WED : "path like '%art_%'",
-            THU : "path like '%tech_%'",
-            FRI : "path like '%generic_%'",
-            SAT : "path like '%generic_%'",
-            SUN : "path like '%generic_%'"
-        }[self.dow]
-
-
-        self.add_block("06:00", title="Morning mourning")
-        self.configure(
-            solver="MusicBlock", 
-            genres=["Pop", "Rock", "Alt rock"],
-            target_duration=dur("01:00:00"),
-            run_mode=2
-            )
-
-        self.add_block("10:00", title="Some movie")
-        self.configure(
-            solver="DefaultSolver",
-            run_mode=2
-            )   
-
-        self.add_block("12:00", title="Rocking")
-        self.configure(
-            solver="MusicBlock",
-            genres=["Rock"],
-            intro_jingle="path LIKE '%vedci_zjistili%'",
-            jingles="path LIKE '%vedci_zjistili%'"
-            )   
-
-        self.add_block("15:00", title="Another movie")
-        self.configure(
-            solver="DefaultSolver",
-            genres=MAIN_GENRES
-            )   
-
-        self.add_block("19:00", title="PostX")
-        self.configure(
-            solver="MusicBlock",
-            genres=["Alt rock"],
-            intro_jingle="path LIKE '%postx_short%'",
-            outro_jingle="path LIKE '%postx_short%'",
-            jingles="path LIKE '%postx_short%'"
-            )   
-
-        self.add_block("21:00", title="Movie of the day")
-        self.configure(
-            solver="DefaultSolver",
-            genres=MAIN_GENRES
-            )   
-
-        self.add_block("23:00", title="Nachtmetal")
-        self.configure(
-            solver="MusicBlock",
-            genres=["Metal"],
-            intro_jingle="path LIKE '%nachtmetal_intro%'",
-            jingles="path LIKE '%nachtmetal_short%'",
-            target_duration=dur("02:00:00"),
-            )   
-
-
-
-
-
-
-
-
 class Session():
     def __init__(self):
-        self.cache = DramaticaCache(tags)
+        self.cache = DramaticaCache(NX_TAGS)
         stime = time.time()
         i = self.cache.load_assets(nx_assets_connector())
         logging.debug("{} assets loaded in {} seconds".format(i, time.time()-stime))
@@ -279,16 +194,30 @@ class Session():
 
 
 
+def get_template(tpl_name):
+    import imp
+    from nx.plugins import plugin_path
+
+    fname = os.path.join(plugin_path, "dramatica_templates", "{}.py".format(tpl_name))
+    if not os.path.exists(fname):
+        logging.error("Template does not exist")
+        return 
+
+    py_mod = imp.load_source(tpl_name, fname)
+    return py_mod.Template
+
 
 if __name__ == "__main__":
     session = Session()
     full = True
-    session.open_rundown(date="2014-07-15", clear=full)
+    session.open_rundown(date="2014-07-19", clear=full)
     if full:
-        template = NXTVTemplate(session.rundown)
+        template_class = get_template("nxtv_template")
+        template = template_class(session.rundown)
         template.apply()
 
     session.solve()
-    #session.save()
+   # if full:
+   # session.save()
 
     print(session.rundown.__str__().encode("utf-8"))

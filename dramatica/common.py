@@ -120,6 +120,10 @@ class DramaticaCache(object):
         for id_object, in self.cur.fetchall():
             yield self[id_object]
 
+    def query(self, *args):
+        self.cur.execute(*args)
+        return self.cur.fetchall()
+
     def clear_pool_weights(self):
         self.cur.execute("UPDATE assets SET `dramatica/weight` = 0")
         self.conn.commit()
@@ -141,7 +145,7 @@ class DramaticaCache(object):
 
     def run_distance(self, id_asset, tstamp):
         # TODO: Ignore day of tstamp
-        self.cur.execute("SELECT tstamp FROM history WHERE id_asset = ? ORDER BY ABS(tstamp - ?) ASC", [id_asset, tstamp])
+        self.cur.execute("SELECT tstamp FROM history WHERE id_asset = ? ORDER BY ABS(tstamp - ?) ASC LIMIT 1", [id_asset, tstamp])
         res = self.cur.fetchall()
         if not res:
             return -1
