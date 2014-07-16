@@ -56,8 +56,8 @@ def nx_history_connector(start=False, stop=False, tstart=False):
         ebin = event.get_bin()
         tstamp = event["start"]
         for item in ebin.items:
-            tstamp += item.get_duration()
             yield (event["id_channel"], tstamp, item["id_asset"])
+            tstamp += item.get_duration()
 
 class Session():
     def __init__(self):
@@ -180,8 +180,17 @@ class Session():
     def clear(self):
         if not self.rundown:
             return
+        self.clear_rundown(self.id_channel, date)
+
+
+    def clear_rundown(self, id_channel, date):
+        day_start = config["playout_channels"][id_channel].get("day_start", (6,0))
+        start_time = datestr2ts(date, *day_start)
+        end_time = start_time + (3600*24)
+        logging.info("Clear rundown {}".format(time.strftime("%Y-%m-%d", time.localtime(start_time))))
+        
         db = DB()
-        db.query("SELECT id_object FROM nx_events WHERE id_channel = %s and start >= %s and start < %s ORDER BY start ASC", (self.id_channel, self.start_time, self.end_time))
+        db.query("SELECT id_object FROM nx_events WHERE id_channel = %s and start >= %s and start < %s ORDER BY start ASC", (id_channel, start_time, end_time))
         for id_event, in db.fetchall():
             id_event = int(id_event)
             event = Event(id_event, db=db)
@@ -207,17 +216,31 @@ def get_template(tpl_name):
     return py_mod.Template
 
 
+
 if __name__ == "__main__":
+    dates = [
+        "2014-07-21", 
+        "2014-07-22", 
+        "2014-07-23", 
+        "2014-07-24",
+        "2014-07-25",
+        "2014-07-26",
+        "2014-07-27"
+        ]
+
     session = Session()
-    full = True
-    session.open_rundown(date="2014-07-19", clear=full)
-    if full:
+
+    for date in dates:
+        session.clear_rundown(id_channel=1, date=date)
+
+
+    sys.exit()
+    for date in dates:
+        session.open_rundown(id_channel=1, date=date)
+
         template_class = get_template("nxtv_template")
         template = template_class(session.rundown)
         template.apply()
 
-    session.solve()
-   # if full:
-   # session.save()
-
-    print(session.rundown.__str__().encode("utf-8"))
+        session.solve()
+        session.save()

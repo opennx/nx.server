@@ -110,6 +110,45 @@ def hive_set_events(auth_key, params={}):
 
     return 200, "TODO: Statistics"
 
+
+
+def hive_get_runs(auth_key, params):
+    asset_ids  = params.get("asset_ids", [])
+    id_channel = int(params.get("id_channel", 0))
+    
+    if not asset_ids:
+        return 400, "Bad request"
+
+    conds = "" # TOOD : start and stop time
+    id_asset_cond = ", ".join([str(id_asset) for id_asset in asset_ids if type(id_asset) == int])
+
+    db = DB()
+    db.query("""SELECT DISTINCT(e.id_object) FROM nx_items as i, nx_events as e
+        WHERE e.id_channel = {}
+        AND i.id_asset IN ({})
+        AND e.id_magic = i.id_bin
+        {}
+        """.format(id_channel, id_asset_cond, conds))
+
+    #TODO: Take past items from nx_asrun instead of "scheduled" times
+    
+    result = []
+    for id_event, in db.fetchall():
+        event = Event(id_event, db=db)
+        ebin = event.get_bin()
+        start = event["start"]
+        for item in ebin.items:
+            if item["id_asset"] in asset_ids:
+                result.append([id_event, item["id_asset"], start, False])
+            start += item.get_duration()
+            
+
+    return 200, {"data": result}    # id_event, id_asset, start_time, is_aired
+
+
+
+
+
 ## MACRO SCHEDULING END
 ##################################################################################
 ## MICRO SCHEDULING BEGIN

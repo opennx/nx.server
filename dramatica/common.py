@@ -99,10 +99,7 @@ class DramaticaCache(object):
             i+=1
         self.conn.commit()
         return i
-
-
-
-
+        
     def __getitem__(self, key):
         key = int(key)
         if key in self.assets:
@@ -114,40 +111,9 @@ class DramaticaCache(object):
         except:
             return instr.replace("''","'").replace("'","''")
 
-    def filter(self, q):
-        q = self.sanit(q)
-        self.cur.execute("SELECT id_object FROM assets WHERE `dramatica/weight` >= 0 AND {}".format(q))
-        for id_object, in self.cur.fetchall():
-            yield self[id_object]
-
-    def query(self, *args):
+    def query(self, *args, **kwargs):
         self.cur.execute(*args)
-        return self.cur.fetchall()
-
-    def clear_pool_weights(self):
-        self.cur.execute("UPDATE assets SET `dramatica/weight` = 0")
-        self.conn.commit()
-        for id_asset in self.assets:
-            self[id_asset]["dramatica/weight"] = 0
-
-    def set_weight(self, id_asset, value, auto_commit=True):
-        self.cur.execute("UPDATE assets SET `dramatica/weight` = ? WHERE id_object = ?", [value, id_asset])
-        if auto_commit:
-            self.conn.commit()
-        self[id_asset]["dramatica/weight"] = value
-
-    def update_weight(self, id_asset, value, auto_commit=True):
-        self.cur.execute("UPDATE assets SET `dramatica/weight` = `dramatica/weight` + ? WHERE id_object = ?", [value, id_asset])
-        if auto_commit:
-            self.conn.commit()
-        self[id_asset]["dramatica/weight"] += value
-    
-
-    def run_distance(self, id_asset, tstamp):
-        # TODO: Ignore day of tstamp
-        self.cur.execute("SELECT tstamp FROM history WHERE id_asset = ? ORDER BY ABS(tstamp - ?) ASC LIMIT 1", [id_asset, tstamp])
-        res = self.cur.fetchall()
-        if not res:
-            return -1
+        if kwargs.get("one_column", False):
+            return [i[0] for i in self.cur.fetchall()]
         else:
-            return abs(res[0][0] - tstamp)
+            return self.cur.fetchall()
