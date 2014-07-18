@@ -167,11 +167,7 @@ class Session():
             event["id_channel"] = self.id_channel
             event["dramatica/config"] = json.dumps(block.config)
             event["start"] = block["start"]
-
-            for key in ["run_mode", "id_asset"]:
-                if key in block.meta:
-                    event[key] = block[key]
-
+            
             event.save()
 
             print "***********************************************"
@@ -234,7 +230,7 @@ if __name__ == "__main__":
         session.clear_rundown(id_channel=1, date=date)
 
 
-    sys.exit()
+
     for date in dates:
         session.open_rundown(id_channel=1, date=date)
 

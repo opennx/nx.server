@@ -19,6 +19,7 @@ class CasparChannel():
 
         self.xstat  = "<channel>init</channel>"  
         self.chdata = {}
+        plugins = []
         
         self.current_item   = False
         self.current_fname  = False

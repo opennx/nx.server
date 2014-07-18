@@ -49,7 +49,8 @@ OFFLINE  = 0           # Associated file does not exist
 ONLINE   = 1           # File exists and is ready to use
 CREATING = 2           # File exists, but was changed recently. It is no safe (or possible) to use it yet
 TRASHED  = 3           # File has been moved to trash location.
-RESET    = 4           # Reset metadata action has been invoked. Meta service will update/refresh auto-generated asset information.
+ARCHIVED = 4           # File has been moved to archive location.
+RESET    = -1          # Reset metadata action has been invoked. Meta service will update/refresh auto-generated asset information.
 
 # meta_classes
 TEXT         = 0       # Single-line plain text (default)

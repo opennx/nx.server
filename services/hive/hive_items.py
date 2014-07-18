@@ -55,8 +55,6 @@ def hive_set_events(auth_key, params={}):
 
     db = DB()
 
-    print events
-
     deleted = created = updated = 0
     for id_event in params.get("delete", []):
         event = Event(id_event, db=db)

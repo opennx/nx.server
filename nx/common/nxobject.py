@@ -38,13 +38,13 @@ class NXBaseObject(object):
     def _load(self):
         pass
 
-    def _save(self):
+    def _save(self,**kwargs):
         pass
   
-    def save(self, set_mtime=True):
-        if set_mtime:
+    def save(self, **kwargs):
+        if kwargs.get("set_mtime", True):
             self["mtime"] = int(time.time())
-        return self._save()
+        return self._save(**kwargs)
 
     def delete(self):
         pass
@@ -128,10 +128,11 @@ class NXServerObject(NXBaseObject):
     def _save_to_cache(self):
         return cache.save("{0}{1}".format(self.ns_prefix, self["id_object"]), json.dumps(self.meta))
 
-    def _save(self):
+    def _save(self,**kwargs):
         if not self.db:
             self.db = DB()
         db = self.db
+        created = False
      
         if self["id_object"]:
             q = "UPDATE nx_{0}s SET {1} WHERE id_object = {2}".format(self.object_type,
@@ -140,8 +141,10 @@ class NXServerObject(NXBaseObject):
                                                                   )
             v = [self[tag] for tag in self.ns_tags if tag != "id_object"]
             db.query(q, v)
+            db.query("DELETE FROM nx_meta WHERE id_object = {0} and object_type = {1}".format(self["id_object"], self.id_object_type()))
         else:
             self["ctime"] = time.time()
+            created = True
             q = "INSERT INTO nx_{0}s ({1}) VALUES ({2})".format( self.object_type,  
                                                           ", ".join(tag for tag in self.ns_tags if tag != 'id_object'),
                                                           ", ".join(["%s"]*(len(self.ns_tags)-1)) 
@@ -151,8 +154,6 @@ class NXServerObject(NXBaseObject):
             self["id_object"] = self.id = db.lastid()
             logging.info("{!r} created".format(self))
 
-
-        db.query("DELETE FROM nx_meta WHERE id_object = {0} and object_type = {1}".format(self["id_object"], self.id_object_type()))
         for tag in self.meta:
             if tag in self.ns_tags:
                 continue
@@ -163,6 +164,8 @@ class NXServerObject(NXBaseObject):
 
         if self._save_to_cache():
             db.commit()
+            if kwargs.get("notify", True) and not created:
+                messaging.send("objects_changed", objects=[self.id], object_type=self.object_type)
             return True
         else:
             logging.error("Save {!r} to cache failed".format(self))

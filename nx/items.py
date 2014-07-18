@@ -219,7 +219,6 @@ def get_next_item(id_item, db=False):
     logging.debug("Looking for item following item ID {}".format(id_item))
     current_item = Item(id_item, db=db)
     current_bin = Bin(current_item["id_bin"])
-
     for item in current_bin.items:
         if item["position"] > current_item["position"]:
             return item
@@ -233,6 +232,8 @@ def get_next_item(id_item, db=False):
             next_event = Event(db.fetchall()[0][0], db=db)
             next_bin = next_event.get_bin()
             if not next_bin.items:
+                raise Exception
+            if next_event["run_mode"]:
                 raise Exception
             return next_bin.items[0]
         except:

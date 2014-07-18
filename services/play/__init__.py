@@ -318,7 +318,7 @@ class Service(ServicePrototype):
     def on_main(self):
         db = DB()
         for id_channel in self.caspar.channels:
-            id_item = self.caspar.channels[id_channel].cued_item # or current???
+            id_item = self.caspar.channels[id_channel].current_item
             if not id_item:
                 continue
             current_event = get_item_event(id_item, db=db)

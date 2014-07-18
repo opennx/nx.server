@@ -1,7 +1,7 @@
 import hashlib
 
 from nx import *
-from nx.assets import *
+from nx.objects import *
 from nx.jobs import send_to
 
 def hive_browse(auth_key, params):
@@ -105,16 +105,26 @@ def hive_send_to(auth_key, params):
 
 
 def hive_set_meta(auth, params):
-    try:
-        id_object = int(params["id_object"])
-        tag = params["tag"]
-        value = params["value"]
-    except:
-        return 400, "bla bla"
-
+    
+    objects = [int(id_object) for id_object in params.get("objects",[])]
+    object_type = params.get("object_type","asset")
+    tag   = params["tag"]
+    value = params["value"]
+    
     db = DB()
-    # FIXME: Another object types
-    obj = Asset(id_object)
-    obj[tag] = value
-    obj.save()
+    
+    for id_object in objects:
+        obj = {
+            "asset" : Asset,
+            "item"  : Item,
+            "bin"   : Bin,
+            "event" : Event,
+            }[object_type](id_object)
+
+        obj[tag] = value
+        logging.debug("setting {} {} to {}".format(obj, tag, value))
+        obj.save(notify=False)
+
+    messaging.send("objects_changed", objects=objects, object_type=object_type)
+    
     return 200, obj.meta
