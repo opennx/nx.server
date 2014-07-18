@@ -100,7 +100,7 @@ class ControlHandler(BaseHTTPRequestHandler):
             self.error(400)
             return
 
-	    logging.debug("Requested {} /w params {}".format(method, params))        
+        logging.debug("Requested {} /w params {}".format(method, params))        
 
         methods = {
             "take" : service.take,
@@ -250,6 +250,7 @@ class Service(ServicePrototype):
         data["current_title"] = channel.current_asset["title"] if channel.current_asset else "(no clip)"
         data["cued_title"]    = channel.cued_asset["title"]    if channel.cued_asset    else "(no clip)"
         data["request_time"]  = channel.request_time
+        data["paused"]        = channel.paused
 
         messaging.send("playout_status", **data)
 
