@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from nx import *
-from nx.assets import *
+from nx.objects import *
 
 
 class create_video_thumbnail(source, target, resolution=(512,288)):

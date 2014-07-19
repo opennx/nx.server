@@ -5,7 +5,7 @@ if not NX_ROOT in sys.path:
     sys.path.append(NX_ROOT)
 
 from nx import *
-from nx.assets import Asset
+from nx.objects import Asset
 
 
 

@@ -37,14 +37,7 @@ def hive_browse(auth_key, params):
     db.query(query)
     return 200, {"result": db.fetchall(), "asset_data":[]}
 
-    #print query
 
-    #asset_data = []
-    #db.query(query)
-    #for id_asset, in db.fetchall():
-    #    asset = Asset(id_asset, db=db)
-    #    asset_data.append(asset.meta)
-    #return 200, {"asset_data" : asset_data}
 
 def hive_get_assets(auth_key, params):
     asset_ids = params.get("asset_ids", [])
@@ -57,16 +50,11 @@ def hive_get_assets(auth_key, params):
 
 
 
-
 def hive_actions(auth_key, params):
     assets = params.get("assets", [])
     if not assets: 
         return 400, "No asset selected"
-
-    print (assets)
-
     result = []
-
     db = DB()
     db.query("SELECT id_action, title, config FROM nx_actions ORDER BY id_action ASC")
     for id_action, title, cfg in db.fetchall():
@@ -74,18 +62,13 @@ def hive_actions(auth_key, params):
             cond = ET.XML(cfg).find("allow_if").text
         except:
             continue
-
         for id_asset in assets:
             asset = Asset(id_asset, db=db)
             if not eval(cond):
                 break
         else:
             result.append((id_action, title))
-
     return 200, result
-
-
-
 
 
 
@@ -104,27 +87,24 @@ def hive_send_to(auth_key, params):
     return 200, "OK"
 
 
+
 def hive_set_meta(auth, params):
-    
     objects = [int(id_object) for id_object in params.get("objects",[])]
     object_type = params.get("object_type","asset")
     tag   = params["tag"]
     value = params["value"]
-    
     db = DB()
-    
     for id_object in objects:
         obj = {
             "asset" : Asset,
             "item"  : Item,
             "bin"   : Bin,
             "event" : Event,
-            }[object_type](id_object)
+            }[object_type](id_object, db=db)
 
         obj[tag] = value
         logging.debug("setting {} {} to {}".format(obj, tag, value))
         obj.save(notify=False)
 
     messaging.send("objects_changed", objects=objects, object_type=object_type)
-    
     return 200, obj.meta

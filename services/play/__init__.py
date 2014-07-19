@@ -8,8 +8,7 @@ import thread
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
 from nx import *
-from nx.assets import *
-from nx.items import *
+from nx.objects import *
 from nx.plugins import plugin_path
 
 from caspar import Caspar
@@ -163,6 +162,8 @@ class Service(ServicePrototype):
     def cue(self, **kwargs):
         id_channel = kwargs.get("id_channel", False)
         id_item    = kwargs.get("id_item", False)
+        db    = kwargs.get("db", DB())
+        cache = kwargs.get("cache", False)
 
         if not (id_item and id_channel):
             return 400, "Bad request"
@@ -170,7 +171,7 @@ class Service(ServicePrototype):
         if not id_channel in self.caspar.channels:
             return 400, "Requested channel is not operated by this service"
 
-        item  = Item(id_item)
+        item  = Item(id_item, db=db, cache=cache)
         if not item:
             return 404, "No such item"
 
@@ -180,9 +181,9 @@ class Service(ServicePrototype):
         channel = self.caspar[id_channel]
         master_asset  = item.get_asset()
         id_playout = master_asset[channel.playout_spec]
-        playout_asset = Asset(id_playout)
+        playout_asset = Asset(id_playout, db=db, cache=cache)
 
-        if not os.path.exists(playout_asset.get_file_path()):
+        if not os.path.exists(playout_asset.file_path):
             return 404, "Playout asset is offline"
         
         kwargs["mark_in"] = item["mark_in"]
@@ -210,14 +211,14 @@ class Service(ServicePrototype):
         return channel.freeze()
 
     def retake(self, **kwargs):
-        id_channel = params.get("id_channel", False)
+        id_channel = kwargs.get("id_channel", False)
         if not id_channel in self.caspar.channels:
             return 400, "Requested channel is not operated by this service"
         channel = self.caspar[id_channel]
         return channel.retake()
 
     def abort(self, **kwargs):
-        id_channel = params.get("id_channel", False)
+        id_channel = kwargs.get("id_channel", False)
         if not id_channel in self.caspar.channels:
             return 400, "Requested channel is not operated by this service"
         channel = self.caspar[id_channel]
@@ -267,13 +268,13 @@ class Service(ServicePrototype):
 
 
     def channel_change(self, channel):
-        itm = Item(channel.current_item)
+        db = DB()
+        itm = Item(channel.current_item, db=db)
         channel.current_asset = itm.get_asset()
         channel.cued_asset = False
 
         logging.info ("Advanced to {}".format(itm))
 
-        db = DB()
         if channel._last_run:           
             db.query("UPDATE nx_asrun SET stop = %s WHERE id_run = %s",  [int(time.time()) , channel._last_run])
         db.query("INSERT INTO nx_asrun (id_channel, start, stop, title, id_item, id_asset) VALUES (%s,%s,%s,%s,%s,%s) ",
@@ -317,6 +318,7 @@ class Service(ServicePrototype):
 
 
     def on_main(self):
+        return
         db = DB()
         for id_channel in self.caspar.channels:
             id_item = self.caspar.channels[id_channel].current_item
@@ -336,7 +338,9 @@ class Service(ServicePrototype):
             except:
                 continue
 
-            next_event = Event(next_event_id, db=db)
+            local_cache = Cache()
+
+            next_event = Event(next_event_id, db=db, cache=local_cache)
             run_mode = int(next_event["run_mode"]) or RUN_AUTO
 
             if not run_mode:

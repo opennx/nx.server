@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from nx import *
-from nx.assets import Asset
+from nx.objects import Asset
 from nx.shell import shell
 
 

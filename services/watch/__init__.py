@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from nx import *
-from nx.assets import *
+from nx.objects import *
 from nx.common.filetypes import file_types
 
 from stat import *

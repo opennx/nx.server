@@ -29,6 +29,9 @@ class DBproto(object):
     def close(self):
         self.conn.close()
 
+    def __len__(self):
+        return True
+
 if config['db_driver'] == 'postgres': 
     import psycopg2
     class DB(DBproto):
@@ -135,28 +138,23 @@ class Cache():
         self.connect()
 
     def connect(self):
-        self.lconn = pylibmc.Client([self.cstring])
-        self.pool = pylibmc.ThreadMappedPool(self.lconn)
-
+        self.conn = pylibmc.Client([self.cstring])
+        
 
     def load(self, key):
         key = "{}_{}".format(self.site,key)
         try:
-            if self.pool != None:
-                with self.pool.reserve() as mc:
-                    result = mc.get(key)
+            result = self.conn.get(key)
         except pylibmc.ConnectionError:
             self.connect()
-            result = False        
-        self.pool.relinquish()
+            result = False
         return result
 
     def save(self, key, value):
-        key = "{}_{}".format(self.site,key)
+        key = "{}_{}".format(self.site, key)
         for i in range(10):
             try:
-                with self.pool.reserve() as mc:
-                    mc.set(key, str(value))
+                self.conn.set(key, str(value))
                 break
             except:  
                 logging.error("Cache save failed ({}): {}".format(key, str(sys.exc_info())))
@@ -165,15 +163,13 @@ class Cache():
         else:
             critical_error ("Memcache save failed. This should never happen. Check MC server")
             sys.exit(-1)
-        self.pool.relinquish()
         return True
 
     def delete(self,key):
-        key = "{}_{}".format(self.site,key)
+        key = "{}_{}".format(self.site, key)
         for i in range(10):
             try:
-                with self.pool.reserve() as mc:
-                    mc.delete(key)
+                self.conn.delete(key)
                 break
             except: 
                 logging.error("Cache delete failed ({}): {}".format(key, str(sys.exc_info())))
@@ -182,7 +178,6 @@ class Cache():
         else:
             critical_error ("Memcache delete failed. This should never happen. Check MC server")
             sys.exit(-1)
-        self.pool.relinquish()
         return True
 
 cache = Cache()

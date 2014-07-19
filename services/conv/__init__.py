@@ -3,7 +3,7 @@
 
 from nx import *
 from nx.jobs import Job
-from nx.assets import *
+from nx.objects import Asset
 from nx.common.metadata import meta_types
 from nx.common.filetypes import file_types
 

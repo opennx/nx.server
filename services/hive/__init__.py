@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from nx import *
-from nx.assets import *
+from nx.objects import *
 
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 import ssl
@@ -34,7 +34,7 @@ class AdminHandler(BaseHTTPRequestHandler):
             self._echo(False)
 
     def do_POST(self):
-        start_time = time.time()
+        start_time =  time.time()
 
         ctype, pdict = cgi.parse_header(self.headers.getheader('content-type'))
         if ctype == 'multipart/form-data':
@@ -63,8 +63,11 @@ class AdminHandler(BaseHTTPRequestHandler):
         methods = self.server.service.methods
      
         if method in methods:    
+            q_start_time = time.time()
             response, data = methods[method](auth_key, params)
+            query_time = time.time() - start_time
             data = json.dumps(data)
+            
             if params.get("use_zlib", False):
                 self.result(response, zlib.compress(data), "application/zlib")
             else:
@@ -74,7 +77,7 @@ class AdminHandler(BaseHTTPRequestHandler):
             self.result(ERROR_NOT_IMPLEMENTED,False)
             return
 
-        logging.debug("Query %s completed in %.03f seconds" % (method, time.time()-start_time))
+        logging.debug("Query {} completed in {:.03f} seconds (Query time: {:.03f})".format(method, time.time()-start_time, query_time ))
 
 
 

@@ -1,5 +1,5 @@
 from nx import *
-from nx.assets import *
+from nx.objects import Asset, asset_by_path
 
 from nx.common.metadata import meta_types
 from nx.common.filetypes import file_types

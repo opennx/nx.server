@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
 from nx import *
-from nx.assets import Asset
-from nx.items import Event, Bin, Item
+from nx.objects import *
 
 from dramatica.common import DramaticaCache
 from dramatica.scheduling import DramaticaBlock, DramaticaRundown
@@ -224,6 +223,8 @@ if __name__ == "__main__":
         "2014-07-27"
         ]
 
+    dates = ["2014-07-19"]
+    
     session = Session()
 
     for date in dates:

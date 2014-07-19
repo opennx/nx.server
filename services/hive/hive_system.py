@@ -6,16 +6,15 @@ def hive_meta_types(auth_key, params):
 
 def hive_site_settings(auth_key,params):
     db = DB()
-    db.query("SELECT key, value FROM nx_settings")
+    db.query("SELECT key, value FROM nx_settings WHERE key in ('seismic_addr', 'seismic_port')")
     result = {}
     for tag, value in db.fetchall():
         result[tag] = value
 
     folders = {}
-    db.query("SELECT id_folder, title, color FROM nx_folders")
-    for id_folder, title, color in db.fetchall():
-        folders[id_folder] = (title, color)
-
+    db.query("SELECT id_folder, title, color, meta_set FROM nx_folders")
+    for id_folder, title, color, meta_set in db.fetchall():
+        folders[id_folder] = (title, color, json.loads(meta_set))
     result["folders"] = folders
 
     views = []
@@ -29,7 +28,6 @@ def hive_site_settings(auth_key,params):
         views.append((id_view, title, columns))
 
     result["views"] = views
-
 
     result["playout_channels"] = {}
     result["ingest_channels"] = {}
@@ -45,9 +43,6 @@ def hive_site_settings(auth_key,params):
             result["playout_channels"][id_channel] = ch_config
         elif channel_type == INGEST:
             result["ingest_channels"][id_channel] = ch_config
-
-
-
 
     return 200, result
 

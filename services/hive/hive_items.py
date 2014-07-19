@@ -1,6 +1,6 @@
 from nx import *
-from nx.assets import *
-from nx.items import *
+from nx.objects import *
+
 
 BLOCK_MODES = ["LINK", "MANUAL", "SOFT AUTO", "HARD AUTO"]
 
@@ -84,7 +84,7 @@ def hive_set_events(auth_key, params={}):
             asset = Asset(id_asset, db=db)
             if asset:
 
-                pbin.delete_childs(db=db)
+                pbin.delete_childs()
                 pbin.items = []
                 
                 if not event["dramatica/config"]:
@@ -170,7 +170,7 @@ def hive_rundown(auth_key, params):
     
     ts_broadcast = 0
     for id_event, in db.fetchall():
-        event = Event(id_event)
+        event = Event(id_event, db=db)
         pbin  = event.get_bin()
 
         # Reset broadcast time indicator after empty blocks and if run mode is not AUTO (0)
@@ -187,8 +187,11 @@ def hive_rundown(auth_key, params):
         items = []
         for item in pbin.items:
             i_meta = item.meta
-            a_meta = item.get_asset().meta if item["id_asset"] else {}
-            
+            if item["id_asset"]:
+                a_meta = item.get_asset().meta
+            else:
+                a_meta = {}
+                
             as_start, as_stop = item_runs.get(item.id, (0, 0))
             if as_start:
                 ts_broadcast = as_start
@@ -217,7 +220,7 @@ def hive_rundown(auth_key, params):
                 i_meta["rundown_status"] = 0 # Master asset is not online: Rundown status = OFFLINE
             else:
                 id_playout = item["id_playout/{}".format(id_channel)]
-                if not id_playout or Asset(id_playout)["status"] not in [ONLINE, CREATING]: # Master asset exists, but playout asset is not online.... (not scheduled / pending)
+                if not id_playout or Asset(id_playout, db=db)["status"] not in [ONLINE, CREATING]: # Master asset exists, but playout asset is not online.... (not scheduled / pending)
                     i_meta["rundown_status"] = 1
                 else:
                     i_meta["rundown_status"] = 2 # Playout asset is ready
