@@ -74,7 +74,7 @@ class NXBaseObject(object):
 
     def __repr__(self):
         try:
-            title = self["title"]
+            title = self["title"] or ""
             if title: 
                 title = " ({})".format(title)
             return "{0} ID:{1}{2}".format(self.object_type, self.id, title)

@@ -124,76 +124,66 @@ messaging.init()
 #######################################################################################################
 ## Cache
 
-if config["cache_driver"] == "memcached":
-    import pylibmc
+import pylibmc
 
-    class Cache():
-        def __init__(self):
-            self.site = config["site_name"]
-            self.host = config["cache_host"]
-            self.port = config["cache_port"]
-            self.cstring = '%s:%s'%(self.host,self.port)
-            self.lconn = self._conn()
+class Cache():
+    def __init__(self):
+        self.site = config["site_name"]
+        self.host = config["cache_host"]
+        self.port = config["cache_port"]
+        self.cstring = '%s:%s'%(self.host,self.port)
+        self.connect()
 
-        def _conn(self):
-            return pylibmc.Client([self.cstring])
+    def connect(self):
+        self.lconn = pylibmc.Client([self.cstring])
+        self.pool = pylibmc.ThreadMappedPool(self.lconn)
 
-        def load(self,key):
+
+    def load(self, key):
+        key = "{}_{}".format(self.site,key)
+        try:
+            if self.pool != None:
+                with self.pool.reserve() as mc:
+                    result = mc.get(key)
+        except pylibmc.ConnectionError:
+            self.connect()
+            result = False        
+        self.pool.relinquish()
+        return result
+
+    def save(self, key, value):
+        key = "{}_{}".format(self.site,key)
+        for i in range(10):
             try:
-                return self.lconn.get(str("%s_%s"%(self.site,key)))
-            except:
-                self.lconn = self._conn()
-                return False
+                with self.pool.reserve() as mc:
+                    mc.set(key, str(value))
+                break
+            except:  
+                logging.error("Cache save failed ({}): {}".format(key, str(sys.exc_info())))
+                time.sleep(.3)
+                self.connect()
+        else:
+            critical_error ("Memcache save failed. This should never happen. Check MC server")
+            sys.exit(-1)
+        self.pool.relinquish()
+        return True
 
-        def save(self,key,value):
-            for i in range(10):
-                try:
-                    val = self.lconn.set(str("%s_%s"%(self.site,key)), str(value))
-                    break
-                except:  
-                    print ("MEMCACHE SAVE FAILED %s" % key)
-                    print (str(sys.exc_info()))
-                    time.sleep(1)
-                    self._conn()
-                else:
-                    critical_error ("Memcache save failed. This should never happen. Check MC server")
-                    sys.exit(-1)
-            return val
-
-        def delete(self,key):
-            for i in range(10):
-                try:
-                    self.lconn.delete("%s_%s"%(self.site,key))
-                    break
-                except: 
-                    print ("MEMCACHE DELETE FAILED %s" % key)
-                    print (str(sys.exc_info()))
-                    time.sleep(1)
-                else:
-                    critical_error ("Memcache delete failed. This should never happen. Check MC server")
-                    sys.exit(-1)
-            return True
-
-else:
-    class Cache():
-        def __init__(self):
-            self.cachename = ".cache"
-        def load(self,key):
+    def delete(self,key):
+        key = "{}_{}".format(self.site,key)
+        for i in range(10):
             try:
-                return json.loads(open(self.cachename).read())[key]
-            except:
-                return False
-
-        def save(self,key,value):
-            if os.path.exists(self.cachename):
-                data = json.loads(open(self.cachename).read())
-            else:
-                data = {}
-            data[key] = value
-            f = open(self.cachename,"w")
-            f.write(json.dumps(data))
-            f.close()
-            return True
+                with self.pool.reserve() as mc:
+                    mc.delete(key)
+                break
+            except: 
+                logging.error("Cache delete failed ({}): {}".format(key, str(sys.exc_info())))
+                time.sleep(.3)
+                self.connect()
+        else:
+            critical_error ("Memcache delete failed. This should never happen. Check MC server")
+            sys.exit(-1)
+        self.pool.relinquish()
+        return True
 
 cache = Cache()
 
