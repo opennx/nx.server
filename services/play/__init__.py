@@ -357,7 +357,7 @@ class Service(ServicePrototype):
             elif run_mode == RUN_SOFT:
                 logging.info("Soft cue")
                 id_item = next_event.get_bin().items[0].id
-                if id_item != self.caspar.channels[id_channel].cued_item
+                if id_item != self.caspar.channels[id_channel].cued_item:
                     self.cue(id_channel=id_channel, id_item=id_item)
 
             elif run_mode == RUN_HARD:
