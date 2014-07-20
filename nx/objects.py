@@ -334,7 +334,7 @@ def get_next_item(id_item, db=False):
                 raise Exception
             return next_bin.items[0]
         except:
-            logging.warning("There is no non-empty after this one. Looping current")
+            logging.info("Looping current playlist")
             return current_bin.items[0]
 
 

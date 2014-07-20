@@ -2,7 +2,7 @@ from nx.common import *
 
 connection_type = "server"
 
-__all__ = ["connection_type", "DB", "cache"]
+__all__ = ["connection_type", "DB", "cache", "Cache"]
 
 #######################################################################################################
 ## Database

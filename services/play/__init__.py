@@ -318,14 +318,16 @@ class Service(ServicePrototype):
 
 
     def on_main(self):
-        return
         db = DB()
         for id_channel in self.caspar.channels:
             id_item = self.caspar.channels[id_channel].current_item
             if not id_item:
                 continue
+                
             current_event = get_item_event(id_item, db=db)
+
             if not current_event:
+                logging.warning("Unable to fetch current event")
                 continue
 
             db.query("""SELECT e.id_object FROM nx_events AS e WHERE e.id_channel = {} AND e.start > {} AND e.start <= {} ORDER BY e.start DESC LIMIT 1""".format(
@@ -355,7 +357,8 @@ class Service(ServicePrototype):
             elif run_mode == RUN_SOFT:
                 logging.info("Soft cue")
                 id_item = next_event.get_bin().items[0].id
-                self.cue(id_channel=id_channel, id_item=id_item)
+                if id_item != self.caspar.channels[id_channel].cued_item
+                    self.cue(id_channel=id_channel, id_item=id_item)
 
             elif run_mode == RUN_HARD:
                 id_item = next_event.get_bin().items[0].id
