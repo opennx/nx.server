@@ -10,7 +10,7 @@ except:
     plugin_path = False
 else:
     if not os.path.exists(plugin_path) and ismount(storages[int(config["plugin_storage"])].get_path()):
-        os.mkdirs(plugin_path)
+        os.makedirs(plugin_path)
 
 
 class PlayoutPlugin(object):
