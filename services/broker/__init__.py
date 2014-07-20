@@ -22,7 +22,7 @@ class Service(ServicePrototype):
             except:
                 priority = 1
 
-            if start_cond.text:
+            if start_cond is not None and start_cond.text:
                 logging.debug("Initializing broker condition for {}".format(title))
                 self.conditions[id_action] = (title, start_cond.text, priority)
 

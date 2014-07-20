@@ -78,7 +78,8 @@ class StorageMonitor():
         else:
             return  
 
-        shell(cmd) 
+        c = shell(cmd) 
+        print c.stderr().read()
 
 
 

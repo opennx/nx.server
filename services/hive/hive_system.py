@@ -55,6 +55,9 @@ def hive_services(auth_key, params):
     if id_service and command in [STARTING, STOPPING, KILL]:
         db.query("UPDATE nx_services SET state = %s WHERE id_service = %s", [command, id_service])
         db.commit()
+    elif id_service and command == -1:
+        db.query("UPDATE nx_services set autostart = CAST(NOT CAST(autostart AS boolean) AS integer) where id_service = {}".format(id_service))
+
     res = []
     db.query("SELECT id_service, agent, title, host, autostart, loop_delay, settings, state, last_seen FROM nx_services ORDER BY id_service ASC")
     for id_service, agent, title, host, autostart, loop_delay, settings, state, last_seen in db.fetchall(): 
@@ -63,7 +66,7 @@ def hive_services(auth_key, params):
             "agent" : agent, 
             "title" : title, 
             "host" : host, 
-            "autostart" : autostart, 
+            "autostart" : bool(autostart), 
             "loop_delay" : loop_delay, 
             "settings" : settings, 
             "state" : state, 

@@ -103,7 +103,6 @@ def hive_set_meta(auth, params):
             }[object_type](id_object, db=db)
 
         obj[tag] = value
-        logging.debug("setting {} {} to {}".format(obj, tag, value))
         obj.save(notify=False)
 
     messaging.send("objects_changed", objects=objects, object_type=object_type)
