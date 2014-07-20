@@ -87,7 +87,7 @@ def interleave(fname, inter=500):
     args.append(fname)
     p = subprocess.Popen(args)
     while p.poll() == None:
-        sleep(.1)
+        time.sleep(.1)
     os.chdir(opath)
     return True
 
