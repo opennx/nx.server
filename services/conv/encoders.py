@@ -80,6 +80,17 @@ def filter_arc(w,h,aspect):
         pt = int((h - ph)/2.0)
     return "scale=%s:%s[out];[out]pad=%s:%s:%s:%s:black" % (pw,ph,w,h,pl,pt)
 
+def interleave(fname, inter=500):
+    opath = os.getcwd()
+    os.chdir(os.path.dirname(fname))
+    args = ["MP4Box", "-hint", "-tight"]
+    args.append(fname)
+    p = subprocess.Popen(args)
+    while p.poll() == None:
+        sleep(.1)
+    os.chdir(opath)
+    return True
+
 
 
 class Ffmpeg(Encoder):
