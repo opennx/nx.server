@@ -105,5 +105,5 @@ def hive_set_meta(auth, params):
         obj[tag] = value
         obj.save(notify=False)
 
-    messaging.send("objects_changed", objects=objects, object_type=object_type)
+    messaging.send("objects_changed", objects=objects, object_type=object_type, user="anonymous Firefly user") # TODO
     return 200, obj.meta

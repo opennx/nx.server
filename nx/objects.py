@@ -88,7 +88,7 @@ class ServerObject(object):
         if self._save_to_cache():
             self.db.commit()
             if kwargs.get("notify", True) and not created:
-                messaging.send("objects_changed", objects=[self.id], object_type=self.object_type)
+                messaging.send("objects_changed", objects=[self.id], object_type=self.object_type, user=config["user"])
             return True
         else:
             logging.error("Save {!r} to cache failed".format(self))

@@ -40,7 +40,6 @@ class Service(ServicePrototype):
             if asset["status"] == ONLINE:
                 logging.warning("Turning offline %s" % asset)
                 asset["status"] = OFFLINE
-                print "sav"
                 asset.save()
                 print (asset["status"])
             return
@@ -103,8 +102,8 @@ class Service(ServicePrototype):
         
    
         if asset["status"] == CREATING and asset["mtime"] + 15 > time.time(): 
-            logging.debug("Waiting for %s completion assurance." % asset)
-            asset.save(set_mtime=False)
+            logging.debug("Waiting for {} completion assurance.".format(asset))
+            asset.save(set_mtime=False, notify=False)
 
         elif asset["status"] in (CREATING, OFFLINE):
             logging.goodnews("Turning online %s" % asset)
