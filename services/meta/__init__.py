@@ -70,7 +70,7 @@ class Service(ServicePrototype):
             
             if fsize == asset["file/size"] and asset["status"] != RESET:
                 asset["file/mtime"] = fmtime
-                asset.save(set_mtime=False)
+                asset.save(set_mtime=False, notify=False)
             else:
                 logging.info("Updating metadata %s" % asset)
 

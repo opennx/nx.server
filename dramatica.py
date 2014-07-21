@@ -38,8 +38,6 @@ def nx_assets_connector():
     db.query("SELECT id_object FROM nx_assets WHERE id_folder IN (1,2,3,4,5,7,8) AND media_type = 0 AND content_type=1 AND origin IN ('Library', 'Acquisition', 'Edit')")
     for id_object, in db.fetchall():
         asset = Asset(id_object, db=db)
-        if str(asset["qc/state"]) == "3": # Temporary fix. qc/state is going to be reimplemented in nx.server
-            continue
         yield asset.meta
 
 def nx_history_connector(start=False, stop=False, tstart=False):
@@ -215,15 +213,9 @@ def get_template(tpl_name):
 if __name__ == "__main__":
     dates = [
         "2014-07-21", 
-        "2014-07-22", 
-        "2014-07-23", 
-        "2014-07-24",
-        "2014-07-25",
-        "2014-07-26",
-        "2014-07-27"
         ]
 
-    dates = ["2014-07-19"]
+    dates = ["2014-07-21"]
     
     session = Session()
 

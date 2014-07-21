@@ -22,9 +22,9 @@ class Service(ServicePrototype):
         status = self.sock.setsockopt(socket.IPPROTO_IP,socket.IP_ADD_MEMBERSHIP,socket.inet_aton(config["seismic_addr"]) + socket.inet_aton("0.0.0.0"));
         self.sock.settimeout(1)
 
-        host = "192.168.32.148"
-        port = 11000
-        ssl  = True
+        host = "nebula.footage.cz"
+        port = 80
+        ssl  = False 
 
         self.url = "{protocol}://{host}:{port}/msg_publish?id={site_name}".format(protocol=["http","https"][ssl], host=host, port=port, site_name=config["site_name"])
 
@@ -48,7 +48,8 @@ class Service(ServicePrototype):
                 try:
                     self.send_message("{}\n".format(message.replace("\n","")))
                 except:
-                    pass
+																			 logging.error("Unable to relay {} message to {} ".format(method, self.url))
+                    #pass
 
     
     def send_message(self, message):

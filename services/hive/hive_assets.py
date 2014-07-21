@@ -91,9 +91,10 @@ def hive_send_to(auth_key, params):
 def hive_set_meta(auth, params):
     objects = [int(id_object) for id_object in params.get("objects",[])]
     object_type = params.get("object_type","asset")
-    tag   = params["tag"]
-    value = params["value"]
+    data = params.get("data", {})
     db = DB()
+    changed_objects = []
+    affected_bins = []
     for id_object in objects:
         obj = {
             "asset" : Asset,
@@ -102,8 +103,21 @@ def hive_set_meta(auth, params):
             "event" : Event,
             }[object_type](id_object, db=db)
 
-        obj[tag] = value
-        obj.save(notify=False)
+        changed = False
+        for key in data:
+            value = data[key]
+            if obj[key] != value:
+                obj[key] = value
+                changed = True
 
-    messaging.send("objects_changed", objects=objects, object_type=object_type, user="anonymous Firefly user") # TODO
+        if changed:
+            changed_objects.append(obj.id)
+            obj.save(notify=False)
+            if object_type == "item" and obj["id_bin"] not in affected_bins:
+                affected_bins.append(obj["id_bin"])
+
+    if affected_bins:
+        bin_refresh(affected_bins, db=db)
+
+    messaging.send("objects_changed", objects=changed_objects, object_type=object_type, user="anonymous Firefly user") # TODO
     return 200, obj.meta
