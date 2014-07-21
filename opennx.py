@@ -185,7 +185,7 @@ if __name__ == "__main__":
     storage_monitor = StorageMonitor()
     service_monitor = ServiceMonitor()
 
-    if "--noadmin" not in sys.argv:
+    if "--admin" in sys.argv:
         logging.debug("Starting admin interface")
         admin = subprocess.Popen([os.path.join("admin", "run_admin.py"), format(NX_ROOT)])
 
