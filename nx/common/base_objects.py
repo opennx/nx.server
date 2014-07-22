@@ -77,13 +77,17 @@ class BaseObject(object):
         del self.meta[key]
 
     def __repr__(self):
+        if self.id:
+            iid = "{} ID:{}".format(self.object_type, self.id)
+        else:
+            iid = "new {}".format(self.object_type)
         try:
             title = self["title"] or ""
             if title: 
                 title = " ({})".format(title)
-            return "{0} ID:{1}{2}".format(self.object_type, self.id, title)
+            return "{}{}".format(iid, title)
         except:
-            return "{0} ID:{1}".format(self.object_type, self.id)
+            return iid
 
     def __len__(self):
         return self._loaded

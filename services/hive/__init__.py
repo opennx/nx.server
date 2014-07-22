@@ -63,15 +63,23 @@ class AdminHandler(BaseHTTPRequestHandler):
         methods = self.server.service.methods
      
         if method in methods:    
+            self._do_headers("application/octet-stream", 200)
+
             q_start_time = time.time()
-            response, data = methods[method](auth_key, params)
-            query_time = time.time() - start_time
-            data = json.dumps(data)
+            #try:
             
-            if params.get("use_zlib", False):
-                self.result(response, zlib.compress(data), "application/zlib")
-            else:
-                self.result(response, data)
+            for response, data in methods[method](auth_key, params):
+                data = json.dumps([response, data])
+                if params.get("use_zlib", False):
+                    data = zlib.compress(data)
+                self._echo("{}\n".format(data))
+                
+            #except:
+            #    import pprint
+            #    pprint.pprint(sys.exc_info())
+            #    response, data = "501", "Unhandled Hive exception"
+            query_time = time.time() - start_time
+            
         else:                    
             logging.error("%s not implemented" % method)
             self.result(ERROR_NOT_IMPLEMENTED,False)
@@ -82,7 +90,7 @@ class AdminHandler(BaseHTTPRequestHandler):
 
 
 
-import hive_assets, hive_system, hive_items
+import hive_assets, hive_system, hive_items, hive_dramatica
 
 
 
@@ -94,7 +102,7 @@ class Service(ServicePrototype):
         
         self.methods = {}
 
-        for module in [hive_assets, hive_system, hive_items]:
+        for module in [hive_assets, hive_system, hive_items, hive_dramatica]:
             for method in dir(module):
                 if not method.startswith("hive_"):
                     continue

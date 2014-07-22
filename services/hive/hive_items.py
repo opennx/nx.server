@@ -17,7 +17,7 @@ def hive_get_events(auth_key, params={}):
     id_channel = params.get("id_channel", False)
 
     if not id_channel:
-        return 400, "No such playout channel"
+        return [[400, "No such playout channel"]]
 
     db = DB()
     db.query("SELECT id_object FROM nx_events WHERE id_channel = %s AND start >= %s AND start < %s ORDER BY start ASC", (id_channel, start_time, end_time))
@@ -33,7 +33,7 @@ def hive_get_events(auth_key, params={}):
         pbin  = event.get_bin()
         event["duration"] = pbin.get_duration()
         result.append(event.meta)
-    return 200, {"events" : result}
+    return [[200, {"events" : result}]]
 
 
 
@@ -106,7 +106,7 @@ def hive_set_events(auth_key, params={}):
 
         event.save()
 
-    return 200, "TODO: Statistics"
+    return [[200, "TODO: Statistics"]]
 
 
 
@@ -115,7 +115,7 @@ def hive_get_runs(auth_key, params):
     id_channel = int(params.get("id_channel", 0))
     
     if not asset_ids:
-        return 400, "Bad request"
+        return [[400, "Bad request"]]
 
     conds = "" # TOOD : start and stop time
     id_asset_cond = ", ".join([str(id_asset) for id_asset in asset_ids if type(id_asset) == int])
@@ -141,7 +141,7 @@ def hive_get_runs(auth_key, params):
             start += item.get_duration()
             
 
-    return 200, {"data": result}    # id_event, id_asset, start_time, is_aired
+    return [[200, {"data": result}]] 
 
 
 
@@ -159,7 +159,8 @@ def hive_rundown(auth_key, params):
         id_channel = int(params["id_channel"])
         channel_config = config["playout_channels"][id_channel]
     except:
-        return 400, "No such playout channel"
+        yield 400, "No such playout channel"
+        return
 
     db = DB()
     end_time   = start_time + (3600*24)
@@ -169,9 +170,14 @@ def hive_rundown(auth_key, params):
     db.query("SELECT id_object FROM nx_events WHERE id_channel = %s AND start >= %s AND start < %s ORDER BY start ASC", (id_channel, start_time, end_time))
     
     ts_broadcast = 0
-    for id_event, in db.fetchall():
+    events = db.fetchall()
+    rlen = float(len(events))
+    for i, e in enumerate(events):
+        id_event = e[0]
         event = Event(id_event, db=db)
         pbin  = event.get_bin()
+
+        yield -1, {"progress" : i/rlen}
 
         # Reset broadcast time indicator after empty blocks and if run mode is not AUTO (0)
         if not pbin.items:
@@ -235,7 +241,7 @@ def hive_rundown(auth_key, params):
                 "items"      : items
             })
 
-    return 200, {"data" : data}
+    yield 200, {"data" : data}
 
 
 
@@ -249,18 +255,20 @@ def hive_bin_order(auth_key, params):
     if id_channel:
         append_cond = config["playout_channels"][id_channel].get("rundown_accepts", "True")
 
-
     if not (id_bin and order):
-        return 400, "Fuck you"
+        yield 400, "Bad request"
+        return
 
     affected_bins = [id_bin]
     pos = 1
 
     db = DB()
-    for obj in order:
+    rlen =float(len(order))
+    for i,obj in enumerate(order):
         object_type = obj["object_type"]
         id_object   = obj["id_object"]
         params      = obj["params"]
+        yield -1, {"progress" : i/rlen}
 
         if object_type == ITEM:
             if not id_object:
@@ -297,7 +305,7 @@ def hive_bin_order(auth_key, params):
         pos += 1
 
     bin_refresh(affected_bins, sender, db)
-    return 202, "OK"
+    yield 200, "OK"
 
 
 
@@ -314,7 +322,7 @@ def hive_del_items(auth_key,params):
         item.delete()
 
     bin_refresh(affected_bins, sender, db)
-    return 202, "OK"
+    return [[202, "OK"]]
 
 
 
@@ -338,5 +346,5 @@ def hive_toggle_run_mode(auth_key,params={}):
             event.save()
             affected_bins.append(event.get_bin().id)
     bin_refresh(list(affected_bins))
-    return 200, "Run mode changed"
+    return [[200, "Run mode changed"]]
  

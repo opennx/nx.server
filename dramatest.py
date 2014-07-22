@@ -106,7 +106,8 @@ class Session():
     def solve(self, id_event=False):
         """Solve one specified event, or entire rundown"""
         if not id_event:
-            self.rundown.solve()
+            for msg in self.rundown.solve():
+                yield msg
         else:
             pass
             #TODO: Single event cleanup
@@ -211,25 +212,18 @@ def get_template(tpl_name):
 
 
 if __name__ == "__main__":
-    dates = [
-        "2014-07-21", 
-        ]
+    import sys
 
-    dates = ["2014-07-21"]
-    
+    date = sys.argv[1]    
     session = Session()
 
-    for date in dates:
-        session.clear_rundown(id_channel=1, date=date)
+#    session.clear_rundown(id_channel=1, date=date)
+    session.open_rundown(id_channel=1, date=date)
 
-
-
-    for date in dates:
-        session.open_rundown(id_channel=1, date=date)
-
-        template_class = get_template("nxtv_template")
-        template = template_class(session.rundown)
-        template.apply()
-
-        session.solve()
-        session.save()
+    template_class = get_template("nxtv_template")
+    template = template_class(session.rundown)
+    template.apply()
+    print ("begin solve")
+    for msg in session.solve():
+        print (msg)
+#    session.save()

@@ -145,7 +145,7 @@ def send_to(id_object, id_action, settings={}, id_user=0, priority=1, restart_ex
             db.commit()
             return 200, "Job restarted"
         else:
-            return 400, "Job exists. Not restarting"
+            return 200, "Job exists. Not restarting"
 
 
     db.query("""INSERT INTO nx_jobs (id_object, id_action, settings, id_service, priority, progress, retries, ctime, stime, etime, message, id_user)

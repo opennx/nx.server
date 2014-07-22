@@ -289,6 +289,7 @@ class DefaultSolver(DramaticaSolver):
 
 
     def solve(self):
+        yield "Solving {}".format(self.block)
         if not self.block.items:
             self.solve_empty()
 
@@ -346,10 +347,12 @@ class MusicBlockSolver(DramaticaSolver):
     rules = []
 
     def solve(self):
+        yield "Solving {}".format(self.block)
         last_jingle = 0
         last_promo  = 0
 
         jingle_selector = self.block.config.get("jingles", False)
+        promo_selector = self.block.config.get("promos", False)
         intro_jingle    = self.block.config.get("intro_jingle", False)
         outro_jingle    = self.block.config.get("outro_jingle", False)
         jingle_span     = self.block.config.get("jingle_span",600)
@@ -365,8 +368,11 @@ class MusicBlockSolver(DramaticaSolver):
         while self.block.remaining > 0:
             # PROMOS #
             ##########
-            if self.block.remaining > promo_span and self.block.duration - last_promo > promo_span:
-                pass #TODO
+            if promo_selector and self.block.remaining > promo_span and self.block.duration - last_promo > promo_span:
+                promo = self.get(promo_selector, allow_reuse=False)
+                if promo:
+                    self.block.add(promo)
+                last_promo = self.block.duration
 
             # JINGLES #
             ###########

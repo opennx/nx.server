@@ -35,7 +35,7 @@ def hive_browse(auth_key, params):
     query = "SELECT id_object, mtime FROM nx_assets{}".format(query_conditions)
 
     db.query(query)
-    return 200, {"result": db.fetchall(), "asset_data":[]}
+    return [[200, {"result": db.fetchall(), "asset_data":[]}]]
 
 
 
@@ -43,17 +43,20 @@ def hive_get_assets(auth_key, params):
     asset_ids = params.get("asset_ids", [])
     db = DB()
     result = {}
-    for id_asset in asset_ids:
+    for i, id_asset in enumerate(asset_ids):
         asset = Asset(id_asset, db=db)
-        result[id_asset] = asset.meta
-    return 200, result
+        yield -1, asset.meta
+    yield 200, "OK"
+    return
 
 
 
 def hive_actions(auth_key, params):
+    i = 0
     assets = params.get("assets", [])
     if not assets: 
-        return 400, "No asset selected"
+        return [[400, "No asset selected"]]
+        
     result = []
     db = DB()
     db.query("SELECT id_action, title, config FROM nx_actions ORDER BY id_action ASC")
@@ -68,7 +71,7 @@ def hive_actions(auth_key, params):
                 break
         else:
             result.append((id_action, title))
-    return 200, result
+    return [[200, result]]
 
 
 
@@ -77,14 +80,16 @@ def hive_send_to(auth_key, params):
     try:
         id_action = params["id_action"]
     except:
-        return 400, "No action specified"
+        yield 400, "No action specified"
+        return
 
     settings  = params.get("settings", {})
     restart_existing = params.get("restart_existing", True)
 
     for id_object in params.get("objects", []):
-        print (id_object, send_to(id_object, id_action, settings={}, id_user=0, restart_existing=restart_existing, db=db))
-    return 200, "OK"
+        yield -1, send_to(id_object, id_action, settings={}, id_user=0, restart_existing=restart_existing, db=db)[1]
+    yield 200, "OK"
+    return
 
 
 
@@ -120,4 +125,4 @@ def hive_set_meta(auth, params):
         bin_refresh(affected_bins, db=db)
 
     messaging.send("objects_changed", objects=changed_objects, object_type=object_type, user="anonymous Firefly user") # TODO
-    return 200, obj.meta
+    return [[200, obj.meta]]

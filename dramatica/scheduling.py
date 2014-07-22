@@ -17,6 +17,13 @@ class DramaticaBlock(DramaticaObject):
         self.items = []
         self.config = {} # solver settings (event "dramatica/config" meta)
 
+
+    def __repr__(self):
+        try:
+            return "block{}".format(" {}".format(self["title"]) if self["title"] else "" )
+        except:
+            return "block with fucked up encoding" # HA HA HA
+
     @property
     def block_order(self):
         for i, b in enumerate(self.rundown.blocks):
@@ -84,12 +91,12 @@ class DramaticaBlock(DramaticaObject):
             solver_class = DefaultSolver
 
         self.config["genres"] = self.config.get("genres", []) or []
-        self.config["genres"].extend([item["genre/music"] for item in self.items if item["genre/music"] ])
-        self.config["genres"].extend([item["genre/movie"] for item in self.items if item["genre/movie"] ])
-        self.config["genres"] = list(set(self.config["genres"]))
+
 
         solver = solver_class(self)
-        solver.solve()
+
+        for msg in solver.solve():
+            yield msg
 
         self.solved = True
 
@@ -156,9 +163,10 @@ class DramaticaRundown(DramaticaObject):
                 block = self.blocks[i]
             except IndexError:
                 break
-            block.solve()            
+            
+            for msg in block.solve():
+                yield msg
             i+=1
-
 
     def __str__(self):
         output = u"\n"
@@ -176,6 +184,5 @@ class DramaticaRundown(DramaticaObject):
                         unicode(item["title"])
                     )
             output += u"\n\n"
-
-
+            
         return output

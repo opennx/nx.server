@@ -65,10 +65,8 @@ class ControlHandler(BaseHTTPRequestHandler):
     def result(self, r):
         response, data = r
         self._do_headers(response=response)
-        if data:
-            self._echo(json.dumps(data))
-        else:
-            self._echo("false")
+        self._echo(json.dumps([response, data]))
+
 
     def error(self,response):
         self._do_headers(response=response)

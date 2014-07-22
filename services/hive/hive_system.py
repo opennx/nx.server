@@ -2,7 +2,7 @@ from nx import *
 from nx.common.metadata import meta_types
 
 def hive_meta_types(auth_key, params):
-    return 200, [meta_types[t].pack() for t in meta_types.keys()]
+    return [[200, [meta_types[t].pack() for t in meta_types.keys()]]]
 
 def hive_site_settings(auth_key,params):
     db = DB()
@@ -44,7 +44,7 @@ def hive_site_settings(auth_key,params):
         elif channel_type == INGEST:
             result["ingest_channels"][id_channel] = ch_config
 
-    return 200, result
+    return [[200, result]]
 
 
 
@@ -74,4 +74,4 @@ def hive_services(auth_key, params):
         }
         res.append(s)   
 
-    return 200, res
+    return [[200, res]]
