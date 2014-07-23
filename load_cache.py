@@ -32,4 +32,4 @@ if __name__ == "__main__":
     import thread
     while True:
         load_cache()
-        
+        time.sleep(1)

@@ -69,15 +69,15 @@ def nx_history_connector(start=False, stop=False, tstart=False):
 
 class Session():
     def __init__(self):
-        self.cache = DramaticaCache(NX_TAGS)
-        stime = time.time()
-        i = self.cache.load_assets(nx_assets_connector())
-        logging.debug("{} assets loaded in {} seconds".format(i, time.time()-stime))
+        self.cache = False
         self.rundown = False
         self.start_time = self.end_time = self.id_channel = 0
 
     def open_rundown(self, id_channel=1, date=time.strftime("%Y-%m-%d")):
         day_start = config["playout_channels"][id_channel].get("day_start", (6,0))
+
+        self.cache = DramaticaCache(NX_TAGS)
+        i = self.cache.load_assets(nx_assets_connector())
 
         self.id_channel = id_channel
         self.start_time = datestr2ts(date, *day_start)
@@ -203,18 +203,24 @@ def hive_dramatica(auth_key, params={}):
     date = params["date"]
     session = Session()
 
-    for msg in session.clear_rundown(id_channel=id_channel, date=date):
-        yield -1, {"message":msg}
+    if params.get("clear", False):
+        for msg in session.clear_rundown(id_channel=id_channel, date=date):
+            yield -1, {"message":msg}
 
-    for msg in session.open_rundown(id_channel=id_channel, date=date):
-        yield -1, {"message":msg}
+    if params.get("template", False) or params.get("solve", False):
+        for msg in session.open_rundown(id_channel=id_channel, date=date):
+            yield -1, {"message":msg}
 
-    template_class = get_template("nxtv_template")
-    template = template_class(session.rundown)
-    template.apply()
+        if params.get("template", False):
+            template_class = get_template(params["template"]) #nxtv_template
+            template = template_class(session.rundown)
+            template.apply()
 
-    for msg in session.solve():
-        yield -1, {"message":msg}
-    
-    for msg in session.save():
-        yield -1, {"message":msg}
+        if params.get("solve", False):
+            for msg in session.solve():
+                yield -1, {"message":msg}
+        
+        for msg in session.save():
+            yield -1, {"message":msg}
+
+    yield 200, "ok"
