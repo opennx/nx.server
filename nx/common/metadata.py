@@ -147,6 +147,13 @@ class MetaTypes(dict):
     
         return value
 
+    def unformat(self, key, value):
+        mtype = self[key]
+        if mtype.class_ == REGIONS:
+            return json.dumps(value)
+        return value
+ 
+
 meta_types = MetaTypes()
 
 if connection_type == "server":

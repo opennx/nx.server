@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from nx.common import *
+from nx.common.metadata import meta_types
 from nx.connection import *
 
 from nx.common.base_objects import BaseAsset, BaseItem, BaseBin, BaseEvent
@@ -80,7 +81,7 @@ class ServerObject(object):
         for tag in self.meta:
             if tag in self.ns_tags:
                 continue
-            value = self.meta[tag]
+            value = meta_types.unformat(tag, self.meta[tag])
             q = "INSERT INTO nx_meta (id_object, object_type, tag, value) VALUES (%s, %s, %s, %s)"
             v = [self["id_object"], self.id_object_type(), tag, value]
             self.db.query(q, v)
