@@ -55,6 +55,8 @@ def hive_set_events(auth_key, params={}):
 
     db = DB()
 
+    changed_ids = []
+
     deleted = created = updated = 0
     for id_event in params.get("delete", []):
         event = Event(id_event, db=db)
@@ -65,6 +67,8 @@ def hive_set_events(auth_key, params={}):
         pbin.delete()
         event.delete()
         deleted += 1
+        changed_ids.append(event.id)
+
 
     for event_data in params.get("events", []):
         id_event = event_data.get("id_object", False)
@@ -104,7 +108,10 @@ def hive_set_events(auth_key, params={}):
         for key in event_data:
             event.meta[key] = event_data[key]
 
+        changed_ids.append(event.id)
         event.save()
+
+    messaging.send("events_changed", sender=False, events=[{"id_object":id_object} for id_object in changed_ids])
 
     return [[200, "TODO: Statistics"]]
 
