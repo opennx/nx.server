@@ -173,6 +173,8 @@ class CasparChannel():
             fg_prod = video_layer.find("foreground").find("producer")
             if fg_prod.find("type").text == "image-producer":
                 self.fpos = self.fdur = self.pos = self.dur = 0
+            elif fg_prod.find("type").text == "empty-producer":
+                current_file = -1 # Strange
             else:
                 self.fpos = int(fg_prod.find("file-frame-number").text)
                 self.fdur = int(fg_prod.find("file-nb-frames").text)
@@ -188,6 +190,11 @@ class CasparChannel():
             cued_file = basefname(video_layer.find("background").find("producer").find("destination").find("producer").find("filename").text)
         except:  
             cued_file = False
+
+
+        if current_file == -1 and cued_file: # Fix of strange error (Failed autoplay)
+            self.server.query("PLAY {}-{}".format(self.channel, layer))
+            return
         
         
         if not cued_file and current_file:
