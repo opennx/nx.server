@@ -43,7 +43,7 @@ def get_template(tpl_name):
 
 def nx_assets_connector():
     db = DB()
-    db.query("SELECT id_object FROM nx_assets WHERE id_folder IN (1,2,3,4,5,7,8) AND media_type = 0 AND content_type=1 AND origin IN ('Library', 'Acquisition', 'Edit')")
+    db.query("SELECT id_object FROM nx_assets WHERE id_folder IN (1,2,3,4,5,7,8) AND media_type = 0 AND content_type=1 AND status = 1 AND origin IN ('Library', 'Acquisition', 'Edit')")
     for id_object, in db.fetchall():
         asset = Asset(id_object, db=db)
         yield asset.meta
