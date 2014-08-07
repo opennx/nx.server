@@ -316,13 +316,14 @@ class Service(ServicePrototype):
 
 
     def on_main(self):
+        local_cache = Cache()
         db = DB()
         for id_channel in self.caspar.channels:
-            id_item = self.caspar.channels[id_channel].current_item
+            id_item = self.caspar.channels[id_channel].current_item # YES. CURRENT
             if not id_item:
                 continue
                 
-            current_event = get_item_event(id_item, db=db)
+            current_event = get_item_event(id_item, db=db, cache=local_cache)
 
             if not current_event:
                 logging.warning("Unable to fetch current event")
@@ -338,8 +339,6 @@ class Service(ServicePrototype):
             except:
                 continue
 
-            local_cache = Cache()
-
             next_event = Event(next_event_id, db=db, cache=local_cache)
             run_mode = int(next_event["run_mode"]) or RUN_AUTO
 
@@ -354,9 +353,18 @@ class Service(ServicePrototype):
 
             elif run_mode == RUN_SOFT:
                 logging.info("Soft cue")
-                id_item = next_event.get_bin().items[0].id
-                if id_item != self.caspar.channels[id_channel].cued_item:
-                    self.cue(id_channel=id_channel, id_item=id_item)
+
+                for i,r in enumerate(current_event.get_bin().items):
+                    if r["item_role"] == "lead_out":
+                        try:
+                            self.cue(id_channel=id_channel, id_item=current_event.get_bin().items[i+1].id)
+                            break
+                        except IndexError:
+                            pass
+                    else:
+                        id_item = next_event.get_bin().items[0].id
+                        if id_item != self.caspar.channels[id_channel].cued_item:
+                            self.cue(id_channel=id_channel, id_item=id_item)
 
             elif run_mode == RUN_HARD:
                 id_item = next_event.get_bin().items[0].id

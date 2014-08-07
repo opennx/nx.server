@@ -292,7 +292,7 @@ def get_bin_first_item(id_bin, db=False):
     except:
         return False
 
-def get_item_event(id_item, db=False):
+def get_item_event(id_item, db=False, cache=False):
     if not db:
         db = DB
     db.query("""SELECT e.id_object, e.start, e.id_channel from nx_items as i, nx_events as e where e.id_magic = i.id_bin and i.id_object = {} and e.id_channel in ({})""".format(
@@ -303,11 +303,12 @@ def get_item_event(id_item, db=False):
         id_object, start, id_channel = db.fetchall()[0]
     except:
         return False
-    return {
-        "id_object": id_object,
-        "start": start,
-        "id_channel" : id_channel
-        }
+    return Event(id_object, db=db, cache=cache)
+    #return {
+    #    "id_object": id_object,
+    #    "start": start,
+    #    "id_channel" : id_channel
+    #    }
 
 def get_item_runs(id_channel, from_ts, to_ts, db=False):
     db = db or DB()
@@ -330,7 +331,7 @@ def get_next_item(id_item, db=False):
         if item["position"] > current_item["position"]:
             if item["item_role"] == "lead_out":
                 logging.info("Cueing Lead In")
-                for r in current_bin.items:
+                for i, r in enumerate(current_bin.items):
                     if r["item_role"] == "lead_in":
                         return r
                 else:

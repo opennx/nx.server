@@ -45,13 +45,13 @@ class FFProbe(Probe):
         fname = asset.get_file_path()
         try:
             dump = ffprobe(fname)
+            streams = dump["streams"]
+            format  = dump["format"]
         except:
             logging.error("Unable to parse media metadata of {}".format(asset))
             asset["meta_probed"] = 1
             return asset
 
-        streams = dump["streams"]
-        format  = dump["format"]
 
         asset["file/format"]   = format.get("format_name", "")
         asset["duration"] = format.get("duration", "")
