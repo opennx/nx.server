@@ -85,18 +85,23 @@ class DramaticaBlock(DramaticaObject):
     def solve(self):
         #TODO: Loading solvers
         from .solving import DefaultSolver, MusicBlockSolver
-        if self.config.get("solver", False) == "MusicBlock":
-            solver_class = MusicBlockSolver
-        else:
+        solver_name = self.config.get("solver", False)
+        
+        # Build-in solvers
+        if solver_name == "MusicBlock":
+            solver_class = MusicBlockSolver 
+        elif solver_name == "DefaultSolver":
             solver_class = DefaultSolver
 
-        self.config["genres"] = self.config.get("genres", []) or []
+        # Solver plugins
+        elif solver_name:
+            pass
 
 
-        solver = solver_class(self)
-
-        for msg in solver.solve():
-            yield msg
+        if self.solver_name:
+            solver = solver_class(self)
+            for msg in solver.solve():
+                yield msg
 
         self.solved = True
 

@@ -212,7 +212,7 @@ def hive_dramatica(auth_key, params={}):
             yield -1, {"message":msg}
 
         if params.get("template", False):
-            template_class = get_template(params["template"]) #nxtv_template
+            template_class = get_template("default_template") #nxtv_template
             template = template_class(session.rundown)
             template.apply()
 

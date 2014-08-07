@@ -271,7 +271,7 @@ def hive_bin_order(auth_key, params):
 
     db = DB()
     rlen =float(len(order))
-    for i,obj in enumerate(order):
+    for i, obj in enumerate(order):
         object_type = obj["object_type"]
         id_object   = obj["id_object"]
         params      = obj["params"]
@@ -280,8 +280,8 @@ def hive_bin_order(auth_key, params):
         if object_type == ITEM:
             if not id_object:
                 item = Item(db=db)
-                item["id_asset"] = obj["id_asset"]
-                item.meta.update(obj.meta)
+                item["id_asset"] = obj.get("id_asset", 0)
+                item.meta.update(params)
             else:
                 item = Item(id_object, db=db)
 

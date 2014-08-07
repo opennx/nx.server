@@ -10,7 +10,7 @@ from probes import probes
 
 class Service(ServicePrototype):
     def on_init(self):
-        filters = []
+        filters = [] # Ignore archived and trashed
         #filters.append("status=%d"%CREATING)
         if filters:
             self.filters = "AND " + " AND ".join(filters)
@@ -25,7 +25,7 @@ class Service(ServicePrototype):
                 self.mounted_storages.append(id_storage)
 
         db = DB()
-        db.query("SELECT id_object FROM nx_assets {} WHERE media_type=0".format(self.filters))
+        db.query("SELECT id_object FROM nx_assets WHERE media_type = 0 {} AND status NOT IN (3,4)".format(self.filters))
         for id_asset, in db.fetchall():
             self._proc(id_asset, db)
 
@@ -37,11 +37,10 @@ class Service(ServicePrototype):
             return
 
         if not os.path.exists(fname):
-            if asset["status"] == ONLINE:
-                logging.warning("Turning offline %s" % asset)
+            if asset["status"] in [ONLINE, RESET, CREATING]:
+                logging.warning("Turning offline {} (File does not exist)".format(asset))
                 asset["status"] = OFFLINE
                 asset.save()
-                print (asset["status"])
             return
 
         try:
@@ -52,13 +51,17 @@ class Service(ServicePrototype):
             return
 
         if fsize == 0: 
+            if asset["status"] != OFFLINE:
+                logging.warning("Turning offline {} (empty file)".format(asset))
+                asset["status"] = OFFLINE
+                asset.save()
             return
 
         if fmtime != asset["file/mtime"] or asset["status"] == RESET:
             try:    
                 f = open(fname,"rb")
             except: 
-                logging.debug("File creation in progress. %s" % asset)
+                logging.debug("{} creation in progress.".format(asset))
                 return
             else:
                 f.seek(0,2)
@@ -72,7 +75,7 @@ class Service(ServicePrototype):
                 asset["file/mtime"] = fmtime
                 asset.save(set_mtime=False, notify=False)
             else:
-                logging.info("Updating metadata %s" % asset)
+                logging.info("Updating {}".format(asset))
 
                 keys = list(asset.meta.keys())
                 for key in keys:
@@ -87,7 +90,7 @@ class Service(ServicePrototype):
 
                 for probe in probes:
                     if probe.accepts(asset):
-                        logging.debug("Probing %s using %s" % (asset, probe))
+                        logging.debug("Probing {} using {}".format(asset, probe))
                         asset = probe.work(asset)
 
                 ## PROBE
@@ -95,7 +98,7 @@ class Service(ServicePrototype):
 
                 if asset["status"] == RESET:
                     asset["status"] = ONLINE
-                    logging.info("%s reset completed" % asset)
+                    logging.info("{} reset completed".format(asset))
                 else:
                     asset["status"] = CREATING
                 asset.save()
@@ -106,7 +109,7 @@ class Service(ServicePrototype):
             asset.save(set_mtime=False, notify=False)
 
         elif asset["status"] in (CREATING, OFFLINE):
-            logging.goodnews("Turning online %s" % asset)
+            logging.goodnews("Turning online {}".format(asset))
             asset["status"] = ONLINE
             asset.save()
     

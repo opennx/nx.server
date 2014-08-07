@@ -309,6 +309,16 @@ def get_item_event(id_item, db=False):
         "id_channel" : id_channel
         }
 
+def get_item_runs(id_channel, from_ts, to_ts, db=False):
+    db = db or DB()
+    db.query("SELECT id_item, start, stop FROM nx_asrun WHERE start >= %s and start < %s ORDER BY start ASC", [int(from_ts), int(to_ts)] )
+    result = {}
+    for id_item, start, stop in db.fetchall():
+        result[id_item] = (start, stop)
+    return result
+
+
+
 
 def get_next_item(id_item, db=False):
     if not id_item:
@@ -318,6 +328,13 @@ def get_next_item(id_item, db=False):
     current_bin = Bin(current_item["id_bin"])
     for item in current_bin.items:
         if item["position"] > current_item["position"]:
+            if item["item_role"] == "lead_out":
+                logging.info("Cueing Lead In")
+                for r in current_bin.items:
+                    if r["item_role"] == "lead_in":
+                        return r
+                else:
+                    return current_bin.items[0]
             return item
     else:
         if not db:
@@ -336,12 +353,3 @@ def get_next_item(id_item, db=False):
         except:
             logging.info("Looping current playlist")
             return current_bin.items[0]
-
-
-def get_item_runs(id_channel, from_ts, to_ts, db=False):
-    db = db or DB()
-    db.query("SELECT id_item, start, stop FROM nx_asrun WHERE start >= %s and start < %s ORDER BY start ASC", [int(from_ts), int(to_ts)] )
-    result = {}
-    for id_item, start, stop in db.fetchall():
-        result[id_item] = (start, stop)
-    return result

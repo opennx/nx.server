@@ -3,7 +3,7 @@
 
 import json
 
-from nx.common.constants import *
+from nx import *
 from nx.shell import shell
 
 class Probe(object):
@@ -43,7 +43,12 @@ class FFProbe(Probe):
     def work(self, asset):
         old_meta = asset.meta
         fname = asset.get_file_path()
-        dump = ffprobe(fname)
+        try:
+            dump = ffprobe(fname)
+        except:
+            logging.error("Unable to parse media metadata of {}".format(asset))
+            asset["meta_probed"] = 1
+            return asset
 
         streams = dump["streams"]
         format  = dump["format"]

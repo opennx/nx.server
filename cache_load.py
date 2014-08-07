@@ -29,7 +29,5 @@ def load_cache():
 
 
 if __name__ == "__main__":
-    import thread
-    while True:
-        load_cache()
-        time.sleep(1)
+    load_cache()
+    time.sleep(1)
