@@ -67,7 +67,10 @@ class Service(ServicePrototype):
                 f.seek(0,2)
                 fsize = f.tell()
                 f.close()
-            
+
+            if asset["status"] == RESET:
+                asset.load_sidecar_metadata()
+
             # Filesize must be changed to update metadata automatically. 
             # It sucks, but mtime only condition is.... errr doesn't work always
             

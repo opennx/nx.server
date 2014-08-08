@@ -90,15 +90,15 @@ class DramaticaBlock(DramaticaObject):
         # Build-in solvers
         if solver_name == "MusicBlock":
             solver_class = MusicBlockSolver 
-        elif solver_name == "DefaultSolver":
-            solver_class = DefaultSolver
 
         # Solver plugins
-        elif solver_name:
-            pass
+        #elif solver_name:
+        #    pass
 
+        else:
+            solver_class = DefaultSolver
 
-        if self.solver_name:
+        if solver_name:
             solver = solver_class(self)
             for msg in solver.solve():
                 yield msg

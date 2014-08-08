@@ -126,3 +126,14 @@ def hive_set_meta(auth, params):
 
     messaging.send("objects_changed", objects=changed_objects, object_type=object_type, user="anonymous Firefly user") # TODO
     return [[200, obj.meta]]
+
+def hive_trash(auth, params):
+    objects = [int(id_object) for id_object in params.get("objects",[])]
+    db = DB()
+    for id_asset in objects:
+        # TODO: CHeck if asset is not scheduled for playback
+        asset = Asset(id_asset, db=db)
+        asset["status"] = TRASHED
+        asset.save()
+
+    return [[200, "OK"]]

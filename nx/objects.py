@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+try:
+    import yaml
+except:
+    yaml = False
 
 from nx.common import *
 from nx.common.metadata import meta_types
@@ -119,6 +123,38 @@ class ServerObject(object):
 
 class Asset(ServerObject, BaseAsset):
     object_type = "asset"
+
+    def load_sidecar_metadata(self):
+        path_elms = os.path.splitext(self.get_file_path())[0].split("/")[1:]
+        for i in range(len(path_elms)):
+
+            nxmeta_name = "/" + reduce(os.path.join, path_elms[:i]+["{}.json".format(path_elms[i])])
+            print ("checking ", nxmeta_name)
+            if os.path.exists(nxmeta_name):
+                try:
+                    self.meta.update(json.loads(open(nxmeta_name).read()))
+                except:
+                    logging.warning("Unable to parse %s" % nxmeta_name)
+                else:
+                    logging.debug("Applied meta from template %s" % nxmeta_name)
+
+            nxmeta_name = "/" + reduce(os.path.join, path_elms[:i]+["{}.yaml".format(path_elms[i])])
+            print ("checking ", nxmeta_name)
+            if os.path.exists(nxmeta_name):
+                if not yaml:
+                    logging.warning("YAML sidecar file exists, but pyyaml is not installed")
+                    continue
+                try:
+                    f = open(nxmeta_name)
+                    m = yaml.safe_load(f)
+                    f.close()
+                    self.meta.update(m)
+                except:
+                    logging.warning("Unable to parse %s" % nxmeta_name)
+                else:
+                    logging.debug("Applied meta from template {}".format(nxmeta_name))
+
+
 
 
 class Item(ServerObject, BaseItem):
