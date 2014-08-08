@@ -25,7 +25,7 @@ class CasparChannel():
         self.current_fname  = False
         self.cued_item      = False
         self.cued_fname     = False
-        self.paused         = False
+        self.paused         = True
         
         self._cueing        = False
         self.request_time   = time.time()
