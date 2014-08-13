@@ -83,7 +83,6 @@ class DramaticaBlock(DramaticaObject):
         self.items[-1].meta.update(kwargs)
 
     def solve(self):
-        #TODO: Loading solvers
         from .solving import DefaultSolver, MusicBlockSolver
         solver_name = self.config.get("solver", False)
         
@@ -98,10 +97,9 @@ class DramaticaBlock(DramaticaObject):
         else:
             solver_class = DefaultSolver
 
-        if solver_name:
-            solver = solver_class(self)
-            for msg in solver.solve():
-                yield msg
+        solver = solver_class(self)
+        for msg in solver.solve():
+            yield msg
 
         self.solved = True
 

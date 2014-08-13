@@ -38,7 +38,10 @@ class DramaticaWeights():
         self.data[id_asset][self.rules[rule]] = value
 
     def get_weight(self, id_asset, rule):
-        return self.data[id_asset][self.rules[rule]]
+        try:
+            return self.data[id_asset][self.rules[rule]]
+        except:
+            return 0
 
 
 
@@ -209,7 +212,6 @@ class DramaticaSolver(object):
 
         if debug:
             DEBUG("\n\033[32mRETURNING\033[0m", asset, "\n\n")
-            sys.exit(0)
 
         return asset
 
@@ -310,12 +312,12 @@ class DefaultSolver(DramaticaSolver):
                         "weight.genre",
                         "weight.promoted",
                         ],
-                #    debug=True
+                   # debug=True
                 ) 
 
             if asset:
                 self.insert_block(asset, start=self.block["start"]+suggested)
-
+            
         ## If remaining time is long, split block
         ##########################################
 
