@@ -44,6 +44,14 @@ def hive_site_settings(auth_key,params):
         elif channel_type == INGEST:
             result["ingest_channels"][id_channel] = ch_config
 
+    cs = {}
+    db.query("SELECT cs, value, label FROM nx_cs ORDER BY cs, value")
+    for cstag, value, label in db.fetchall():
+        if cstag not in cs:
+            cs[cstag] = []
+        cs[cstag].append([value, label])
+    result["cs"] = cs
+
     return [[200, result]]
 
 
