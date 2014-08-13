@@ -8,6 +8,7 @@ from dramatica.common import DramaticaCache
 from dramatica.scheduling import DramaticaBlock, DramaticaRundown
 from dramatica.templates import DramaticaTemplate
 from dramatica.timeutils import *
+from dramatica.solving import solvers
 
 
 NX_TAGS = [
@@ -33,6 +34,27 @@ NX_TAGS = [
     (float, "audio/bpm")
     ]
 
+
+
+
+def load_solvers():
+    solvers_path = os.path.join (plugin_path, "dramatica_solvers")
+    if not os.path.exists(solvers_path):
+        logging.warning("Dramatica solvers directory not found. Only default solvers will be available")
+        return
+    for fname in os.listdir(solvers_path):
+        if not fname.endswith(".py"):
+            continue
+        mod_name = os.path.splitext(fname)[0]
+        py_mod = imp.load_source(mod_name, os.path.join(solvers_path,fname))
+        manifest = py_mod.__manifest__
+        solver_name = manifest["name"]
+        logging.info("Loading dramatica solver {}".format(solver_name))
+        solvers[solver_name] = py_mod.Solver
+
+load_solvers()
+
+
 def get_template(tpl_name):
     fname = os.path.join(plugin_path, "dramatica_templates", "{}.py".format(tpl_name))
     if not os.path.exists(fname):
@@ -41,9 +63,10 @@ def get_template(tpl_name):
     py_mod = imp.load_source(tpl_name, fname)
     return py_mod.Template
 
+
 def nx_assets_connector():
     db = DB()
-    db.query("SELECT id_object FROM nx_assets WHERE id_folder IN (1,2,3,4,5,7,8) AND media_type = 0 AND content_type=1 AND status = 1 AND origin IN ('Library', 'Acquisition', 'Edit')")
+    db.query("SELECT id_object FROM nx_assets WHERE id_folder != 10 AND media_type = 0 AND content_type=1 AND status IN (0,1) AND origin IN ('Production')")
     for id_object, in db.fetchall():
         asset = Asset(id_object, db=db)
         yield asset.meta
@@ -76,13 +99,16 @@ class Session():
     def open_rundown(self, id_channel=1, date=time.strftime("%Y-%m-%d")):
         day_start = config["playout_channels"][id_channel].get("day_start", (6,0))
 
+        logging.debug("loading asset cache")
         self.cache = DramaticaCache(NX_TAGS)
-        i = self.cache.load_assets(nx_assets_connector())
+        for msg in self.cache.load_assets(nx_assets_connector()):
+            yield msg
 
         self.id_channel = id_channel
         self.start_time = datestr2ts(date, *day_start)
         self.end_time = self.start_time + (3600*24)
 
+        logging.debug("loading history")
         stime = time.time()
         i = self.cache.load_history(nx_history_connector())
         logging.debug("{} history items loaded in {} seconds".format(i, time.time()-stime))
@@ -146,7 +172,10 @@ class Session():
                 item["id_asset"] = bitem.id
                 item["position"] = pos
                 
-                for key in ["mark_in", "mark_out", "promoted", "is_optional"]:
+                if bitem.id == 0:
+                    item.meta["title"] = bitem["title"]
+
+                for key in ["mark_in", "mark_out", "promoted", "is_optional", "item_role"]:
                     if bitem[key]:
                         item.meta[key] = bitem[key]
 

@@ -33,12 +33,16 @@ class StorageMonitor():
         for id_storage in storages:
             storage = storages[id_storage]
             if ismount(storage.get_path()): 
-                try:
-                    f = open(os.path.join(storage.get_path(),".nebula_root"),"w")
-                    f.write("%s:%s"%(config["site_name"],storage.id_storage))
-                    f.close()
-                except: 
-                    pass
+                storage_string = "%s:%s\n" % (config["site_name"], storage.id_storage)
+                storage_ident_path = os.path.join(storage.get_path(),".nebula_root")
+                if not os.path.exists(storage_ident_path):
+                    #TODO. Check if string is there.
+                    try:
+                        f = open(storage_ident_path, "w")
+                        f.write(storage_string)
+                        f.close()
+                    except: 
+                        pass
                 continue
 
             logging.info ("Storage %s (%s) is not mounted. Remounting."%(storage.id_storage,storage.title))

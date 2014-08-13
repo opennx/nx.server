@@ -238,18 +238,16 @@ class DramaticaSolver(object):
 
 
 class DefaultSolver(DramaticaSolver):
+    default_block_source = "id_folder = 1"
 
-    block_source = "id_folder IN (1, 2)"
-    fill_source =  "id_folder IN (3,5,7,8)"
-    post_main = "path like '%program_%'"
-    
     def solve_empty(self):
         for id_asset in sorted(self.block.cache.assets, key=lambda x: self.block.cache.assets[x]["dramatica/weight"]):
             if not self.block.cache[id_asset]:
                 continue
-  
+    
         asset = self.get(
-            self.block_source,
+            self.block.config.get("block_source", self.default_block_source),
+            "io_duration < {}".format(self.block.remaining + SAFE_OVER),
             order=[
                 "weight.genre",
                 "weight.distance", 
@@ -258,14 +256,15 @@ class DefaultSolver(DramaticaSolver):
                 "weight.promoted",
                 ]
             )
-        self.block.add(asset, is_optional=0, id_asset=asset.id)
-        for key in ASSET_TO_BLOCK_INHERIT:
-            if asset[key]:
-                self.block[key] = asset[key]
-        if self.post_main:
-            p = self.get(self.post_main)
-            if p:
-                self.block.add(p)
+        if asset:
+            self.block.add(asset, is_optional=0, id_asset=asset.id)
+            for key in ASSET_TO_BLOCK_INHERIT:
+                if asset[key]:
+                    self.block[key] = asset[key]
+            if self.block.config.get("post_main", False):
+                p = self.get(self.block.config.get("post_main"))
+                if p:
+                    self.block.add(p)
 
 
     def insert_block(self, asset, start):
@@ -280,8 +279,8 @@ class DefaultSolver(DramaticaSolver):
             if asset[key]:
                 n[key] = asset[key]
 
-        if self.post_main:
-            p = self.get(self.post_main)
+        if self.block.config.get("post_main", False):
+            p = self.get(self.block.config.get("post_main"))
             if p:
                 n.add(p)        
 
@@ -293,17 +292,21 @@ class DefaultSolver(DramaticaSolver):
     def solve(self):
         yield "Solving {}".format(self.block)
         if not self.block.items:
-            self.solve_empty()
+            if self.block.config.get("solve_empty", False):
+                self.solve_empty()
+            else:
+                return
 
         suggested = suggested_duration(self.block.duration)
         jingles = self.block.config.get("jingles", False)
-
+        fill_source = self.block.config.get("fill_source", "id_folder IN (3,5,7)")
+    
         ##########################################
         ## If remaining time is long, split block
 
         if self.block.remaining > (suggested - self.block.duration):
             asset = self.get(
-                    self.block_source,
+                    self.block.config.get("block_source", self.default_block_source),
                     "io_duration < {}".format(self.block.target_duration - suggested),
                     order=[
                         "weight.distance", 
@@ -322,17 +325,20 @@ class DefaultSolver(DramaticaSolver):
         ##########################################
 
         while self.block.remaining > 0:
-            asset = self.get(self.fill_source, order=["weight.genre", "weight.rundown_repeat"], best_fit=self.block.remaining)
-            if self.block.remaining - asset.duration < 0:
+            asset = self.get(fill_source, order=["weight.genre", "weight.rundown_repeat"], best_fit=self.block.remaining)
+            if asset and self.block.remaining - asset.duration < 0:
                 self.block.add(asset)
                 break
 
             asset = self.get(
-                self.fill_source, 
+                fill_source, 
                 "io_duration < {}".format(self.block.remaining + SAFE_OVER),
                 order=["weight.genre", "weight.rundown_repeat"]
                 ) ### Fillers
             
+            if not asset:
+                break
+
             self.block.add(asset)
 
             if jingles:
@@ -403,3 +409,9 @@ class MusicBlockSolver(DramaticaSolver):
 
         if outro_jingle:
             self.block.add(self.get(outro_jingle, allow_reuse=True))
+
+
+solvers = {
+    "MusicBlock" : MusicBlockSolver,
+    "Default" : DefaultSolver
+    }

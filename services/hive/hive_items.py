@@ -72,9 +72,18 @@ def hive_set_events(auth_key, params={}):
 
     for event_data in params.get("events", []):
         id_event = event_data.get("id_object", False)
+        pbin = False
+        db.query("SELECT id_object FROM nx_events WHERE id_channel = %s and start = %s", [id_channel, event_data.get("start", False)])
+        try:
+            event_at_pos = db.fetchall()[0][0]
+        except:
+            event_at_pos = False
+
         if id_event:
             event = Event(id_event, db=db)
             updated +=1
+        elif event_at_pos:
+            event = Event(event_at_pos, db=db)
         else:
             event = Event(db=db)
             pbin = Bin(db=db)
@@ -87,19 +96,21 @@ def hive_set_events(auth_key, params={}):
         if id_asset and id_asset != event["id_asset"]:
             asset = Asset(id_asset, db=db)
             if asset:
+                logging.info("Replacing event primary asset")
+                pbin = pbin or event.get_bin()
 
                 pbin.delete_childs()
                 pbin.items = []
                 
-                if not event["dramatica/config"]:
-                    item = Item(db=db)
-                    item["id_asset"] = asset.id
-                    item["position"] = 0
-                    item["id_bin"] = pbin.id
-                    item.save()
-                    pbin.items.append(item)
-                    pbin.save()
-        
+#                if not event["dramatica/config"]:
+                item = Item(db=db)
+                item["id_asset"] = asset.id
+                item["position"] = 0
+                item["id_bin"] = pbin.id
+                item.save()
+                pbin.items.append(item)
+                pbin.save()
+    
                 event["id_asset"] = asset.id
                 for key in ASSET_TO_EVENT_INHERIT:
                     if asset[key]:
@@ -186,10 +197,7 @@ def hive_rundown(auth_key, params):
 
         yield -1, {"progress" : i/rlen}
 
-        # Reset broadcast time indicator after empty blocks and if run mode is not AUTO (0)
-        if not pbin.items:
-            ts_broadcast = 0
-        elif event["run_mode"]:
+        if event["run_mode"]:
             ts_broadcast = 0
 
         event_meta = event.meta
@@ -240,7 +248,9 @@ def hive_rundown(auth_key, params):
 
             items.append((i_meta, a_meta))
 
-
+        # Reset broadcast time indicator after empty blocks and if run mode is not AUTO (0)
+        if not pbin.items:
+            ts_broadcast = 0
 
         data.append({
                 "event_meta" : event_meta,
