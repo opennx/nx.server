@@ -35,6 +35,15 @@ NX_TAGS = [
     ]
 
 
+def day_start(ts, start):
+    hh, mm = start
+    r =  ts - (hh*3600 + mm*60)
+    dt = datetime.datetime.fromtimestamp(r).replace(
+        hour = hh, 
+        minute = mm, 
+        second = 0
+        )
+    return time.mktime(dt.timetuple()) 
 
 
 def load_solvers():
@@ -133,26 +142,27 @@ class Session():
 
             for eitem in ebin.items:
                 eitem.meta["id_item"] = eitem.id
+                eitem.meta["id_object"] = eitem["id_asset"] # Avoid id_object schisma
+                eitem.meta["is_optional"] = eitem["is_optional"]
                 item = self.cache[eitem["id_asset"]]
                 block.add(item, **eitem.meta)
             self.rundown.add(block)
 
 
     def solve(self, id_event=False):
-        """Solve one specified event, or entire rundown"""
-        if not id_event:
-            for msg in self.rundown.solve():
-                yield msg
-        else:
-            pass
-            #TODO: Single event cleanup
+        for msg in self.rundown.solve(id_event):
+            yield msg
   
 
-    def save(self):
+    def save(self, id_event=False):
         if not self.rundown:
             return
         db = DB()
         for block in self.rundown.blocks:
+
+            if id_event and block["id_event"] and id_event != block["id_event"]:
+                continue
+
             if block["id_event"]:
                 event = Event(block["id_event"], db=db)
                 ebin = event.get_bin()
@@ -162,20 +172,30 @@ class Session():
                 ebin.save()
 
             old_items = [item for item in ebin.items]
+            ebin.items = []
 
             for pos, bitem in enumerate(block.items):
-                if bitem["id_item"]:
-                    item = Item(bitem["id_item"], db=db)
-                else:
+                try:
+                    item = old_items.pop(0)
+                    t_keys = [key for key in item.meta if key not in ["id_object", "positionp"]]
+                except IndexError:
                     item = Item(db=db)
+                    t_keys = []
+
+                t_keys.extend(["mark_in", "mark_out", "item_role", "promoted", "is_optional"])
+                if not bitem.id:
+                    t_keys.append("title")
+
+                if item.id:
+                    item.meta = {"id_object":item.id}
+                else:
+                    item.meta = {}
+                item["ctime"] = item["mtime"] = time.time()
                 item["id_bin"] = ebin.id
                 item["id_asset"] = bitem.id
                 item["position"] = pos
-                
-                if bitem.id == 0:
-                    item.meta["title"] = bitem["title"]
 
-                for key in ["mark_in", "mark_out", "promoted", "is_optional", "item_role"]:
+                for key in t_keys:
                     if bitem[key]:
                         item.meta[key] = bitem[key]
 
@@ -184,12 +204,15 @@ class Session():
                 ebin.items.append(item)
 
             for item in old_items:
+                logging.info("Removing remaining item", item)
                 yield "Removing {}".format(item)
-                if item.id not in [i.id for i in ebin.items]:
-                    item.delete()
+                item.delete()
 
             for key in block.meta:
-                event[key] = block[key]
+                if key in ["id_object", "id_event"]:
+                    continue
+                if block.meta[key]:
+                    event[key] = block[key]
 
             ebin.save()
             event["id_magic"] = ebin.id
@@ -215,6 +238,8 @@ class Session():
                 continue
             pbin = event.get_bin()
             for item in pbin.items:
+                if not item.id:
+                    continue
                 yield "Deleting {}".format(item)
                 item.delete()
             pbin.items = []
@@ -231,7 +256,6 @@ def hive_dramatica(auth_key, params={}):
     id_channel = params["id_channel"]
     date = params["date"]
     session = Session()
-
     if params.get("clear", False):
         for msg in session.clear_rundown(id_channel=id_channel, date=date):
             yield -1, {"message":msg}
@@ -247,10 +271,10 @@ def hive_dramatica(auth_key, params={}):
             template.apply()
 
         if params.get("solve", False):
-            for msg in session.solve():
+            for msg in session.solve(id_event=params.get("id_event", False)):
                 yield -1, {"message":msg}
         
-        for msg in session.save():
+        for msg in session.save(id_event=params.get("id_event", False)):
             yield -1, {"message":msg}
 
     yield 200, "ok"

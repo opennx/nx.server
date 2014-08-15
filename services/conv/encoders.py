@@ -197,6 +197,10 @@ class Ffmpeg(Encoder):
             if r:     
                 new = Asset(r)
                 logging.info("Updating asset {!r}".format(new))
+                keys = new.meta.keys()
+                for key in keys:
+                    if key in meta_types and meta_types[key].namespace in ["qc", "fmt"]:
+                        new[key] = ""
             else:
                 logging.info("Creating new asset for {!r} conversion.".format(asset))
                 new = Asset()

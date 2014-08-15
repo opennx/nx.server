@@ -4,11 +4,9 @@
 import socket
 import thread
 
-
 from urllib2 import urlopen
 
 from nx import *
-
 
 class Service(ServicePrototype):
     def on_init(self):
@@ -22,9 +20,20 @@ class Service(ServicePrototype):
         status = self.sock.setsockopt(socket.IPPROTO_IP,socket.IP_ADD_MEMBERSHIP,socket.inet_aton(config["seismic_addr"]) + socket.inet_aton("0.0.0.0"));
         self.sock.settimeout(1)
 
-        host = "nebula.footage.cz"
-        port = 80
-        ssl  = False 
+        try:
+            host = self.settings.find("http_host").text
+        except:
+            host = "localhost"
+
+        try:
+            port = int(self.settings.find("http_port").text)
+        except:
+            port = "80"
+
+        try:
+            ssl = int(self.settings.find("use_ssl").text)
+        except:
+            ssl = 0
 
         self.url = "{protocol}://{host}:{port}/msg_publish?id={site_name}".format(protocol=["http","https"][ssl], host=host, port=port, site_name=config["site_name"])
 
@@ -48,7 +57,7 @@ class Service(ServicePrototype):
                 try:
                     self.send_message("{}\n".format(message.replace("\n","")))
                 except:
-																			 logging.error("Unable to relay {} message to {} ".format(method, self.url))
+                    logging.error("Unable to relay {} message to {} ".format(method, self.url))
                     #pass
 
     

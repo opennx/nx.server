@@ -58,7 +58,7 @@ class DramaticaSolver(object):
         if self.full_clear:
             block.items = []
         else:
-            _newitems = [item for item in block.items if not (str(item["is_optional"]) == 1 or item["dramatica/config"])]
+            _newitems = [item for item in block.items if not str(item["is_optional"]) == "1"]
             block.items = _newitems
 
         if not hasattr(self.rundown, "weights"):
@@ -274,6 +274,7 @@ class DefaultSolver(DramaticaSolver):
                 id_asset = asset.id,
                 is_optional = 0,
             )
+        n.config["solve_empty"] = True
         n.add(asset)
         for key in ASSET_TO_BLOCK_INHERIT:
             if asset[key]:
@@ -319,6 +320,7 @@ class DefaultSolver(DramaticaSolver):
                 ) 
 
             if asset:
+                print ("Splitting block using", asset)
                 self.insert_block(asset, start=self.block["start"]+suggested)
             
         ## If remaining time is long, split block

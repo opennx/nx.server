@@ -61,8 +61,8 @@ class Service(ServicePrototype):
     def on_init(self):
       self.max_mtime = 0
       self.analyzers = [
-        ("asset['origin'] in ('Acquisition', 'Library', 'Edit', 'Ingest') and not 'audio/r128/i' in asset.meta", Analyzer_AV),
-        ("asset['id_folder'] == 5 and asset['origin'] == 'Acquisition' and not 'audio/bpm' in asset.meta", Analyzer_BPM)
+        ("not 'audio/r128/i' in asset.meta", Analyzer_AV),
+        ("asset['origin'] == 'Production' and asset['id_folder'] == 5  and not 'audio/bpm' in asset.meta", Analyzer_BPM)
         ]
 
     def on_main(self):

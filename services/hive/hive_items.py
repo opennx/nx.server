@@ -51,7 +51,6 @@ ASSET_TO_EVENT_INHERIT = [
 def hive_set_events(auth_key, params={}):
     delete = params.get("delete", [])
     events = params.get("events", [])
-    id_channel = params.get("id_channel", False)
 
     db = DB()
 
@@ -73,7 +72,7 @@ def hive_set_events(auth_key, params={}):
     for event_data in params.get("events", []):
         id_event = event_data.get("id_object", False)
         pbin = False
-        db.query("SELECT id_object FROM nx_events WHERE id_channel = %s and start = %s", [id_channel, event_data.get("start", False)])
+        db.query("SELECT id_object FROM nx_events WHERE id_channel = %s and start = %s", [event_data["id_channel"], event_data["start"]])
         try:
             event_at_pos = db.fetchall()[0][0]
         except:
@@ -89,7 +88,6 @@ def hive_set_events(auth_key, params={}):
             pbin = Bin(db=db)
             pbin.save()
             event["id_magic"] = pbin.id
-            event["id_channel"] = id_channel
             created +=1
 
         id_asset = event_data.get("id_asset", False)

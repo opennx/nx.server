@@ -79,7 +79,7 @@ class DramaticaBlock(DramaticaObject):
         elif type(item) == DramaticaAsset:
             self.items.append(item)
         else:
-            return
+            return    
         self.items[-1].meta.update(kwargs)
 
     def solve(self):
@@ -90,7 +90,6 @@ class DramaticaBlock(DramaticaObject):
         
         if solver_name in solvers:
             solver_class = solvers[solver_name]
-
         else:
             solver_class = solvers["Default"]
 
@@ -157,17 +156,20 @@ class DramaticaRundown(DramaticaObject):
                 t+= item.duration
         return result
 
-    def solve(self):
+    def solve(self, id_event=False):
         i = 0
         while True:
             try:
                 block = self.blocks[i]
             except IndexError:
                 break
-            
+            i+=1
+
+            if id_event and block["id_event"] and id_event != block["id_event"]:
+                continue
+
             for msg in block.solve():
                 yield msg
-            i+=1
 
     def __str__(self):
         output = u"\n"
