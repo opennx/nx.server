@@ -101,6 +101,25 @@ def hive_set_meta(auth, params):
     changed_objects = []
     affected_bins = []
     for id_object in objects:
+
+        create_script = False
+        if object_type == "asset" and not id_object:
+            if not data["id_folder"]:
+                msg = "You must select asset folder"
+                logging.warning(msg)
+                return [[400, msg]]
+            db.query("SELECT create_script FROM nx_folders WHERE id_folder=%s", [data["id_folder"]])
+            try:
+                create_script = db.fetchall()[0][0]
+            except:
+                msg ="Unable to load create_script"
+                logging.warning(msg)
+                return [[400, msg]]         
+            if not create_script:       
+                msg = "It is not possible create this kind of asset"
+                logging.warning(msg)
+                return [[400, msg]]
+
         obj = {
             "asset" : Asset,
             "item"  : Item,
@@ -114,6 +133,8 @@ def hive_set_meta(auth, params):
             if obj[key] != value:
                 obj[key] = value
                 changed = True
+
+        print ("CREATE_SCRIPT", create_script)
 
         if changed:
             changed_objects.append(obj.id)
