@@ -204,7 +204,7 @@ class Session():
                 ebin.items.append(item)
 
             for item in old_items:
-                logging.info("Removing remaining item", item)
+                logging.info("Removing remaining {}".format(item))
                 yield "Removing {}".format(item)
                 item.delete()
 
