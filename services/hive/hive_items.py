@@ -120,7 +120,8 @@ def hive_set_events(auth_key, params={}):
         changed_ids.append(event.id)
         event.save()
 
-    messaging.send("events_changed", sender=False, events=[{"id_object":id_object} for id_object in changed_ids])
+    messaging.send("events_changed", sender=False, events=[{"id_object":id_object} for id_object in changed_ids]) #DEPRECATED
+    messaging.send("objects_changed", objects=[{"id_object":id_object} for id_object in changed_ids], object_type="event", user="anonymous Firefly user") # TODO
 
     return [[200, "TODO: Statistics"]]
 
