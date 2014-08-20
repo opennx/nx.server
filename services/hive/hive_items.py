@@ -244,7 +244,7 @@ def hive_rundown(auth_key, params):
                 else:
                     i_meta["rundown_status"] = 2 # Playout asset is ready
 
-            items.append((i_meta, a_meta))
+            items.append(i_meta)
 
         # Reset broadcast time indicator after empty blocks and if run mode is not AUTO (0)
         if not pbin.items:
@@ -278,7 +278,7 @@ def hive_bin_order(auth_key, params):
     pos = 1
 
     db = DB()
-    rlen =float(len(order))
+    rlen = float(len(order))
     for i, obj in enumerate(order):
         object_type = obj["object_type"]
         id_object   = obj["id_object"]
@@ -327,7 +327,6 @@ def hive_bin_order(auth_key, params):
 def hive_del_items(auth_key,params):
     items = params.get("items",[])
     sender = params.get("sender", False)
-
     affected_bins = []
     db = DB()
     for id_item in items:
@@ -335,31 +334,5 @@ def hive_del_items(auth_key,params):
         if not item["id_bin"] in affected_bins: 
                 affected_bins.append(item["id_bin"])
         item.delete()
-
     bin_refresh(affected_bins, sender, db)
     return [[202, "OK"]]
-
-
-
-def hive_toggle_run_mode(auth_key,params={}):
-    items  = list(params.get("items" ,[]))
-    blocks = list(params.get("events" ,[]))
-    affected_bins = set()
-    if items:
-        for id_item in items:
-            item = Item(id_item)
-            if not item["manual_start"]: 
-                item["manual_start"] = 1
-            else: 
-                item["manual_start"] = 0
-            item.save()
-            affected_bins.append(item["id_bin"])
-    elif events:
-        for id_event in events:
-            event = Event(id_event)
-            event["run_mode"] = (event["run_mode"]+1) % len(BLOCK_MODES)
-            event.save()
-            affected_bins.append(event.get_bin().id)
-    bin_refresh(list(affected_bins))
-    return [[200, "Run mode changed"]]
- 
