@@ -104,6 +104,7 @@ class Session():
         self.cache = False
         self.rundown = False
         self.start_time = self.end_time = self.id_channel = 0
+        self.affected_events = []
 
     def open_rundown(self, id_channel=1, date=time.strftime("%Y-%m-%d")):
         day_start = config["playout_channels"][id_channel].get("day_start", (6,0))
@@ -219,6 +220,7 @@ class Session():
             event["id_channel"] = self.id_channel
             event["dramatica/config"] = json.dumps(block.config)
             event["start"] = block["start"]
+            self.affected_events.append(event.id)
             yield "Saving {}".format(event)
             event.save()
 
@@ -244,6 +246,7 @@ class Session():
                 item.delete()
             pbin.items = []
             pbin.delete()
+            self.affected_events.append(event.id)
             yield "Deleting {}".format(event)
             event.delete()
 
@@ -266,7 +269,7 @@ def hive_dramatica(auth_key, params={}):
 
         if params.get("template", False):
             yield -1, {"message":"applying template"}
-            template_class = get_template("default_template") #nxtv_template
+            template_class = get_template("default_template")
             template = template_class(session.rundown)
             template.apply()
 
@@ -276,5 +279,8 @@ def hive_dramatica(auth_key, params={}):
         
         for msg in session.save(id_event=params.get("id_event", False)):
             yield -1, {"message":msg}
+
+    if session.affected_events:
+        messaging.send("events_changed", sender=False, events=[{"id_object":id_object} for id_object in session.affected_events])
 
     yield 200, "ok"
