@@ -142,8 +142,8 @@ class MetaTypes(dict):
         elif mtype.class_ == CS_SELECT:   return value
         elif mtype.class_ == ENUM:        return int(value)
         elif mtype.class_ == CS_ENUM:     return int(value)
-        elif mtype.class_ == LIST:        return value
-        elif mtype.class_ == CS_LIST:     return value
+        elif mtype.class_ == SELECT:      return value
+        elif mtype.class_ == CS_SELECT:   return value
     
         return value
 
