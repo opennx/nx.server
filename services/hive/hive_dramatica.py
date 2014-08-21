@@ -281,6 +281,6 @@ def hive_dramatica(auth_key, params={}):
             yield -1, {"message":msg}
 
     if session.affected_events:
-        messaging.send("objects_changed", sender=False, objects=[{"id_object":id_object} for id_object in session.affected_events], object_type="event", user="anonymous Firefly user")
+        messaging.send("objects_changed", sender=False, objects=session.affected_events, object_type="event", user="anonymous Firefly user")
 
     yield 200, "ok"

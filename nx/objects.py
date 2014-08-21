@@ -302,11 +302,12 @@ def bin_refresh(bins, sender=False, db=False):
     changed_events = []
     db.query("SELECT e.id_object, e.id_channel, e.start FROM nx_events as e, nx_channels as c WHERE c.channel_type = 0 AND c.id_channel = e.id_channel AND id_magic in ({})".format(bq))
     for id_event, id_channel, start_time in db.fetchall():
-        chg = {"id_channel": id_channel, "id_object": id_event, "start":start_time}
+        #chg = {"id_channel": id_channel, "id_object": id_event, "start":start_time}
+	chg = id_event
         if not chg in changed_events:
             changed_events.append(chg)
     if changed_events:
-        messaging.send("events_changed", sender=sender, events=changed_events)
+        messaging.send("objects_changed", sender=sender, objects=changed_events, object_type="event")
     return 202, "OK"
 
         
