@@ -13,6 +13,7 @@ def DEBUG(*args):
 SAFE_OVER = 120
 ASSET_TO_BLOCK_INHERIT = [
     "title",
+    "title/subtitle",
     "description",
     "promoted"
     ]
@@ -144,70 +145,64 @@ class DramaticaSolver(object):
                 "weight.promoted"
                 ]
 
-        for definition in ordering:
-            c = int(len(result)/2)+1
-            if len(result) == 1:
-                break
-            
-            if definition == "weights":
-                result = sorted(result, key=lambda id_asset: sum(self.weights.data[id_asset]), reverse=True)[:c]
-                continue
+        while len(result) > 1:
+            for definition in ordering:
+                c = int(len(result)/2)#+1
+                if len(result) == 1:
+                    break
+                
+                if definition == "weights":
+                    result = sorted(result, key=lambda id_asset: sum(self.weights.data[id_asset]), reverse=True)[:c]
+                    continue
 
-            definition = definition.split(".")
+                definition = definition.split(".")
 
-            if len(definition) < 2:
-                continue
-            
-            if len(definition) > 2 and definition[2] == "asc":
-                desc = False
-            else:
-                desc = True
+                if len(definition) < 2:
+                    continue
+                
+                if len(definition) > 2 and definition[2] == "asc":
+                    desc = False
+                else:
+                    desc = True
 
-            if definition[0] == "weight":
-                result = sorted(result, key=lambda id_asset: self.get_weight(id_asset, definition[1]), reverse=desc)
-                if debug:
-                    DEBUG("")
-                    DEBUG("refined result using", definition)
-                    for id_asset in result[:c]:
-                        DEBUG (" --- ", 
-                            "{:<90}".format(self.cache[id_asset]),  
-                            "{:<10}".format(self.get_weight(id_asset, definition[1])), 
-                            "({} runs)".format(len(self.cache[id_asset]["dramatica/runs"])),
-                            "{:.02f} hours ago".format(abs(self.block.scheduled_start - self.cache[id_asset]["dramatica/runs"][0])/3600) if self.cache[id_asset]["dramatica/runs"] else "",
-                            )
-                    DEBUG("discarted result", definition)
-                    for id_asset in result[c:]:
-                        DEBUG (" --- --- ", 
-                            "\033[31m",
-                            "{:<85}".format(self.cache[id_asset]),  
-                            "{:<10}".format(self.get_weight(id_asset, definition[1])), 
-                            "({} runs)".format(len(self.cache[id_asset]["dramatica/runs"])),
-                            "{:.02f} hours ago".format(abs(self.block.scheduled_start - self.cache[id_asset]["dramatica/runs"][0])/3600) if self.cache[id_asset]["dramatica/runs"] else "",
-                            "\033[0m"
-                            )
+                if definition[0] == "weight":
+                    result = sorted(result, key=lambda id_asset: self.get_weight(id_asset, definition[1]), reverse=desc)
+                    if debug:
+                        DEBUG("")
+                        DEBUG("refined result using", definition)
+                        for id_asset in result[:c]:
+                            DEBUG (" --- ", 
+                                "{:<90}".format(self.cache[id_asset]),  
+                                "{:<10}".format(self.get_weight(id_asset, definition[1])), 
+                                "({} runs)".format(len(self.cache[id_asset]["dramatica/runs"])),
+                                "{:.02f} hours ago".format(abs(self.block.scheduled_start - self.cache[id_asset]["dramatica/runs"][0])/3600) if self.cache[id_asset]["dramatica/runs"] else "",
+                                )
+                        DEBUG("discarted result", definition)
+                        for id_asset in result[c:]:
+                            DEBUG (" --- --- ", 
+                                "\033[31m",
+                                "{:<85}".format(self.cache[id_asset]),  
+                                "{:<10}".format(self.get_weight(id_asset, definition[1])), 
+                                "({} runs)".format(len(self.cache[id_asset]["dramatica/runs"])),
+                                "{:.02f} hours ago".format(abs(self.block.scheduled_start - self.cache[id_asset]["dramatica/runs"][0])/3600) if self.cache[id_asset]["dramatica/runs"] else "",
+                                "\033[0m"
+                                )
 
-                result = result[:c]
-                    
-            elif definition[0] == "meta":
-                result = sorted(result, key=lambda id_asset: self.cache[id_asset][definition[1]], reverse=desc)[:c]
-                if debug:
-                    DEBUG(
-                        "\nrefined result using", definition)
-                    for id_asset in result:
-                        DEBUG (" --- ", self.cache[id_asset],  self.cache[id_asset][definition[1]])
+                    result = result[:c]
+                        
+                elif definition[0] == "meta":
+                    result = sorted(result, key=lambda id_asset: self.cache[id_asset][definition[1]], reverse=desc)[:c]
+                    if debug:
+                        DEBUG(
+                            "\nrefined result using", definition)
+                        for id_asset in result:
+                            DEBUG (" --- ", self.cache[id_asset],  self.cache[id_asset][definition[1]])
+
+                if best_fit:
+                    result = sorted(result, key=lambda id_asset: abs(best_fit - self.cache[id_asset].duration))[:1]
 
 
-
-
-        if best_fit:
-            result = sorted(result, key=lambda id_asset: abs(best_fit - self.cache[id_asset].duration))[:1]
-    
-        try:
-            id_asset = result[0] if len(result) == 1 else random.choice(result)
-        except:
-            DEBUG( "ERR:", result )
-            sys.exit(0)
-
+        id_asset = result[0]
         asset =  self.block.cache[id_asset]
 
         if debug:
@@ -362,7 +357,7 @@ class MusicBlockSolver(DramaticaSolver):
         last_promo  = 0
 
         jingle_selector = self.block.config.get("jingles", False)
-        promo_selector = self.block.config.get("promos", False)
+        promo_selector  = self.block.config.get("promos", False)
         intro_jingle    = self.block.config.get("intro_jingle", False)
         outro_jingle    = self.block.config.get("outro_jingle", False)
         jingle_span     = self.block.config.get("jingle_span",600)
