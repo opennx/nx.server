@@ -1,7 +1,6 @@
 from __future__ import print_function
 
 import math
-import random
 import sys
 
 from .timeutils import *
@@ -147,9 +146,9 @@ class DramaticaSolver(object):
 
         while len(result) > 1:
             for definition in ordering:
-                c = int(len(result)/2)#+1
                 if len(result) == 1:
                     break
+                c = int(len(result)/2)
                 
                 if definition == "weights":
                     result = sorted(result, key=lambda id_asset: sum(self.weights.data[id_asset]), reverse=True)[:c]
@@ -256,11 +255,7 @@ class DefaultSolver(DramaticaSolver):
             for key in ASSET_TO_BLOCK_INHERIT:
                 if asset[key]:
                     self.block[key] = asset[key]
-            if self.block.config.get("post_main", False):
-                p = self.get(self.block.config.get("post_main"))
-                if p:
-                    self.block.add(p)
-
+            self.insert_post_main()
 
     def insert_block(self, asset, start):
         n = self.block.rundown.insert(
@@ -275,14 +270,28 @@ class DefaultSolver(DramaticaSolver):
             if asset[key]:
                 n[key] = asset[key]
 
-        if self.block.config.get("post_main", False):
-            p = self.get(self.block.config.get("post_main"))
-            if p:
-                n.add(p)        
+        self.insert_post_main()
+        
+        for v in ["jingles", "promos", "post_main", "block_source", "genres"]:
+            if self.block.config.get(v, False):
+                n.config[v] = self.block.config[v]
 
-        jingles = self.block.config.get("jingles", False)
-        if jingles:
-            n.config["jingles"] = jingles
+
+    def insert_post_main(self):
+        """
+        Inserts clips which should run right after "main" asset.
+        Promos, comming up next graphics etc...
+        """
+        post_main = self.block.config.get("post_main", False)
+        if not post_main:
+            return
+        elif type(post_main) == str:
+            post_main = [post_main]
+
+        for definition in post_main:
+            asset = self.get(definition)
+            if asset:
+                n.add(asset)        
 
 
     def solve(self):
