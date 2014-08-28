@@ -109,7 +109,7 @@ class Session():
     def open_rundown(self, id_channel=1, date=time.strftime("%Y-%m-%d")):
         day_start = config["playout_channels"][id_channel].get("day_start", (6,0))
 
-        logging.debug("loading asset cache")
+        logging.debug("Loading asset cache")
         self.cache = DramaticaCache(NX_TAGS)
         for msg in self.cache.load_assets(nx_assets_connector()):
             yield msg
@@ -118,10 +118,12 @@ class Session():
         self.start_time = datestr2ts(date, *day_start)
         self.end_time = self.start_time + (3600*24)
 
-        logging.debug("loading history")
+        logging.debug("Loading history")
         stime = time.time()
-        i = self.cache.load_history(nx_history_connector())
-        logging.debug("{} history items loaded in {} seconds".format(i, time.time()-stime))
+        for msg in self.cache.load_history(nx_history_connector()):
+            yield msg
+
+        logging.debug("History items loaded in {} seconds".format(time.time()-stime))
 
         self.rundown = DramaticaRundown(
                 self.cache,
@@ -178,7 +180,7 @@ class Session():
             for pos, bitem in enumerate(block.items):
                 try:
                     item = old_items.pop(0)
-                    t_keys = [key for key in item.meta if key not in ["id_object", "positionp"]]
+                    t_keys = [key for key in item.meta if key not in ["id_object", "position"]]
                 except IndexError:
                     item = Item(db=db)
                     t_keys = []

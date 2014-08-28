@@ -255,7 +255,7 @@ class DefaultSolver(DramaticaSolver):
             for key in ASSET_TO_BLOCK_INHERIT:
                 if asset[key]:
                     self.block[key] = asset[key]
-            self.insert_post_main()
+
 
     def insert_block(self, asset, start):
         n = self.block.rundown.insert(
@@ -270,8 +270,6 @@ class DefaultSolver(DramaticaSolver):
             if asset[key]:
                 n[key] = asset[key]
 
-        self.insert_post_main()
-        
         for v in ["jingles", "promos", "post_main", "block_source", "genres"]:
             if self.block.config.get(v, False):
                 n.config[v] = self.block.config[v]
@@ -291,7 +289,7 @@ class DefaultSolver(DramaticaSolver):
         for definition in post_main:
             asset = self.get(definition)
             if asset:
-                n.add(asset)        
+                self.block.add(asset)        
 
 
     def solve(self):
@@ -302,10 +300,15 @@ class DefaultSolver(DramaticaSolver):
             else:
                 return
 
+
         suggested = suggested_duration(self.block.duration)
         jingles = self.block.config.get("jingles", False)
         fill_source = self.block.config.get("fill_source", "id_folder IN (3,5,7)")
     
+
+        # todo: insert post_main after main.
+        self.insert_post_main()
+
         ##########################################
         ## If remaining time is long, split block
 

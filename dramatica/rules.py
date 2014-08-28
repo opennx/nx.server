@@ -132,7 +132,9 @@ class MatureContentRule(DramaticaBlockRule):
 class GenreRule(DramaticaBlockRule):
     ruleset = ["genre"]
     def rule(self):
-        genres = self.block.config.get("genres", [])
+        genres = self.block.config.get("genre", [])
+        if type(genres) == str:
+            genres = [genres]
         for asset in self.assets:
             if asset["genre"] in genres:
                self.set_weight(asset.id, 1)
@@ -146,8 +148,9 @@ class RundownRepeatRule(DramaticaBlockRule):
                     asset["dramatica/veto_reason"] = "Rundown repeat"
                     self.set_weight(asset.id, -1)
                     continue
-                continue
-            self.set_weight(asset.id, 1)
+                self.set_weight(asset.id, 0)
+            else:
+                self.set_weight(asset.id, 1)
 
 ## Block rules
 ##########################################################################################################
@@ -157,7 +160,14 @@ class ArtistSpanRule(DramaticaItemRule):
     ruleset = ["artist_span"]
     def rule(self):
         if asset["id_folder"] == 5:
-            pass
+            for asset in self.assets:
+                for item in self.block.items:
+                    if item["role/performer"] == asset["role/performer"]:
+                        self.set_weight(asset.id, 0)
+                        break
+                else:
+                    self.set_weight(asset.id, 1)
+            
             # TODO:
             #  - check if artist is in current block.
             #  - if not use following query
