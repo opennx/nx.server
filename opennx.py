@@ -33,13 +33,13 @@ class StorageMonitor():
         for id_storage in storages:
             storage = storages[id_storage]
             if ismount(storage.get_path()): 
-                storage_string = "%s:%s\n" % (config["site_name"], storage.id_storage)
+                storage_string = "{}:{}".format(config["site_name"], storage.id_storage)
                 storage_ident_path = os.path.join(storage.get_path(),".nebula_root")
-                if not os.path.exists(storage_ident_path):
-                    #TODO. Check if string is there.
+                
+                if not (os.path.exists(storage_ident_path) and storage_string in [line.strip() for line in open(storage_ident_path).readlines()]):
                     try:
-                        f = open(storage_ident_path, "w")
-                        f.write(storage_string)
+                        f = open(storage_ident_path, "a")
+                        f.write(storage_string+"\n")
                         f.close()
                     except: 
                         pass
