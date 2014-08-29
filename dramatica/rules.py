@@ -73,16 +73,14 @@ class RepetitionRule(DramaticaRundownRule):
             else:
                 f_distances[id_folder].append(val)
 
-        f_dist_avgs = {}
-        f_runs_avgs = {}
         f_dist_maxs = {}
         f_dist_mins = {}
+        f_runs_maxs = {}
 
         for id_folder in f_distances.keys():
-            f_dist_avgs[id_folder] = self.get_avg(f_distances[id_folder])
-            f_runs_avgs[id_folder] = self.get_avg(f_runs[id_folder])
             f_dist_maxs[id_folder] = max(f_distances[id_folder])
             f_dist_mins[id_folder] = min(f_distances[id_folder])
+            f_runs_maxs[id_folder] = max(f_runs[id_folder])
 
         for asset in self.assets:
             runs = asset["dramatica/runs"]
@@ -93,6 +91,7 @@ class RepetitionRule(DramaticaRundownRule):
                 self.set_weight(asset.id, "repetition", 1)
                 continue
 
+            # DISTANCE WEIGHT
             dist = abs(runs[0] - self.block.scheduled_start)
             zd = f_dist_maxs[id_folder] - f_dist_mins[id_folder]
             cd = dist - f_dist_mins[id_folder]
@@ -103,14 +102,11 @@ class RepetitionRule(DramaticaRundownRule):
             w  = round(pd, 2)
             self.set_weight(asset.id, "distance", w)
 
-            zr = max(f_runs[id_folder]) - min(f_runs[id_folder])
-            cr = len(runs) - min(f_runs[id_folder])
-            if zr == 0:
-                pr = 1
-            else:
-                pr = float(cr)/zr
-            w+= round(pr, 2)
-            self.set_weight(asset.id, "repetition", w)
+            # RUNS WEIGHT
+            max_run = f_runs_maxs[asset["id_folder"]]
+            w = 1 -  (float(len(asset["dramatica/runs"])) / max_run)
+            self.set_weight(asset.id, "repetition", round(w,2))
+
 
     def get_avg(self, array):
         """Reimplement this if you don't like results"""
@@ -143,12 +139,12 @@ class RundownRepeatRule(DramaticaBlockRule):
     ruleset = ["rundown_repeat"]
     def rule(self):
         for asset in self.assets:
-            if self.block.rundown.has_asset(asset.id):
+            if len(self.block.rundown.has_asset(asset.id)) > 0:
                 if asset["id_folder"] in [1, 2]: # Do not repeat movies and series in same day
                     asset["dramatica/veto_reason"] = "Rundown repeat"
                     self.set_weight(asset.id, -1)
-                    continue
-                self.set_weight(asset.id, 0)
+                else:
+                    self.set_weight(asset.id, 0)
             else:
                 self.set_weight(asset.id, 1)
 
@@ -159,8 +155,8 @@ class RundownRepeatRule(DramaticaBlockRule):
 class ArtistSpanRule(DramaticaItemRule):
     ruleset = ["artist_span"]
     def rule(self):
-        if asset["id_folder"] == 5:
-            for asset in self.assets:
+        for asset in self.assets:
+            if asset["id_folder"] == 5:
                 for item in self.block.items:
                     if item["role/performer"] == asset["role/performer"]:
                         self.set_weight(asset.id, 0)
@@ -182,7 +178,7 @@ class ArtistSpanRule(DramaticaItemRule):
 def get_rules():
     from inspect import isclass
     for rule in globals().values():
-        if not (isclass(rule) and (issubclass(rule, DramaticaBlockRule) or issubclass(rule, DramaticaRundownRule))):
+        if not (isclass(rule) and (issubclass(rule, DramaticaBlockRule) or issubclass(rule, DramaticaItemRule) or issubclass(rule, DramaticaRundownRule))):
             continue
         if rule.ruleset:
             yield rule

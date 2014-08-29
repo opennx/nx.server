@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import math
 import sys
+import random
 
 from .timeutils import *
 from .rules import DramaticaRundownRule, DramaticaBlockRule, DramaticaItemRule, get_rules
@@ -80,6 +81,13 @@ class DramaticaSolver(object):
                 r.clear()
                 r.rule()
 
+    def compute_item_weights(self):
+        for rule in self.weights.rule_algs:
+            if issubclass(rule, DramaticaItemRule):
+                r = rule(self)
+                r.clear()
+                r.rule()
+
     def solve(self):
         pass
 
@@ -104,6 +112,8 @@ class DramaticaSolver(object):
         ordering = kwargs.get("order", [])
         best_fit = kwargs.get("best_fit", False)
         debug    = kwargs.get("debug", False)
+
+        self.compute_item_weights()
 
         if debug:
             DEBUG("************************************************************************")
@@ -138,13 +148,17 @@ class DramaticaSolver(object):
         if not ordering:
             ordering = [
                 "weight.genre",
-                "weight.distance",
-                "weight.repetition",
                 "weight.rundown_repeat",
+                "weight.repetition",
+                "weight.distance",
                 "weight.promoted"
                 ]
-
+        passes = 0
         while len(result) > 1:
+            passes+=1
+            if debug:
+                DEBUG("\nRUNNING PASS", passes)
+
             for definition in ordering:
                 if len(result) == 1:
                     break
@@ -166,6 +180,15 @@ class DramaticaSolver(object):
 
                 if definition[0] == "weight":
                     result = sorted(result, key=lambda id_asset: self.get_weight(id_asset, definition[1]), reverse=desc)
+
+                    if len(set([self.get_weight(id_asset, definition[1]) for id_asset in result ])) == 1:
+                        #if debug:
+                        #    DEBUG("NO REFINED RESULT FOR RULE ", definition)
+                        if passes > 2:
+                            result = [random.choice(result)]
+                            break
+                        continue
+
                     if debug:
                         DEBUG("")
                         DEBUG("refined result using", definition)
@@ -186,7 +209,6 @@ class DramaticaSolver(object):
                                 "{:.02f} hours ago".format(abs(self.block.scheduled_start - self.cache[id_asset]["dramatica/runs"][0])/3600) if self.cache[id_asset]["dramatica/runs"] else "",
                                 "\033[0m"
                                 )
-
                     result = result[:c]
                         
                 elif definition[0] == "meta":
@@ -205,7 +227,7 @@ class DramaticaSolver(object):
         asset =  self.block.cache[id_asset]
 
         if debug:
-            DEBUG("\n\033[32mRETURNING\033[0m", asset, "\n\n")
+            DEBUG("\n\033[32mRETURNING\033[0m", asset, "in",passes,"passes\n\n")
 
         return asset
 
@@ -232,7 +254,7 @@ class DramaticaSolver(object):
 
 
 class DefaultSolver(DramaticaSolver):
-    default_block_source = "id_folder = 1"
+    default_block_source = "id_folder in (1,2)"
 
     def solve_empty(self):
         for id_asset in sorted(self.block.cache.assets, key=lambda x: self.block.cache.assets[x]["dramatica/weight"]):
@@ -244,10 +266,11 @@ class DefaultSolver(DramaticaSolver):
             "io_duration < {}".format(self.block.remaining + SAFE_OVER),
             order=[
                 "weight.genre",
-                "weight.distance", 
-                "weight.repetition", 
+                "weight.rundown_repeat",
+                "weight.repetition",
+                "weight.distance",
                 "meta.io_duration",
-                "weight.promoted",
+                "weight.promoted" 
                 ]
             )
         if asset:
@@ -283,7 +306,8 @@ class DefaultSolver(DramaticaSolver):
         post_main = self.block.config.get("post_main", False)
         if not post_main:
             return
-        elif type(post_main) == str:
+
+        elif type(post_main) != list:
             post_main = [post_main]
 
         for definition in post_main:
@@ -301,10 +325,12 @@ class DefaultSolver(DramaticaSolver):
                 return
 
 
-        suggested = suggested_duration(self.block.duration)
-        jingles = self.block.config.get("jingles", False)
+        suggested   = suggested_duration(self.block.duration)
+        jingles     = self.block.config.get("jingles", False)
+        jingle_span = self.block.config.get("jingle_span", 150)
         fill_source = self.block.config.get("fill_source", "id_folder IN (3,5,7)")
     
+        last_jingle = 0
 
         # todo: insert post_main after main.
         self.insert_post_main()
@@ -317,11 +343,12 @@ class DefaultSolver(DramaticaSolver):
                     self.block.config.get("block_source", self.default_block_source),
                     "io_duration < {}".format(self.block.target_duration - suggested),
                     order=[
-                        "weight.distance", 
-                        "weight.repetition", 
-                        "meta.io_duration",
                         "weight.genre",
-                        "weight.promoted",
+                        "weight.rundown_repeat",
+                        "weight.repetition",
+                        "weight.distance",
+                        "meta.io_duration",
+                        "weight.promoted" 
                         ],
                    # debug=True
                 ) 
@@ -334,7 +361,7 @@ class DefaultSolver(DramaticaSolver):
         ##########################################
 
         while self.block.remaining > 0:
-            asset = self.get(fill_source, order=["weight.genre", "weight.rundown_repeat"], best_fit=self.block.remaining)
+            asset = self.get(fill_source, best_fit=self.block.remaining)
             if asset and self.block.remaining - asset.duration < 0:
                 self.block.add(asset)
                 break
@@ -342,7 +369,7 @@ class DefaultSolver(DramaticaSolver):
             asset = self.get(
                 fill_source, 
                 "io_duration < {}".format(self.block.remaining + SAFE_OVER),
-                order=["weight.genre", "weight.rundown_repeat"]
+               # debug = True
                 ) ### Fillers
             
             if not asset:
@@ -350,10 +377,11 @@ class DefaultSolver(DramaticaSolver):
 
             self.block.add(asset)
 
-            if jingles:
+            if jingles and self.block.remaining > jingle_span and self.block.duration - last_jingle > jingle_span:
                 jingle = self.get(jingles, allow_reuse=True)
                 if jingle:
                     self.block.add(jingle)
+                last_jingle = self.block.duration
 
 
 

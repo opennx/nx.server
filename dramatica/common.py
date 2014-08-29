@@ -114,7 +114,11 @@ class DramaticaCache(object):
             return instr.replace("''","'").replace("'","''")
 
     def query(self, *args, **kwargs):
-        self.cur.execute(*args)
+        try:
+            self.cur.execute(*args)
+        except:
+            print(args)
+            raise Exception
         if kwargs.get("one_column", False):
             return [i[0] for i in self.cur.fetchall()]
         else:

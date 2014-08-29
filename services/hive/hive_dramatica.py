@@ -36,10 +36,12 @@ NX_TAGS = [
     (int, "promoted"),
     (int, "contains/nudity"),
     (int, "contains/violence"),
+    (int, "ctime"),
+    (int, "mtime"),
     (float, "duration"),
     (float, "mark_in"),
     (float, "mark_out"),
-    (float, "audio/bpm")
+    (float, "audio/bpm"),
     ]
 
 
@@ -83,7 +85,7 @@ def get_template(tpl_name):
 
 def nx_assets_connector():
     db = DB()
-    db.query("SELECT id_object FROM nx_assets WHERE id_folder != 10 AND media_type = 0 AND content_type=1 AND status IN (0,1) AND origin IN ('Production')")
+    db.query("SELECT id_object FROM nx_assets WHERE id_folder != 10 AND media_type = 0 AND content_type=1 AND status = 1 AND origin IN ('Production')")
     for id_object, in db.fetchall():
         asset = Asset(id_object, db=db)
         yield asset.meta

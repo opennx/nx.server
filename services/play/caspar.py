@@ -25,7 +25,7 @@ class CasparChannel():
         self.current_fname  = False
         self.cued_item      = False
         self.cued_fname     = False
-        self.paused         = True
+        self.paused         = False
         
         self._cueing        = False
         self.request_time   = time.time()
@@ -170,6 +170,11 @@ class CasparChannel():
          
         # What are we playing right now?
         try:
+            if video_layer.find("status").text == "paused":
+                self.paused = True
+            elif video_layer.find("status").text == "playig":
+                self.paused = False
+
             fg_prod = video_layer.find("foreground").find("producer")
             if fg_prod.find("type").text == "image-producer":
                 self.fpos = self.fdur = self.pos = self.dur = 0
