@@ -354,7 +354,7 @@ class DefaultSolver(DramaticaSolver):
                 ) 
 
             if asset:
-                print ("Splitting block using", asset)
+                yield "Splitting block using {}".format(asset)
                 self.insert_block(asset, start=self.block["start"]+suggested)
             
         ## If remaining time is long, split block
@@ -375,6 +375,7 @@ class DefaultSolver(DramaticaSolver):
             if not asset:
                 break
 
+            yield "Appending {}".format(asset)
             self.block.add(asset)
 
             if jingles and self.block.remaining > jingle_span and self.block.duration - last_jingle > jingle_span:
@@ -442,7 +443,9 @@ class MusicBlockSolver(DramaticaSolver):
             else:
                 bpm_cond = "`audio/bpm` > {}".format(bpm_median)
             asset = self.get(song_source, bpm_cond)
-            self.block.add(asset)
+            if asset:
+                yield "Appending {}".format(asset)
+                self.block.add(asset)
 
         if outro_jingle:
             self.block.add(self.get(outro_jingle, allow_reuse=True))
