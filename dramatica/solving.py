@@ -149,8 +149,8 @@ class DramaticaSolver(object):
             ordering = [
                 "weight.genre",
                 "weight.rundown_repeat",
-                "weight.repetition",
                 "weight.distance",
+                "weight.repetition",
                 "weight.promoted"
                 ]
         passes = 0
@@ -267,8 +267,8 @@ class DefaultSolver(DramaticaSolver):
             order=[
                 "weight.genre",
                 "weight.rundown_repeat",
-                "weight.repetition",
                 "weight.distance",
+                "weight.repetition",
                 "meta.io_duration",
                 "weight.promoted" 
                 ]
@@ -345,8 +345,8 @@ class DefaultSolver(DramaticaSolver):
                     order=[
                         "weight.genre",
                         "weight.rundown_repeat",
-                        "weight.repetition",
                         "weight.distance",
+                        "weight.repetition",
                         "meta.io_duration",
                         "weight.promoted" 
                         ],
@@ -401,8 +401,8 @@ class MusicBlockSolver(DramaticaSolver):
         promo_selector  = self.block.config.get("promos", False)
         intro_jingle    = self.block.config.get("intro_jingle", False)
         outro_jingle    = self.block.config.get("outro_jingle", False)
-        jingle_span     = self.block.config.get("jingle_span",600)
-        promo_span      = self.block.config.get("promo_span",1000)
+        jingle_span     = self.block.config.get("jingle_span", 600)
+        promo_span      = self.block.config.get("promo_span", 1000)
         song_source     = self.block.config.get("song_source", "id_folder = 5")
 
         if intro_jingle:
