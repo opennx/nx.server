@@ -86,6 +86,20 @@ def services(view="default"):
 
 
 
+@app.route("/users",methods=['GET', 'POST'])
+def users(view="default"):
+    if request.method == "POST" and "id_user" in request.form:
+        user_data = {}
+
+        user_data["id_user"] = int(request.form.get("id_user"))
+        user_data["login"] = request.form.get("login")
+        user_data["password"] = request.form.get("password")
+        
+        return json.dumps(save_user(user_data))
+
+    users = view_users()
+    return render_template("users.html", users=users)
+
 
 
 

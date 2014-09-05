@@ -1,6 +1,7 @@
 from nx import *
 from nx.objects import *
 
+from .auth import get_rights
 
 BLOCK_MODES = ["LINK", "MANUAL", "SOFT AUTO", "HARD AUTO"]
 
@@ -11,6 +12,7 @@ BLOCK_MODES = ["LINK", "MANUAL", "SOFT AUTO", "HARD AUTO"]
   
 
 def hive_get_events(auth_key, params={}):
+    #TODO: AUTH
     start_time = params.get("start_time", 0)
     end_time = params.get("end_time", start_time + (3600*24*7))
     extend = params.get("extend", False)
@@ -49,6 +51,7 @@ ASSET_TO_EVENT_INHERIT = [
 
 
 def hive_set_events(auth_key, params={}):
+    #TODO: AUTH
     delete = params.get("delete", [])
     events = params.get("events", [])
 
@@ -127,6 +130,7 @@ def hive_set_events(auth_key, params={}):
 
 
 def hive_get_runs(auth_key, params):
+    #TODO: AUTH
     asset_ids  = params.get("asset_ids", [])
     id_channel = int(params.get("id_channel", 0))
     
@@ -170,6 +174,7 @@ def hive_get_runs(auth_key, params):
 
 
 def hive_rundown(auth_key, params):
+    #TODO: AUTH
     start_time = params.get("start_time", 0)
     try:
         id_channel = int(params["id_channel"])
@@ -261,6 +266,7 @@ def hive_rundown(auth_key, params):
 
 
 def hive_bin_order(auth_key, params):
+    #TODO: AUTH
     id_bin = params.get("id_bin", False)
     order  = params.get("order", [])
     sender = params.get("sender", False)
@@ -324,7 +330,8 @@ def hive_bin_order(auth_key, params):
 
 
 
-def hive_del_items(auth_key,params):
+def hive_del_items(auth_key, params):
+    #TODO: AUTH
     items = params.get("items",[])
     sender = params.get("sender", False)
     affected_bins = []

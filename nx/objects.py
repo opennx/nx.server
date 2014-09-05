@@ -245,16 +245,23 @@ class Event(ServerObject, BaseEvent):
 class User(ServerObject, BaseObject):
     object_type = "user"
 
-    def hash(self, string):
-        import hashlib
-        return hashlib.sha256(string).hexdigest()
-
     def set_password(self, password):
-        self["password"] = self.hash(password)
+        self["password"] = get_hash(password)
 
 
 ######################################################################################
 ## Utilities
+
+
+def get_user(login, password, db=False):
+    #TODO: sanitize inputs
+    if not db: 
+        db = DB()
+    db.query("SELECT id_object FROM nx_users WHERE login=%s and password=%s", [login, get_hash(password)])
+    res = db.fetchall()
+    if not res:
+        return False
+    return User(res[0][0])
 
 
 

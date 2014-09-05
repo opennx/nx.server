@@ -96,3 +96,54 @@ def job_action(id_job, action, id_user=0):
     id_job = id_job
     db.query("UPDATE nx_jobs set id_service=0, progress=-1, retries=0, ctime=%s, stime=0, etime=0, message='Pending', id_user=%s WHERE id_job=%s", (time.time(), id_user, id_job))
     db.commit()
+
+
+
+
+########################################################################
+## Users administration
+
+def view_users():
+    # db = DB()
+    # db.query("SELECT id_object, login, password, ctime, mtime FROM nx_users ORDER BY id_object ASC")
+
+    # users = {}
+    # for user in db.fetchall():
+    #     users[str(user[0])] = user
+    # return users
+
+    from nx.objects import *
+
+    db = DB()
+    db.query("SELECT id_object FROM nx_users")
+    
+    users = []
+    for id_object, in db.fetchall():
+        user = User(id_object, db=db)
+        users.append(user)
+    return users    
+
+
+def get_user(id):
+ 
+    from nx.objects import *
+
+    db = DB()
+
+    user = User(id, db=db)
+    return user
+
+
+def save_user(user_data):
+    
+    from nx.objects import *
+
+    user = User()
+    if(user_data['id_user'] > 0):
+        user['id'] = user_data['id_user']
+    
+    user['login'] = user_data['login']
+    user.set_password(user_data['password'])
+
+    return user.save()
+

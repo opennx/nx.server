@@ -152,7 +152,7 @@ class MetaTypes(dict):
 
     def unformat(self, key, value):
         mtype = self[key]
-        if mtype.class_ == REGION or key.startswith("can/"):
+        if mtype.class_ == REGIONS or key.startswith("can/"):
             return json.dumps(value)
         return value
  

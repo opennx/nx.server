@@ -4,7 +4,11 @@ from nx import *
 from nx.objects import *
 from nx.jobs import send_to
 
+from .auth import get_rights
+
 def hive_browse(auth_key, params):
+    if not get_rights(auth_key):
+        return [[403, "Not authorised"]]
     db = DB()
     conds = []
 
@@ -40,6 +44,9 @@ def hive_browse(auth_key, params):
 
 
 def hive_get_assets(auth_key, params):
+    if not get_rights(auth_key):
+        yield 403, "Not authorised"
+        return
     asset_ids = params.get("asset_ids", [])
     db = DB()
     result = {}
@@ -76,6 +83,7 @@ def hive_actions(auth_key, params):
 
 
 def hive_send_to(auth_key, params):
+    #TODO: AUTH
     db = DB()
     try:
         id_action = params["id_action"]
@@ -94,6 +102,7 @@ def hive_send_to(auth_key, params):
 
 
 def hive_set_meta(auth, params):
+    #TODO: AUTH
     objects = [int(id_object) for id_object in params.get("objects",[])]
     object_type = params.get("object_type","asset")
     data = params.get("data", {})
@@ -149,6 +158,7 @@ def hive_set_meta(auth, params):
     return [[200, obj.meta]]
 
 def hive_trash(auth, params):
+    #TODO: AUTH
     objects = [int(id_object) for id_object in params.get("objects",[])]
     db = DB()
     for id_asset in objects:

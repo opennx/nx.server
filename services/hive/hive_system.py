@@ -1,13 +1,42 @@
 from nx import *
 from nx.common.metadata import meta_types
+from nx.objects import *
+from .auth import get_rights
+
+
+def hive_auth(auth_key, params):
+    if get_rights(auth_key):
+        return [[200, "Already logged in"]]
+
+    if params.get("login") and params.get("password"):
+        db = DB()
+        user = get_user(params["login"], params["password"], db=db)
+        if user:
+            db.query("INSERT INTO nx_sessions (key, id_user, host, ctime, mtime) VALUES (%s, %s , %s, %s, %s)", [ auth_key, user.id, params.get("host", "unknown"), time.time(), time.time()])
+            db.commit()
+            return [[200, "Logged in"]]
+        else:
+            return [[403, "Incorrect login/password combination"]]
+
+    else:
+        return [[403, "Not logged in"]]
 
 def hive_meta_types(auth_key, params):
+    if not get_rights(auth_key):
+        return [[403, "Not authorised"]]
     return [[200, [meta_types[t].pack() for t in meta_types.keys()]]]
 
 def hive_site_settings(auth_key,params):
+    if not get_rights(auth_key):
+        return [[403, "Not authorised"]]
     db = DB()
-    db.query("SELECT key, value FROM nx_settings WHERE key in ('seismic_addr', 'seismic_port')")
+    rights = get_rights(auth_key)
+
     result = {}
+    result["rights"] = rights
+
+    db.query("SELECT key, value FROM nx_settings WHERE key in ('seismic_addr', 'seismic_port')")
+
     for tag, value in db.fetchall():
         result[tag] = value
 
@@ -57,6 +86,8 @@ def hive_site_settings(auth_key,params):
 
 
 def hive_services(auth_key, params):
+    if not get_rights(auth_key):
+        return [[403, "Not authorised"]]
     command    = params.get("command", 0) 
     id_service = params.get("id_service", 0)
     db = DB()

@@ -6,6 +6,7 @@ import sys
 import socket
 import json
 import time
+import hashlib
 
 from xml.etree import ElementTree as ET
 from nx.common.constants import *
@@ -34,8 +35,6 @@ def critical_error(message):
         print ("CRITICAL ERROR: {0}".format(message))
     sys.exit(-1)
 
-
-
 def success(ret_code):
     return ret_code < 300
 
@@ -50,6 +49,11 @@ def fract2float(fract):
         return float(nd[0]) / float(nd[1])
     except:
         return 1
+
+def get_hash(string):
+    return hashlib.sha256(string).hexdigest()
+
+
 ########################################################################
 ## Config
 
