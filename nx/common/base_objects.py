@@ -5,8 +5,6 @@ from nx.common import *
 from nx.connection import *
 from nx.common.metadata import MetaType, meta_types
 
-__all__ = ["NXObject"]
-
 class BaseObject(object):
     object_type = "asset"
 

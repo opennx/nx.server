@@ -9,7 +9,7 @@ from nx.common import *
 from nx.common.metadata import meta_types
 from nx.connection import *
 
-from nx.common.base_objects import BaseAsset, BaseItem, BaseBin, BaseEvent
+from nx.common.base_objects import BaseObject,  BaseAsset, BaseItem, BaseBin, BaseEvent
 
 
 class ServerObject(object):
@@ -242,7 +242,15 @@ class Event(ServerObject, BaseEvent):
         return self.asset
 
 
+class User(ServerObject, BaseObject):
+    object_type = "user"
 
+    def hash(self, string):
+        import hashlib
+        return hashlib.sha256(string).hexdigest()
+
+    def set_password(self, password):
+        self["password"] = self.hash(password)
 
 
 ######################################################################################
