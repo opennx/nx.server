@@ -97,9 +97,20 @@ def users(view="default"):
         
         return json.dumps(save_user(user_data))
 
+    if request.method == "POST" and "get_user" in request.form:
+        id_user = int(request.form.get("get_user"))
+        
+        return json.dumps(get_user_data(id_user))
+
+    if request.method == "POST" and "destroy_session" and "destroy_host" and "destroy_id_user" in request.form:
+        id_user = int(request.form.get("destroy_id_user"))
+        key = str(request.form.get("destroy_session"))
+        host = str(request.form.get("destroy_host"))
+        
+        return json.dumps(destroy_session(id_user, key, host))
+
     users = view_users()
     return render_template("users.html", users=users)
-
 
 
 

@@ -5,7 +5,7 @@ if not NX_ROOT in sys.path:
     sys.path.append(NX_ROOT)
 
 from nx import *
-from nx.objects import Asset
+from nx.objects import *
 
 
 
@@ -104,40 +104,69 @@ def job_action(id_job, action, id_user=0):
 ## Users administration
 
 def view_users():
-    # db = DB()
-    # db.query("SELECT id_object, login, password, ctime, mtime FROM nx_users ORDER BY id_object ASC")
-
-    # users = {}
-    # for user in db.fetchall():
-    #     users[str(user[0])] = user
-    # return users
-
-    from nx.objects import *
-
+   
     db = DB()
     db.query("SELECT id_object FROM nx_users")
     
     users = []
     for id_object, in db.fetchall():
         user = User(id_object, db=db)
+        user["ctime_human"] = str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(user["ctime"]))) 
+        user["mtime_human"] = str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(user["mtime"]))) 
         users.append(user)
     return users    
 
 
-def get_user(id):
+def get_user_data(id_user):
  
-    from nx.objects import *
-
     db = DB()
 
-    user = User(id, db=db)
+    user = {}
+    _user = User(id_user, db=db)
+    user["meta"] = _user.meta
+
+    db.query("SELECT key, id_user, host, ctime, mtime FROM nx_sessions WHERE id_user = "+str(id_user)+" ORDER BY mtime")
+    
+    sessions = []
+    for s in db.fetchall():
+        
+        session = {}
+
+        session["key"] = s[0] 
+        session["id_user"] = s[1]
+        session["host"] = s[2]
+        session["ctime_human"] = str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(s[3]))) 
+        session["mtime_human"] = str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(s[4]))) 
+        
+        sessions.append(session)
+    
+    user["sessions"] = sessions    
+
     return user
+
+
+def destroy_session(id_user, key, host):
+ 
+    db = DB()
+
+    result = {}
+    
+    result["status"] = True
+    result["reason"] = "Query ok"
+
+    try:
+        db.query("DELETE FROM nx_sessions WHERE id_user = "+str(id_user)+" AND key LIKE '"+str(key)+"' AND host LIKE '"+str(host)+"' ")
+        db.commit()
+        result["reason"] = "Query ok"
+    except:
+        result["status"] = False
+        result["reason"] = "Query failed"
+
+    return result
 
 
 def save_user(user_data):
     
-    from nx.objects import *
-
     user = User()
     if(user_data['id_user'] > 0):
         user['id'] = user_data['id_user']
