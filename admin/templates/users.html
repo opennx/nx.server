@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+{% block body %}
+
+<div class="table-responsive user-list ui-form">
+    <table class="table">
+        <thead>
+            <tr>
+                <th style='width:50px;'>#</th>
+                <th>Login</th>
+                <th>Modified</th>
+                <th>Created</th>
+                <th style='width:76px;'>
+                     <button id="btn_user_0" class="btn btn-default btn-sm btn-edit btn-primary" data-id-obj="0" data-action="edit"><span class="glyphicon glyphicon-plus"></span>  New</button>
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+           {% for user in users %}
+            <tr>
+                <td>{{user.id}}</td>
+                <td>{{user.login}}</td>
+                <td>{{user.mtime_human}}</td>
+                <td>{{user.ctime_human}}</td>
+                <td>
+                    <button id="btn_user_{{user.id}}" class="btn btn-default btn-xs btn-edit btn-primary" data-id-obj="{{user.id}}" data-action="edit"><span class="glyphicon glyphicon-edit"></span> Edit</button>    
+                </td>
+
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+
+<div class="row user-editor ui-form dark-glass-220">
+    
+    <div class="col-lg-12">
+       
+        <div class="page-header">
+             Edit user <a id="close-editor" href="#" class="pull-right"><span class="glyphicon glyphicon-remove"></span></a> 
+        </div>
+
+    </div>
+    <div class="col-lg-12 user-form">
+       
+    
+        <form class="form-horizontal" autocomplete="off">
+
+            <div class="form-group">
+              <label class="col-sm-3 control-label" for="_login">Login</label>  
+              <div  class="col-sm-9">
+              <input id="_login" name="_login" type="text" autocomplete="off" autocorrect="off" placeholder="Unique login" class="form-control input-md" required="" value="">
+                
+              </div>
+            </div>
+
+            <div class="form-group">
+              
+              <label class="col-sm-3 control-label" for="password">Password</label>  
+
+              <div  class="col-sm-9">
+             
+                  <div class="input-group">
+                     <input id="password" name="password" autocomplete="off" type="password" placeholder="password" class="form-control input-md col-sm-4" required value="">
+                     <span class="input-group-addon">-</span>
+                     <input id="password-retype" name="password-retype" autocomplete="off" type="password" placeholder="retype" class="form-control input-md col-sm-4" required value="">
+                  </div>
+             
+              </div>
+            </div>
+
+            <div class="form-group">
+                <div class="col-sm-offset-3 col-sm-10">
+                    <button id="user-save" class="btn btn btn-success"><span class="glyphicon glyphicon-ok"></span> Save</button>
+                </div>
+            </div>
+
+
+        </form>
+    </div>
+
+    
+
+    <div class="col-lg-12 sessions-wrap">
+        <div class="page-header">
+            Active sessions
+        </div>
+  
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Host</th>
+                        <th>Modified</th>
+                        <th>Created</th>
+                        <th style='width:76px;'>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="slist">
+                        
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+
+{% block js %}
+<script type="text/javascript">
+
+var user_list = $('.user-list');
+var user_editor = $('.user-editor');
+var edit_btn = $('.btn-edit');
+var save_btn = $('#user-save');
+var pwd = $('#password');
+var pwr = $('#password-retype');
+var id_user = 0;
+
+
+$( function(){
+
+    setTimeout( function(){
+        clearForm();
+    }, 152);
+
+
+});
+
+
+
+
+$(document).on('keydown', function(e) {
+    // ESCAPE key pressed
+    if (e.keyCode == 27) {
+    
+        e.preventDefault();
+    
+        clearForm();
+
+        user_editor.hide({
+            duration: 'fast', 
+            easing: 'linear',
+            done: function() {
+               user_list.show('fast');
+            }
+        });
+    }
+});
+
+
+$('#close-editor').on('click', function(e){
+    e.preventDefault();
+
+    clearForm();
+
+    user_editor.hide({
+        duration: 'fast', 
+        easing: 'linear',
+        done: function() {
+           user_list.show('fast');
+        }
+    });
+});
+
+edit_btn.on('click', function(e){
+   e.preventDefault();
+   
+   clearForm();  
+   id_user = parseInt($(this).data('id-obj'));
+  
+   if( id_user > 0 )
+   {
+        load_user(id_user);
+   }else{
+       $('.sessions-wrap').hide(); 
+   }
+
+   user_list.hide({
+        duration: 'fast', 
+        easing: 'linear',
+        done: function() {
+           user_editor.show('fast');
+        }
+   });
+});
+
+save_btn.on('click', function(e){
+    e.preventDefault();
+    
+    var user_data = {
+            id_user: id_user,
+            login: $('#_login').val(), 
+            password: pwd.val(), 
+        }    
+
+
+    if( user_data.login.length > 0 && user_data.password.length > 0 && pwd.val() == pwr.val() )
+    {
+        save_user(user_data);    
+    }else{
+        alert('Passwords not match');
+    }    
+    
+});
+
+var clearForm = function(){
+   id_user = 0;
+   $('.slist').html('');
+   $('#_login').val('');
+   pwd.attr('type', 'password').val('');
+   pwr.attr('type', 'password').val('');
+}
+
+var load_user = function(id_user)
+    { 
+        $.ajax({
+            type: "POST",
+            url: '/users',
+            dataType: 'json',
+            data: {
+                get_user : id_user
+            },
+            async: true,
+            cache: false,
+            error: function(a,b,c){
+                
+            },
+            success: function(r){
+                
+                $('#_login').val(r.meta.login);
+                pwd.attr('type', 'password').val('');  
+
+                for(i in r.sessions)
+                {
+                    s = r.sessions[i];
+                    
+                    var row = $('<tr><td>'+s.host+'</td><td>'+s.mtime_human+'</td><td>'+s.ctime_human+'</td><td><button class="btn btn-default btn-xs btn-danger btn-force-logout" data-s-key="'+s.key+'" data-s-host="'+s.host+'"><span class="glyphicon glyphicon-flash"></span> Force logout</button></td></tr>');
+
+                    $('.slist').append(row);
+
+                }       
+
+                $('.sessions-wrap').show();
+
+                $('.btn-force-logout').off('click').on('click', function(e){
+                    e.preventDefault();
+
+                    destroy_session( $(this) );    
+                });
+            }
+        });
+    }
+
+
+var destroy_session = function(e)
+    {
+        
+        session_data = {
+            destroy_session : e.data('s-key'),
+            destroy_host : e.data('s-host'),
+            destroy_id_user: id_user
+        }
+
+        $.ajax({
+            type: "POST",
+            url: '/users',
+            dataType: 'json',
+            data: session_data,
+            async: true,
+            cache: false,
+            error: function(a,b,c){
+                console.log(a);
+            },
+            success: function(r){
+               console.log(r);     
+               load_user(id_user);
+            }
+        });
+        
+    }
+
+
+var save_user = function(user_data)
+    {
+        
+        $.ajax({
+            type: "POST",
+            url: '/users',
+            dataType: 'json',
+            data: user_data,
+            async: true,
+            cache: false,
+            error: function(a,b,c){
+                console.log(a);
+            },
+            success: function(r){
+
+                if( r === true ){
+                    document.location.href = '/users';
+                }else{
+                    alert('Error');
+                }
+            }
+        });
+        
+    }
+
+
+</script>
+{% endblock %}
