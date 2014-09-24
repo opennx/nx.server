@@ -106,6 +106,7 @@ class Service(ServicePrototype):
             asset["id_folder"] = 6
             asset["origin"] = "News"
             asset["status"] = ONLINE
+            asset["ctime"] = time.time()
             asset["qc/state"] = 4
             asset.meta.update(article)
             asset.save()
