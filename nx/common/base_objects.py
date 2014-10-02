@@ -20,6 +20,7 @@ class BaseObject(object):
         self._cache = kwargs.get("cache", False)
         
         if "from_data" in kwargs:
+            assert hasattr(kwargs["from_data"], "keys")
             self.meta = kwargs["from_data"]
             self.id = self.meta.get("id_object", False)
             self._loaded = True
@@ -30,7 +31,8 @@ class BaseObject(object):
             else:
                 self._new()
 
-
+    def keys(self):
+        return self.meta.keys()
 
     def id_object_type(self):
         return OBJECT_TYPES[self.object_type]
@@ -131,7 +133,6 @@ class BaseAsset(BaseObject):
 
     @property
     def duration(self):
-        # DEPRECATED
         dur = float(self.meta.get("duration",0))
         mki = float(self.meta.get("mark_in" ,0))
         mko = float(self.meta.get("mark_out",0))
@@ -176,6 +177,11 @@ class BaseItem(BaseObject):
         pass
 
     def get_duration(self):
+        # DEPRECATED
+        return self.duration
+
+    @property
+    def duration(self):
         if not self["id_asset"]: 
             return self.mark_out() - self.mark_in()
         dur = self.get_asset()["duration"]
