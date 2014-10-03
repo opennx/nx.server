@@ -3,21 +3,60 @@
 
 from nx import *
 from nx.objects import *
+from nx.shell import shell
+
+THUMBS = [
+    [(32,18),   "xs"],
+    [(160,90),  "s"],
+    [(512,288), "m"],
+    [(960,540), "l"]
+    ]
 
 
-class create_video_thumbnail(source, target, resolution=(512,288)):
+def create_video_thumbnail(source, tbase, resolution=(512,288)):
     w, h = resolution
-
+    target = tbase + "0.jpg"
+    cmd = "ffmpeg -y -i \"{source}\" -vf \"thumbnail,scale={w}:{h}\" -frames:v 1 \"{target}\" ".format(source=source, target=target, w=w, h=h)
+    print cmd
+    proc = shell(cmd)
+    if proc.retcode > 0:
+        return False
+    return True
 
 
 class Service(ServicePrototype):
     def on_init(self):
-        pass
+        try:
+            self.thumb_root = os.path.join (
+                storages[int(config.get("thumb_storage",0))].local_path, 
+                config["thumb_root"]
+                )
+        except KeyError:
+            logging.error("Thumbnail root is not defined")
+            self.thumb_root = False
 
     def on_main(self):
+        if not self.thumb_root:
+            return 
+
         db = DB()
-        db.query("SELECT id_object FROM nx_assets WHERE media_type=0 AND id_object NOT IN (SELECT id_object FROM nx_meta WHERE object_type=0 AND tag='has_thumbnail')")
-        for id_object, in db.fetchall():
-            asset = Asset(id_object, db=DB)
-            spath = asset.get_file_path()
-            tpath = 
+        db.query("SELECT id_object FROM nx_assets WHERE media_type=0 AND id_object NOT IN (SELECT id_object FROM nx_meta WHERE object_type=0 AND tag='has_thumbnail') ORDER BY mtime DESC")
+        for id_asset, in db.fetchall():
+            asset = Asset(id_asset, db=db)
+            spath = asset.file_path
+            tpath = os.path.join(self.thumb_root, "{:04d}".format(int(id_asset/1000)), "{:d}".format(id_asset))
+
+            if not os.path.exists(tpath):
+                try:
+                    os.makedirs(tpath)
+                except:
+                    logging.error("Unable to create thumbnail output directory {}".format(tpath))
+                    continue
+
+            for resolution, suffix in THUMBS:
+                tbase = "{}{}".format(id_asset, suffix)
+                if create_video_thumbnail(spath, os.path.join(tpath, tbase), resolution):
+                    asset["has_thumbnail"] = 1
+                else:
+                    asset["has_thumbnail"] = 2
+                asset.save()
