@@ -151,7 +151,12 @@ logging   = Logging()
 ## Filesystem
 
 class Storage():
-    pass
+    id_storage = False
+    title = "NO STORAGE"
+    protocol = False
+    path = False
+    login = False
+    password = False
 
 class Storages(dict):
     def __init__(self):

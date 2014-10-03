@@ -190,6 +190,10 @@ class Storage():
     def __init__(self): 
         pass
 
+    @property 
+    def local_path(self):
+        return self.get_path()
+
     def get_path(self,rel=False):
         if self.protocol == LOCAL:
             return self.path

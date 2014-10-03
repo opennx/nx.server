@@ -19,7 +19,7 @@ class shell():
         """Believe or not, using temp files is much more stable than subprocess library. Especially on windows."""
         self.out_fn = get_tempname()
         self.err_fn = get_tempname()
-        self._exec("%s > %s 2> %s" % (cmd, self.out_fn, self.err_fn))
+        self.retcode = self._exec("%s > %s 2> %s" % (cmd, self.out_fn, self.err_fn))
 
     def _exec(self, cmd):
         proc = subprocess.Popen(cmd, shell=True)
