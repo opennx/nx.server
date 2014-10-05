@@ -131,8 +131,10 @@ class GenreRule(DramaticaBlockRule):
         genres = self.block.config.get("genre", [])
         if type(genres) == str:
             genres = [genres]
+        elif not genres:
+            genres = []
         for asset in self.assets:
-            if asset["genre"] in genres:
+            if asset["genre"] and asset["genre"] in genres:
                self.set_weight(asset.id, 1)
 
 class RundownRepeatRule(DramaticaBlockRule):

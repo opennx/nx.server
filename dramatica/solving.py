@@ -55,6 +55,7 @@ class DramaticaSolver(object):
         self.assets  = block.cache.assets.values()
         self.rundown = block.rundown
         self.kwargs  = kwargs
+        self.remainder_duration_median = 3600
 
         if self.full_clear:
             block.items = []
@@ -133,8 +134,15 @@ class DramaticaSolver(object):
         conds.append("id_object NOT IN ({})".format(", ".join([str(i) for i in veto])))
         conds = " AND ".join(conds)
 
-        query = "SELECT id_object FROM assets WHERE {}".format(conds)
-        result = self.block.cache.query(query, one_column=True)
+        query = "SELECT id_object, io_duration FROM assets WHERE {}".format(conds)
+        result = []
+        durs = []
+        #result = self.block.cache.query(query, one_column=True)
+        for id_object, adur in self.block.cache.query(query):
+            result.append(id_object)
+            durs.append(adur)
+
+        self.remainder_duration_median = durs[(len(durs) - 1) // 2]
 
         if not result:
             return False
@@ -430,10 +438,11 @@ class MusicBlockSolver(DramaticaSolver):
 
             # FINAL SONG #
             ##############
-            asset = self.get(song_source, best_fit=self.block.remaining)
-            if self.block.remaining - asset.duration < 0:
-                self.block.add(asset)
-                break
+            if self.block.remaining < self.remainder_duration_median:
+                asset = self.get(song_source, best_fit=self.block.remaining)
+                if self.block.remaining - asset.duration < 0:
+                    self.block.add(asset)
+                    break
 
             # DEFAULT SONG #
             ################
