@@ -98,8 +98,8 @@ class DramaticaCache(object):
         for id_channel, tstamp, id_asset in data_source:
             self.cur.execute("INSERT INTO history VALUES (?,?,?)", [id_channel, tstamp, id_asset])
             i+=1
-            if i % 50 == 0:
-                yield "Loading assets"
+            if i % 20 == 0:
+                yield "Loading history"
         self.conn.commit()
         
     def __getitem__(self, key):

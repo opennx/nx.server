@@ -83,6 +83,7 @@ class DramaticaBlock(DramaticaObject):
         self.items[-1].meta.update(kwargs)
 
     def solve(self):
+        yield "Loading solvers"
         from .solving import solvers
         solver_class = False
 
@@ -94,6 +95,7 @@ class DramaticaBlock(DramaticaObject):
             solver_class = solvers["Default"]
 
         if solver_class:
+            yield "Initialising solver {}".format(solver_name or "")
             solver = solver_class(self)
             for msg in solver.solve():
                 yield msg
@@ -166,10 +168,12 @@ class DramaticaRundown(DramaticaObject):
             i+=1
 
             if id_event and block["id_event"] and id_event != block["id_event"]:
+                yield "Skipping {}".format(block)
                 continue
 
             for msg in block.solve():
                 yield msg
+            
 
     def __str__(self):
         output = u"\n"

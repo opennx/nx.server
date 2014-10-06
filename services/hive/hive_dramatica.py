@@ -1,4 +1,5 @@
 import imp
+import thread
 
 from nx import *
 from nx.objects import *
@@ -86,13 +87,15 @@ def get_template(tpl_name):
 
 
 def nx_assets_connector():
+    local_cache = Cache()
     db = DB()
     db.query("SELECT id_object FROM nx_assets WHERE id_folder != 10 AND media_type = 0 AND content_type=1 AND status = 1 AND origin IN ('Production')")
     for id_object, in db.fetchall():
-        asset = Asset(id_object, db=db)
+        asset = Asset(id_object, db=db, cache=local_cache)
         yield asset.meta
 
 def nx_history_connector(start=False, stop=False, tstart=False):
+    local_cache = Cache()
     db = DB()
     cond = ""
     if start:
@@ -101,12 +104,17 @@ def nx_history_connector(start=False, stop=False, tstart=False):
         cond += " AND stop < {}".format(start)
     db.query("SELECT id_object FROM nx_events WHERE id_channel in ({}){} ORDER BY start ASC".format(", ".join([str(i) for i in config["playout_channels"] ]), cond ))
     for id_object, in db.fetchall():
-        event = Event(id_object, db=db)
+        event = Event(id_object, db=db, cache=local_cache)
         ebin = event.get_bin()
         tstamp = event["start"]
         for item in ebin.items:
             yield (event["id_channel"], tstamp, item["id_asset"])
             tstamp += item.get_duration()
+
+
+
+
+
 
 
 
@@ -117,14 +125,24 @@ class Session():
         self.rundown = False
         self.start_time = self.end_time = self.id_channel = 0
         self.affected_events = []
+        self.busy = False
+        self.status = "Waiting"
 
     def open_rundown(self, id_channel=1, date=time.strftime("%Y-%m-%d")):
+        if not self.busy:
+            self.busy = True
+            thread.start_new_thread(self._open_rundown, (id_channel, date ))
+            while self.busy:
+                time.sleep(.2)
+                yield self.status
+
+    def _open_rundown(self, id_channel=1, date=time.strftime("%Y-%m-%d")):        
         day_start = config["playout_channels"][id_channel].get("day_start", (6,0))
 
         logging.debug("Loading asset cache")
         self.cache = DramaticaCache(NX_TAGS)
         for msg in self.cache.load_assets(nx_assets_connector()):
-            yield msg
+            self.status = msg
 
         self.id_channel = id_channel
         self.start_time = datestr2ts(date, *day_start)
@@ -133,7 +151,7 @@ class Session():
         logging.debug("Loading history")
         stime = time.time()
         for msg in self.cache.load_history(nx_history_connector()):
-            yield msg
+            self.status = msg
 
         logging.debug("History items loaded in {} seconds".format(time.time()-stime))
 
@@ -144,12 +162,11 @@ class Session():
                 id_channel=id_channel
             )
 
-
         db = DB()
         db.query("SELECT id_object FROM nx_events WHERE id_channel = %s and start >= %s and start < %s ORDER BY start ASC", (id_channel, self.start_time, self.end_time))
         for id_event, in db.fetchall():
             event = Event(id_event, db=db)
-            yield "Loading event {}".format(event)
+            self.msg = "Loading {}".format(event)
             ebin = event.get_bin()
             event.meta["id_event"] = event.id
             block = DramaticaBlock(self.rundown, **event.meta)
@@ -163,10 +180,22 @@ class Session():
                 block.add(item, **eitem.meta)
             self.rundown.add(block)
 
+        self.busy = False
+
+
 
     def solve(self, id_event=False):
+        if not self.busy:
+            self.busy = True
+            thread.start_new_thread(self._solve, (id_event,))
+            while self.busy:
+                time.sleep(.2)
+                yield self.status
+
+    def _solve(self, id_event=False):
         for msg in self.rundown.solve(id_event):
-            yield msg
+            self.status = msg
+        self.busy = False
   
 
     def save(self, id_event=False):
