@@ -142,6 +142,7 @@ class Service(ServicePrototype):
             channel.fps           = channel_cfg.get("fps", 25.0)
             channel.on_main       = self.channel_main
             channel.on_change     = self.channel_change
+            channel.on_recovery   = self.channel_recovery
 
             channel.cued_asset    = False
             channel.current_asset = False
@@ -161,7 +162,7 @@ class Service(ServicePrototype):
         id_channel = kwargs.get("id_channel", False)
         id_item    = kwargs.get("id_item", False)
         db    = kwargs.get("db", DB())
-        cache = kwargs.get("cache", False)
+        lcache = kwargs.get("cache", False)
 
         if not (id_item and id_channel):
             return 400, "Bad request"
@@ -169,7 +170,7 @@ class Service(ServicePrototype):
         if not id_channel in self.caspar.channels:
             return 400, "Requested channel is not operated by this service"
 
-        item  = Item(id_item, db=db, cache=cache)
+        item  = Item(id_item, db=db, cache=lcache)
         if not item:
             return 404, "No such item"
 
@@ -179,7 +180,7 @@ class Service(ServicePrototype):
         channel = self.caspar[id_channel]
         master_asset  = item.get_asset()
         id_playout = master_asset[channel.playout_spec]
-        playout_asset = Asset(id_playout, db=db, cache=cache)
+        playout_asset = Asset(id_playout, db=db, cache=lcache)
 
         if not os.path.exists(playout_asset.file_path):
             return 404, "Playout asset is offline"
@@ -295,9 +296,34 @@ class Service(ServicePrototype):
                 logging.error("Plugin OnChange error {}".format(str(sys.exc_info())))
 
 
+    def channel_recovery(self, channel):
+        logging.warning("Performing recovery")
+        db = DB()
+        db.query("SELECT id_item, start FROM nx_asrun WHERE id_channel = %s ORDER BY id_run DESC LIMIT 1", (channel.ident,))
+        try:
+            last_id_item, last_start = db.fetchall()[0]
+        except IndexError:
+            logging.error("Unable to perform recovery. Last item information is not available")
+        last_item = Item(last_id_item, db=db)
+
+        if last_start + last_item.duration >= time.time():
+            logging.info("Last {} has been broadcasted. starting next item".format(last_item))
+            new_item = self.cue_next(channel, id_item=last_item.id, db=db, play=True)
+        else:
+            logging.info("Last {} has not been fully broadcasted. starting next item anyway.... FIX ME".format(last_item))
+            new_item = self.cue_next(channel, id_item=last_item.id, db=db, play=True)
+
+        if not new_item:
+            logging.error("Recovery failed. Unable to cue")
+
+        channel.current_item = new_item.id
+        channel.cued_item = False
+        channel.cued_fname = False
+        
+        self.channel_change(channel)
 
     
-    def cue_next(self, channel, id_item=False, db=False, level = 0):
+    def cue_next(self, channel, id_item=False, db=False, level = 0, play=False):
         if not db:
             db = DB()
         channel._cueing = True
@@ -305,14 +331,14 @@ class Service(ServicePrototype):
             id_item = channel.current_item
         item_next = get_next_item(id_item, db=db)
         logging.info("Auto-cueing {}".format(item_next))
-        stat, res = self.cue(id_item=item_next.id, id_channel=channel.ident)
+        stat, res = self.cue(id_item=item_next.id, id_channel=channel.ident, play=play)
         if failed(stat):
             if level > 5:
                 logging.error("Cue it yourself....")
-                return
+                return None
             logging.warning("Unable to cue {}. Trying next one.".format(item_next))
-            self.cue_next(channel, id_item=item_next.id, db=db, level=level+1)
-
+            item_next = self.cue_next(channel, id_item=item_next.id, db=db, level=level+1, play=play)
+        return item_next
 
 
     def on_main(self):

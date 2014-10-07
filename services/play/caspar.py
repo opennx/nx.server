@@ -40,6 +40,8 @@ class CasparChannel():
     def on_change(self, channel=False):
         pass
 
+    def on_recovery(self, channel=False):
+        pass
 
     def get_position(self): 
         return int(self.fpos - (self.current_in * self.fps))
@@ -187,7 +189,7 @@ class CasparChannel():
                 self.dur  = int(fg_prod.find("nb-frames").text)
             current_file = basefname(fg_prod.find("filename").text)
         except: 
-            current_file = False
+            current_file = -1
          
           
         # And which one's next?
@@ -196,11 +198,9 @@ class CasparChannel():
         except:  
             cued_file = False
 
-
-        if current_file == -1 and cued_file: # Fix of strange error (Failed autoplay)
-            self.server.query("PLAY {}-{}".format(self.channel, layer))
-            return
-        
+        if current_file == -1 and self.on_recovery:
+            self.on_recovery(self)
+            return        
         
         if not cued_file and current_file:
             changed = False
@@ -222,9 +222,10 @@ class CasparChannel():
             logging.warning ("Cue mismatch: This is not the file which should be cued. IS: %s vs. SHOULDBE: %s" % (cued_file,self.cued_fname))
             self.cued_item = False # AutoCue should handle it
 
+        self.current_file = current_fname
+        
         if self._cueing: 
             self._cueing = False
-
 
         if self.on_main:  
             try:
