@@ -306,7 +306,7 @@ class Service(ServicePrototype):
             logging.error("Unable to perform recovery. Last item information is not available")
         last_item = Item(last_id_item, db=db)
 
-        if last_start + last_item.duration >= time.time():
+        if last_start + last_item.duration <= time.time():
             logging.info("Last {} has been broadcasted. starting next item".format(last_item))
             new_item = self.cue_next(channel, id_item=last_item.id, db=db, play=True)
         else:
@@ -319,7 +319,7 @@ class Service(ServicePrototype):
         channel.current_item = new_item.id
         channel.cued_item = False
         channel.cued_fname = False
-        
+
         self.channel_change(channel)
 
     

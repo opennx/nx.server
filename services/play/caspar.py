@@ -222,8 +222,8 @@ class CasparChannel():
             logging.warning ("Cue mismatch: This is not the file which should be cued. IS: %s vs. SHOULDBE: %s" % (cued_file,self.cued_fname))
             self.cued_item = False # AutoCue should handle it
 
-        self.current_file = current_fname
-        
+        self.current_file = current_file
+         
         if self._cueing: 
             self._cueing = False
 
