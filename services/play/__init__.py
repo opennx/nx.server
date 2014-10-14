@@ -378,7 +378,7 @@ class Service(ServicePrototype):
                 pass # ?????
 
             elif run_mode == RUN_SOFT:
-                logging.info("Soft cue")
+                logging.info("Soft cue {}".format(next_event))
 
                 for i,r in enumerate(current_event.get_bin().items):
                     if r["item_role"] == "lead_out":
