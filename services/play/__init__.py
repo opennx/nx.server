@@ -315,6 +315,9 @@ class Service(ServicePrototype):
 
         if not new_item:
             logging.error("Recovery failed. Unable to cue")
+            channel.cue("BLANK", id_item=False, play=True)
+            channel.cue("BLANK", id_item=False)
+            return
 
         channel.current_item = new_item.id
         channel.cued_item = False

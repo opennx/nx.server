@@ -180,6 +180,7 @@ class CasparChannel():
             fg_prod = video_layer.find("foreground").find("producer")
             if fg_prod.find("type").text == "image-producer":
                 self.fpos = self.fdur = self.pos = self.dur = 0
+                current_file = basefname(fg_prod.find("location").text)
             elif fg_prod.find("type").text == "empty-producer":
                 current_file = -1 # Strange
             else:
@@ -187,7 +188,7 @@ class CasparChannel():
                 self.fdur = int(fg_prod.find("file-nb-frames").text)
                 self.pos  = int(fg_prod.find("frame-number").text)
                 self.dur  = int(fg_prod.find("nb-frames").text)
-            current_file = basefname(fg_prod.find("filename").text)
+                current_file = basefname(fg_prod.find("filename").text)
         except: 
             current_file = -1
          
