@@ -309,7 +309,7 @@ def meta_exists(tag, value, db=False):
 
 
 def bin_refresh(bins, sender=False, db=False):
-    if type(bins) != list or not bins:
+    if not bins:
         return 200, "No bin refreshed"
     if not db:
         db = DB()
