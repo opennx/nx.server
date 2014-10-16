@@ -46,7 +46,7 @@ class Service(ServicePrototype):
         except:
             self.log_path = False
         
-        if not os.path.exists(self.log_path):
+        if self.log_path and not os.path.exists(self.log_path):
             try:
                 os.makedirs(self.log_path)
             except:
