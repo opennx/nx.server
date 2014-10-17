@@ -346,9 +346,10 @@ def get_bin_first_item(id_bin, db=False):
     except:
         return False
 
-def get_item_event(id_item, db=False, cache=False):
-    if not db:
-        db = DB
+def get_item_event(id_item, **kwargs):
+    db = kwargs.get("db", DB())
+    lcache = kwargs.get("cahce", cache)
+    
     db.query("""SELECT e.id_object, e.start, e.id_channel from nx_items as i, nx_events as e where e.id_magic = i.id_bin and i.id_object = {} and e.id_channel in ({})""".format(
         id_item,
         ", ".join([str(f) for f in config["playout_channels"].keys()]) 
@@ -357,13 +358,9 @@ def get_item_event(id_item, db=False, cache=False):
         id_object, start, id_channel = db.fetchall()[0]
     except:
         return False
-    return Event(id_object, db=db, cache=cache)
-    #return {
-    #    "id_object": id_object,
-    #    "start": start,
-    #    "id_channel" : id_channel
-    #    }
-
+    return Event(id_object, db=db, cache=lcache)
+    
+    
 def get_item_runs(id_channel, from_ts, to_ts, db=False):
     db = db or DB()
     db.query("SELECT id_item, start, stop FROM nx_asrun WHERE start >= %s and start < %s ORDER BY start ASC", [int(from_ts), int(to_ts)] )
@@ -375,12 +372,15 @@ def get_item_runs(id_channel, from_ts, to_ts, db=False):
 
 
 
-def get_next_item(id_item, db=False):
+def get_next_item(id_item, **kwargs):
     if not id_item:
         return False
+    db = kwargs.get("db", DB())
+    lcache = kwargs.get("cahce", cache)
+
     logging.debug("Looking for item following item ID {}".format(id_item))
-    current_item = Item(id_item, db=db)
-    current_bin = Bin(current_item["id_bin"])
+    current_item = Item(id_item, db=db, cache=lcache)
+    current_bin = Bin(current_item["id_bin"], db=db, cache=lcache)
     for item in current_bin.items:
         if item["position"] > current_item["position"]:
             if item["item_role"] == "lead_out":
@@ -392,13 +392,11 @@ def get_next_item(id_item, db=False):
                     return current_bin.items[0]
             return item
     else:
-        if not db:
-            db = DB()
-        current_event = get_item_event(id_item, db=db)
+        current_event = get_item_event(id_item, db=db, cache=lcache)
         q = "SELECT id_object FROM nx_events WHERE id_channel = {} and start > {} ORDER BY start ASC LIMIT 1".format(current_event["id_channel"], current_event["start"])
         db.query(q)
         try:
-            next_event = Event(db.fetchall()[0][0], db=db)
+            next_event = Event(db.fetchall()[0][0], db=db, cache=lcache)
             next_bin = next_event.get_bin()
             if not next_bin.items:
                 raise Exception

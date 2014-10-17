@@ -28,6 +28,7 @@ class CasparChannel():
         self.paused         = False
         
         self._cueing        = False
+        self._changing      = False
         self.request_time   = time.time()
         
         self.pos = self.dur = self.fpos = self.fdur = 0
@@ -54,6 +55,8 @@ class CasparChannel():
 
 
     def cue(self, fname, **kwargs):
+        self._cueing    = True
+
         id_item    = kwargs.get("id_item", fname)
         auto       = kwargs.get("auto", True)
         play       = kwargs.get("play", False)
@@ -71,7 +74,7 @@ class CasparChannel():
         stat, res = self.server.query(q)
         
         if failed(stat): 
-            res = "Unable to cue %s" % res
+            res = "Unable to cue \"{}\" {} - args: {}".format(fname, res, str(kwargs))
             self.cued_item  = False
             self.cued_fname = False
             self._cueing    = False
@@ -80,25 +83,25 @@ class CasparChannel():
             self.cued_fname = fname
             self.cued_in    = mark_in
             self.cued_out   = mark_out
-            self._cueing = True
-            res = "Cueing item %s" % self.cued_item
+            self._cueing    = True
+            res = "Cueing item {}".format(self.cued_item)
 
-        return (stat,res)
+        return (stat, res)
      
      
     def clear(self,layer=False):
-        if not layer: 
-            layer = self.feed_layer
+        layer = layer or self.feed_layer
         return self.server.query("CLEAR {}-{}".format(self.channel, layer))
 
     def take(self,layer=False):
-        if not layer: layer = self.feed_layer
-        if not self.cued_item: return (False, "Unable to take. No item is cued.")
+        layer = layer or self.feed_layer
+        if not self.cued_item: 
+            return 400, "Unable to take. No item is cued."
         self.paused = False
-        return self.server.query("PLAY %d-%d" % (self.channel, layer))
+        return self.server.query("PLAY {}-{}".format(self.channel, layer))
     
     def retake(self,layer=False):
-        if not layer: layer = self.feed_layer
+        layer = layer or self.feed_layer
         seekparam = "%s" % (int(self.current_in*self.fps))
         if self.current_out: seekparam += " LENGTH %s" % (int(self.current_out*self.fps))
         q = "PLAY %d-%d %s SEEK %s"%(self.channel, layer, self.current_fname,  seekparam)
@@ -107,8 +110,7 @@ class CasparChannel():
      
 
     def freeze(self,layer=False):
-        if not layer: 
-            layer = self.feed_layer
+        layer = layer or self.feed_layer
 
         if not self.paused:
             q = "PAUSE %d-%d"%(self.channel,layer)
@@ -130,8 +132,7 @@ class CasparChannel():
 
 
     def abort(self,layer=False):
-        if not layer: 
-            layer = self.feed_layer
+        layer = layer or self.feed_layer
         if not self.cued_item: 
             return 400, "Unable to abort. No item is cued."
         self.take()
@@ -168,8 +169,9 @@ class CasparChannel():
            else:
              raise Exception
         except:
-            pass
+            return # Unable to find video feed layer # TODO: perform recovery???
          
+
         # What are we playing right now?
         try:
             if video_layer.find("status").text == "paused":
@@ -180,32 +182,33 @@ class CasparChannel():
             fg_prod = video_layer.find("foreground").find("producer")
             if fg_prod.find("type").text == "image-producer":
                 self.fpos = self.fdur = self.pos = self.dur = 0
-                current_file = basefname(fg_prod.find("location").text)
+                current_fname = basefname(fg_prod.find("location").text)
             elif fg_prod.find("type").text == "empty-producer":
-                current_file = -1 # Strange
+                current_file = -1 # No video is playing right now
             else:
                 self.fpos = int(fg_prod.find("file-frame-number").text)
                 self.fdur = int(fg_prod.find("file-nb-frames").text)
                 self.pos  = int(fg_prod.find("frame-number").text)
                 self.dur  = int(fg_prod.find("nb-frames").text)
-                current_file = basefname(fg_prod.find("filename").text)
+                current_fname = basefname(fg_prod.find("filename").text)
         except: 
-            current_file = -1
+            current_fname = -1
          
           
         # And which one's next?
         try:     
-            cued_file = basefname(video_layer.find("background").find("producer").find("destination").find("producer").find("filename").text)
+            cued_fname = basefname(video_layer.find("background").find("producer").find("destination").find("producer").find("filename").text)
         except:  
-            cued_file = False
+            cued_fname = False
 
-        if current_file == -1 and self.on_recovery:
+        if current_fname == -1:
             self.on_recovery(self)
             return        
         
-        if not cued_file and current_file:
+        if not cued_fname and current_fname:
+            self._changing = True
             changed = False
-            if current_file == self.cued_fname:
+            if current_fname == self.cued_fname:
                 self.current_item  = self.cued_item
                 self.current_fname = self.cued_fname
                 self.current_in    = self.cued_in
@@ -216,24 +219,19 @@ class CasparChannel():
             self.cued_fname = False
             self.cued_item  = False
 
-            if self.on_change and changed: 
-                self.on_change(self)
+            self.on_change(self)
+            self._changing = False
 
-        elif self.cued_item and cued_file and cued_file != self.cued_fname and not self._cueing:
+        elif self.cued_item and cued_fname and cued_fname != self.cued_fname and not self._cueing:
             logging.warning ("Cue mismatch: This is not the file which should be cued. IS: %s vs. SHOULDBE: %s" % (cued_file,self.cued_fname))
-            self.cued_item = False # AutoCue should handle it
+            self.cued_item = False # AutoCue in on_main should handle it next iteration
 
-        self.current_file = current_file
-         
-        if self._cueing: 
-            self._cueing = False
+        
+        self.current_fname = current_fname
+        self._cueing = False
 
-        if self.on_main:  
-            try:
-                self.on_main(self)
-            except:
-                logging.error("Channel main error {}".format(str(sys.exc_info())))
-
+        self.on_main(self)
+        
 
 ## Channel stuff... tricky
 ########################################################################

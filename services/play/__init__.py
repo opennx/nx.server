@@ -233,10 +233,6 @@ class Service(ServicePrototype):
     def cg_exec(self, **kwargs):
         return "200", "cg_exec"
 
-    def stat(self):
-        return "200", "Running"
-
-
 
     def channel_main(self, channel):
         if not channel.cued_asset and channel.cued_item:
@@ -267,6 +263,8 @@ class Service(ServicePrototype):
 
 
     def channel_change(self, channel):
+        if not channel.current_item:
+            return 
         db = DB()
         itm = Item(channel.current_item, db=db)
         channel.current_asset = itm.get_asset()
@@ -288,7 +286,6 @@ class Service(ServicePrototype):
         channel._last_run = db.lastid()
         db.commit()
         
-        self.cue_next(channel, db=db)        
         for plugin in channel.plugins:
             try:
                 plugin.on_change()
@@ -327,11 +324,9 @@ class Service(ServicePrototype):
 
     
     def cue_next(self, channel, id_item=False, db=False, level = 0, play=False):
-        if not db:
-            db = DB()
         channel._cueing = True
-        if not id_item:
-            id_item = channel.current_item
+        db = db or DB()
+        id_item = id_item or channel.current_item
         item_next = get_next_item(id_item, db=db)
         logging.info("Auto-cueing {}".format(item_next))
         stat, res = self.cue(id_item=item_next.id, id_channel=channel.ident, play=play)
@@ -339,15 +334,22 @@ class Service(ServicePrototype):
             if level > 5:
                 logging.error("Cue it yourself....")
                 return None
-            logging.warning("Unable to cue {}. Trying next one.".format(item_next))
+            logging.warning("Unable to cue {} ({}). Trying next one.".format(item_next, res))
             item_next = self.cue_next(channel, id_item=item_next.id, db=db, level=level+1, play=play)
         return item_next
 
 
     def on_main(self):
+        """
+        This method checks if the following event should start automatically at given time.
+        It does not handle AUTO playlist advancing and default auto-cueing etc
+        """
         local_cache = Cache()
         db = DB()
         for id_channel in self.caspar.channels:
+            if self.caspar.channels[id_channel]._changing:
+                continue
+
             id_item = self.caspar.channels[id_channel].current_item # YES. CURRENT
             if not id_item:
                 continue
@@ -386,15 +388,15 @@ class Service(ServicePrototype):
                 for i,r in enumerate(current_event.get_bin().items):
                     if r["item_role"] == "lead_out":
                         try:
-                            self.cue(id_channel=id_channel, id_item=current_event.get_bin().items[i+1].id)
+                            self.cue(id_channel=id_channel, id_item=current_event.get_bin().items[i+1].id, db=db, cache=local_cache)
                             break
                         except IndexError:
                             pass
                     else:
                         id_item = next_event.get_bin().items[0].id
                         if id_item != self.caspar.channels[id_channel].cued_item:
-                            self.cue(id_channel=id_channel, id_item=id_item)
+                            self.cue(id_channel=id_channel, id_item=id_item, db=db, cache=local_cache)
 
             elif run_mode == RUN_HARD:
                 id_item = next_event.get_bin().items[0].id
-                self.cue(id_channel=id_channel, id_item=id_item, play=True)
+                self.cue(id_channel=id_channel, id_item=id_item, play=True, db=db, cache=local_cache)
