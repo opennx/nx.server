@@ -84,7 +84,7 @@ class CasparChannel():
             self.cued_in    = mark_in
             self.cued_out   = mark_out
             self._cueing    = True
-            res = "Cueing item {}".format(self.cued_item)
+            res = "Cueing item {} ({})".format(self.cued_item, fname)
 
         return (stat, res)
      
