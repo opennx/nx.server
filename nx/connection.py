@@ -129,7 +129,7 @@ messaging.init()
 
 import pylibmc
 
-class Cache():
+class Cache2(): # Thread unsafe. do not use
     def __init__(self):
         self.site = config["site_name"]
         self.host = config["cache_host"]
@@ -179,6 +179,71 @@ class Cache():
             critical_error ("Memcache delete failed. This should never happen. Check MC server")
             sys.exit(-1)
         return True
+
+
+class Cache():
+    def __init__(self):
+        self.site = config["site_name"]
+        self.host = config["cache_host"]
+        self.port = config["cache_port"]
+        self.cstring = '{}:{}'.format(self.host, self.port)
+        self.connect()
+
+    def connect(self):
+        self.conn = pylibmc.Client([self.cstring])
+        self.pool = pylibmc.ThreadMappedPool(self.conn)
+        
+
+    def load(self, key):
+        key = "{}_{}".format(self.site, key)
+        result = False
+        with self.pool.reserve() as mc:
+            try:
+                result = mc.get(key)
+            except pylibmc.ConnectionError:
+                self.connect()
+                result = False
+        self.pool.relinquish()
+        return result
+
+
+    def save(self, key, value):
+        key = "{}_{}".format(self.site, key)
+        with self.pool.reserve() as mc:
+            for i in range(10):
+                try:
+                    mc.set(key, str(value))
+                    break
+                except:  
+                    logging.error("Cache save failed ({}): {}".format(key, str(sys.exc_info())))
+                    time.sleep(.3)
+                    self.connect()
+            else:
+                critical_error ("Memcache save failed. This should never happen. Check MC server")
+                sys.exit(-1)
+
+        self.pool.relinquish()
+        return True
+
+    def delete(self,key):
+        key = "{}_{}".format(self.site, key)
+        with self.pool.reserve() as mc:
+            for i in range(10):
+                try:
+                    mc.delete(key)
+                    break
+                except: 
+                    logging.error("Cache delete failed ({}): {}".format(key, str(sys.exc_info())))
+                    time.sleep(.3)
+                    self.connect()
+            else:
+                critical_error ("Memcache delete failed. This should never happen. Check MC server")
+                sys.exit(-1)
+        self.pool.relinquish()
+        return True
+
+
+
 
 cache = Cache()
 
