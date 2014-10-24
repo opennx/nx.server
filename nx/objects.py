@@ -376,7 +376,7 @@ def get_next_item(id_item, **kwargs):
     if not id_item:
         return False
     db = kwargs.get("db", DB())
-    lcache = kwargs.get("cahce", cache)
+    lcache = kwargs.get("cache", cache)
 
     logging.debug("Looking for item following item ID {}".format(id_item))
     current_item = Item(id_item, db=db, cache=lcache)

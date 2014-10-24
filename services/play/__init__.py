@@ -161,8 +161,8 @@ class Service(ServicePrototype):
     def cue(self, **kwargs):
         id_channel = kwargs.get("id_channel", False)
         id_item    = kwargs.get("id_item", False)
-        db    = kwargs.get("db", DB())
-        lcache = kwargs.get("cache", False)
+        db         = kwargs.get("db", DB())
+        lcache     = kwargs.get("cache", cache)
 
         if not (id_item and id_channel):
             return 400, "Bad request"
@@ -326,10 +326,11 @@ class Service(ServicePrototype):
     def cue_next(self, channel, id_item=False, db=False, level = 0, play=False):
         channel._cueing = True
         db = db or DB()
+        lcache = Cache()
         id_item = id_item or channel.current_item
-        item_next = get_next_item(id_item, db=db)
+        item_next = get_next_item(id_item, db=db, cache=lcache)
         logging.info("Auto-cueing {}".format(item_next))
-        stat, res = self.cue(id_item=item_next.id, id_channel=channel.ident, play=play)
+        stat, res = self.cue(id_item=item_next.id, id_channel=channel.ident, play=play, cache=lcache)
         if failed(stat):
             if level > 5:
                 logging.error("Cue it yourself....")
