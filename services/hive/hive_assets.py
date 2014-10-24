@@ -111,30 +111,33 @@ def hive_set_meta(auth, params):
     affected_bins = []
     for id_object in objects:
 
-        create_script = False
-        if object_type == "asset" and not id_object:
-            if not data["id_folder"]:
-                msg = "You must select asset folder"
-                logging.warning(msg)
-                return [[400, msg]]
-            db.query("SELECT create_script FROM nx_folders WHERE id_folder=%s", [data["id_folder"]])
-            try:
-                create_script = db.fetchall()[0][0]
-            except:
-                msg ="Unable to load create_script"
-                logging.warning(msg)
-                return [[400, msg]]         
-            if not create_script:       
-                msg = "It is not possible create this kind of asset"
-                logging.warning(msg)
-                return [[400, msg]]
-
         obj = {
             "asset" : Asset,
             "item"  : Item,
             "bin"   : Bin,
             "event" : Event,
             }[object_type](id_object, db=db)
+
+        create_script = False
+        if object_type == "asset":
+            db.query("SELECT create_script FROM nx_folders WHERE id_folder=%s", [data.get("id_folder", False) or obj["id_folder"]])
+            try:
+                create_script = db.fetchall()[0][0]
+            except:
+                pass
+
+            # New asset need create_script and id_folder
+            if not id_object:
+                if not create_script:
+                    msg = "It is not possible create asset in this folder."
+                    logging.warning(msg)
+                    return [[400, msg]]
+                    
+                if not data["id_folder"]:
+                    msg = "You must select asset folder"
+                    logging.warning(msg)
+                    return [[400, msg]]
+                
 
         changed = False
         for key in data:
@@ -143,7 +146,13 @@ def hive_set_meta(auth, params):
                 obj[key] = value
                 changed = True
 
-        print ("CREATE_SCRIPT", create_script)
+        if changed and create_script:
+            logging.debug("Executing validation script")
+            exec(create_script)
+            stat, res = validate(obj)
+            if not stat:
+                logging.warning("Unable to save {}: {}".format(obj, res))
+                return [[400, res]]
 
         if changed:
             changed_objects.append(obj.id)
