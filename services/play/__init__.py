@@ -13,6 +13,7 @@ from nx.plugins import plugin_path
 
 from caspar import Caspar
 
+config["mc_thread_safe"] = True
 
 class PlayoutPlugins():
     def __init__(self, channel):
@@ -107,7 +108,8 @@ class ControlHandler(BaseHTTPRequestHandler):
             "abort" : service.abort,
             "stat" : service.stat,
             "cg_list" : service.cg_list,
-            "cg_exec" : service.cg_exec
+            "cg_exec" : service.cg_exec,
+            "recover" : service.channel_recovery
             }
 
         if not method in methods:
@@ -295,6 +297,12 @@ class Service(ServicePrototype):
 
     def channel_recovery(self, channel):
         logging.warning("Performing recovery")
+        logging.debug("Restarting Caspar")
+        channel.server.query("RESTART")
+        while not success(channel.server.connect()[0]):
+            time.sleep(1)
+        logging.debug("Connection estabilished. recovering playback")
+        
         db = DB()
         db.query("SELECT id_item, start FROM nx_asrun WHERE id_channel = %s ORDER BY id_run DESC LIMIT 1", (channel.ident,))
         try:

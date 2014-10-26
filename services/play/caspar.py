@@ -184,7 +184,7 @@ class CasparChannel():
                 self.fpos = self.fdur = self.pos = self.dur = 0
                 current_fname = basefname(fg_prod.find("location").text)
             elif fg_prod.find("type").text == "empty-producer":
-                current_file = -1 # No video is playing right now
+                current_fname = -1 # No video is playing right now
             else:
                 self.fpos = int(fg_prod.find("file-frame-number").text)
                 self.fdur = int(fg_prod.find("file-nb-frames").text)
