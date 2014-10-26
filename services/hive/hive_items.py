@@ -19,7 +19,14 @@ def hive_get_events(auth_key, params={}):
     id_channel = params.get("id_channel", False)
 
     if not id_channel:
-        return [[400, "No such playout channel"]]
+        yield 400, "No such playout channel"
+        return
+
+
+    logging.debug("Requested events from {} to {}".format(
+        time.strftime("%Y-%m-%d", time.localtime(start_time)),
+        time.strftime("%Y-%m-%d", time.localtime(end_time)),
+        ))
 
     db = DB()
     db.query("SELECT id_object FROM nx_events WHERE id_channel = %s AND start >= %s AND start < %s ORDER BY start ASC", (id_channel, start_time, end_time))
@@ -29,13 +36,17 @@ def hive_get_events(auth_key, params={}):
         db.query("SELECT id_object FROM nx_events WHERE id_channel = %s AND start < %s ORDER BY start DESC LIMIT 1", (id_channel, start_time))
         res = db.fetchall() + res
 
-    result = []
+    logging.debug("Returning {} events".format(len(res)))
+
+    #result = []
     for id_event, in res:
         event = Event(id_event, db=db)
         pbin  = event.get_bin()
         event["duration"] = pbin.get_duration()
-        result.append(event.meta)
-    return [[200, {"events" : result}]]
+        #result.append(event.meta)
+        yield -1, event.meta
+    yield 200, "OK"
+    #return [[200, {"events" : result}]]
 
 
 
