@@ -129,19 +129,23 @@ messaging.init()
 
 import pylibmc
 
-class Cache2(): # Thread unsafe. do not use
+class Cache():
     def __init__(self):
         self.site = config["site_name"]
         self.host = config["cache_host"]
         self.port = config["cache_port"]
         self.cstring = '%s:%s'%(self.host,self.port)
+        self.pool = False
         self.connect()
 
     def connect(self):
         self.conn = pylibmc.Client([self.cstring])
+        self.pool = False
         
-
     def load(self, key):
+        if config.get("mc_thread_safe", False):
+            return self.tload(key)
+
         key = "{}_{}".format(self.site,key)
         try:
             result = self.conn.get(key)
@@ -151,6 +155,9 @@ class Cache2(): # Thread unsafe. do not use
         return result
 
     def save(self, key, value):
+        if config.get("mc_thread_safe", False):
+            return self.tsave(key, value)
+
         key = "{}_{}".format(self.site, key)
         for i in range(10):
             try:
@@ -166,6 +173,8 @@ class Cache2(): # Thread unsafe. do not use
         return True
 
     def delete(self,key):
+        if config.get("mc_thread_safe", False):
+            return self.tdelete(key)
         key = "{}_{}".format(self.site, key)
         for i in range(10):
             try:
@@ -181,20 +190,9 @@ class Cache2(): # Thread unsafe. do not use
         return True
 
 
-class Cache():
-    def __init__(self):
-        self.site = config["site_name"]
-        self.host = config["cache_host"]
-        self.port = config["cache_port"]
-        self.cstring = '{}:{}'.format(self.host, self.port)
-        self.connect()
-
-    def connect(self):
-        self.conn = pylibmc.Client([self.cstring])
-        self.pool = pylibmc.ThreadMappedPool(self.conn)
-        
-
-    def load(self, key):
+    def tload(self, key):
+        if not self.pool:
+            self.pool = pylibmc.ThreadMappedPool(self.conn)
         key = "{}_{}".format(self.site, key)
         result = False
         with self.pool.reserve() as mc:
@@ -206,8 +204,9 @@ class Cache():
         self.pool.relinquish()
         return result
 
-
-    def save(self, key, value):
+    def tsave(self, key, value):
+        if not self.pool:
+            self.pool = pylibmc.ThreadMappedPool(self.conn)
         key = "{}_{}".format(self.site, key)
         with self.pool.reserve() as mc:
             for i in range(10):
@@ -221,11 +220,12 @@ class Cache():
             else:
                 critical_error ("Memcache save failed. This should never happen. Check MC server")
                 sys.exit(-1)
-
         self.pool.relinquish()
         return True
 
-    def delete(self,key):
+    def tdelete(self,key):
+        if not self.pool:
+            self.pool = pylibmc.ThreadMappedPool(self.conn)
         key = "{}_{}".format(self.site, key)
         with self.pool.reserve() as mc:
             for i in range(10):
