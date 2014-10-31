@@ -299,9 +299,11 @@ class Service(ServicePrototype):
         logging.warning("Performing recovery")
         logging.debug("Restarting Caspar")
         channel.server.query("RESTART")
+        time.sleep(5)
         while not success(channel.server.connect()[0]):
             time.sleep(1)
         logging.debug("Connection estabilished. recovering playback")
+        time.sleep(5)
         
         db = DB()
         db.query("SELECT id_item, start FROM nx_asrun WHERE id_channel = %s ORDER BY id_run DESC LIMIT 1", (channel.ident,))
