@@ -14,7 +14,10 @@ class Logger():
         self.f = open("dramatica.log", "w")
 
     def write(self, *args):
-        self.f.write(" ".join([str(arg) for arg in args]) + "\n")
+        try:
+            self.f.write(" ".join([str(arg) for arg in args]) + "\n")
+        except:
+            pass
 
     def __del__(self):
         self.f.close()
@@ -147,9 +150,9 @@ class DramaticaSolver(object):
 
         conds = list(args)
         conds.append("id_object NOT IN ({})".format(", ".join([str(i) for i in veto])))
-        conds = " AND ".join(conds)
+        conds = " AND ".join(["({})".format(cond) for cond in conds if cond])
 
-        query = "SELECT id_object, io_duration FROM assets WHERE {}".format(conds)
+        query = "SELECT id_object, io_duration FROM assets WHERE {} ".format(conds)
         result = []
         durs = []
 
@@ -189,7 +192,7 @@ class DramaticaSolver(object):
                 c = int(len(result)/2)
                 
                 if definition == "weights":
-                    result = sorted(result, key=lambda id_asset: sum(self.weights.data[id_asset]), reverse=True)[:c]
+                    result = sorted(result, key=lambda id_asset: (sum(self.weights.data[id_asset]), random.random())  , reverse=True)[:c]
                     continue
 
                 definition = definition.split(".")
@@ -203,7 +206,7 @@ class DramaticaSolver(object):
                     desc = True
 
                 if definition[0] == "weight":
-                    result = sorted(result, key=lambda id_asset: self.get_weight(id_asset, definition[1]), reverse=desc)
+                    result = sorted(result, key=lambda id_asset: (self.get_weight(id_asset, definition[1]),  random.random()) , reverse=desc)
 
                     if len(set([self.get_weight(id_asset, definition[1]) for id_asset in result ])) == 1:
                         if passes > 2:
