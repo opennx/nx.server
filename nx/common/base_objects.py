@@ -145,7 +145,7 @@ class BaseAsset(BaseObject):
 
 class BaseItem(BaseObject):
     object_type = "item"
-    asset = None
+    _asset = False
 
     def _new(self):
         self["id_bin"]    = False
@@ -157,8 +157,8 @@ class BaseItem(BaseObject):
         if key == "id_object":
             return self.id
         if not key in self.meta :
-            if self.get_asset():
-                return self.get_asset()[key]
+            if self.asset:
+                return self.asset[key]
             else:
                 return False
         return self.meta[key]
@@ -174,11 +174,24 @@ class BaseItem(BaseObject):
         return self["mark_out"]
 
     def get_asset(self):
-        pass
+        # DEPRECATED
+        return self.asset
 
     def get_duration(self):
         # DEPRECATED
         return self.duration
+
+    @property
+    def asset(self):
+        pass
+
+    @property
+    def bin(self):
+        pass
+
+    @property
+    def event(self):
+        pass
 
     @property
     def duration(self):
@@ -206,8 +219,8 @@ class BaseBin(BaseObject):
 
 class BaseEvent(BaseObject):
     object_type = "event"
-    bin        = False
-    asset      = False
+    _bin        = False
+    _asset      = False
 
     def _new(self):
         self["start"]      = 0

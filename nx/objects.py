@@ -157,16 +157,26 @@ class Asset(ServerObject, BaseAsset):
 
 
 
-class Item(ServerObject, BaseItem):
-    object_type = "item"
-    
-    def get_asset(self):
-        if not self.asset:
+class Item(ServerObject, BaseItem): 
+    @property
+    def asset(self):
+        if not self._asset:
             if self.meta.get("id_asset", 0):
-                self.asset = Asset(self["id_asset"], db=self._db, cache=self._cache)
+                self._asset = Asset(self["id_asset"], db=self._db, cache=self._cache)
             else:
                 return False
-        return self.asset
+        return self._asset
+
+    @property
+    def bin(self):
+        if not hasattr(self, "_bin"):
+            self._bin = Bin(self["id_bin"], db=self._db, cache=self._cache)
+        return self._bin
+
+    @property
+    def event(self):
+        pass #TODO
+
 
 
 
@@ -213,11 +223,16 @@ class Bin(ServerObject, BaseBin):
     def _save_to_cache(self):
         return self.cache.save("%s%d" % (self.ns_prefix, self["id_object"]), json.dumps([self.meta, [i.meta for i in self.items]]))
 
-    def get_duration(self):
+    @property 
+    def duration(self):
         dur = 0
         for item in self.items:
             dur += item.get_duration()
         return dur
+
+    def get_duration(self):
+        # DEPRECATED
+        return self.duration
 
     def delete_childs(self):
         for item in self.items:
@@ -229,17 +244,26 @@ class Bin(ServerObject, BaseBin):
 
 
 class Event(ServerObject, BaseEvent):
-    object_type = "event"
+    @property 
+    def bin(self):
+        if not self._bin:
+            self._bin = Bin(self["id_magic"], db=self._db, cache=self.cache)
+        return self._bin
+
+    @property 
+    def asset(self):
+        if not self._asset:
+            self._asset = Asset(self["id_magic"], db=self._db, cache=self.cache)
+        return self._asset
 
     def get_bin(self):
-        if not self.bin:
-            self.bin = Bin(self["id_magic"], db=self._db, cache=self.cache)
+        # DEPRECATED
         return self.bin
 
     def get_asset(self):
-        if not self.asset:
-            self.asset = Asset(self["id_magic"], db=self._db, cache=self.cache)
+        # DEPRECATED
         return self.asset
+
 
 
 class User(ServerObject, BaseObject):
