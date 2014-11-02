@@ -22,7 +22,6 @@ def hive_get_events(auth_key, params={}):
         yield 400, "No such playout channel"
         return
 
-
     logging.debug("Requested events from {} to {}".format(
         time.strftime("%Y-%m-%d", time.localtime(start_time)),
         time.strftime("%Y-%m-%d", time.localtime(end_time)),
@@ -38,15 +37,11 @@ def hive_get_events(auth_key, params={}):
 
     logging.debug("Returning {} events".format(len(res)))
 
-    #result = []
     for id_event, in res:
         event = Event(id_event, db=db)
-        pbin  = event.get_bin()
-        event["duration"] = pbin.get_duration()
-        #result.append(event.meta)
+        event["duration"] = event.bin.duration
         yield -1, event.meta
     yield 200, "OK"
-    #return [[200, {"events" : result}]]
 
 
 
@@ -76,8 +71,8 @@ def hive_set_events(auth_key, params={}):
         if not event:
             logging.warning("Unable to delete non existent event ID {}".format(id_event))
             continue
-        pbin = event.get_bin()
-        pbin.delete()
+        
+        event.bin.delete()
         event.delete()
         deleted += 1
         changed_ids.append(event.id)
@@ -223,7 +218,7 @@ def hive_rundown(auth_key, params):
         for item in pbin.items:
             i_meta = item.meta
             if item["id_asset"]:
-                a_meta = item.get_asset().meta
+                a_meta = item.asset.meta
             else:
                 a_meta = {}
                 
@@ -251,7 +246,7 @@ def hive_rundown(auth_key, params):
                 i_meta["rundown_status"] = -2 #  PART AIRED
             elif not item["id_asset"]:
                 i_meta["rundown_status"] = 2 # Virtual item or something... show as ready
-            elif item.get_asset()["status"] != ONLINE:
+            elif item.asset["status"] != ONLINE:
                 i_meta["rundown_status"] = 0 # Master asset is not online: Rundown status = OFFLINE
             else:
                 id_playout = item["id_playout/{}".format(id_channel)]

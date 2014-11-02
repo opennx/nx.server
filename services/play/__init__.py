@@ -180,8 +180,8 @@ class Service(ServicePrototype):
             return 400, "Cannot cue virtual item"
 
         channel = self.caspar[id_channel]
-        master_asset  = item.get_asset()
-        id_playout = master_asset[channel.playout_spec]
+        
+        id_playout = item.asset[channel.playout_spec]
         playout_asset = Asset(id_playout, db=db, cache=lcache)
 
         if not os.path.exists(playout_asset.file_path):
@@ -238,7 +238,7 @@ class Service(ServicePrototype):
 
     def channel_main(self, channel):
         if not channel.cued_asset and channel.cued_item:
-            channel.cued_asset = Item(channel.cued_item).get_asset()
+            channel.cued_asset = Item(channel.cued_item).asset
         data = {}
         data["id_channel"]    = channel.ident
         data["current_item"]  = channel.current_item
@@ -268,8 +268,8 @@ class Service(ServicePrototype):
         if not channel.current_item:
             return 
         db = DB()
-        itm = Item(channel.current_item, db=db)
-        channel.current_asset = itm.get_asset()
+        item = Item(channel.current_item, db=db)
+        channel.current_asset = item.asset
         channel.cued_asset = False
 
         logging.info ("Advanced to {}".format(itm))
