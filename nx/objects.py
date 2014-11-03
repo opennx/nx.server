@@ -421,12 +421,11 @@ def get_next_item(id_item, **kwargs):
         db.query(q)
         try:
             next_event = Event(db.fetchall()[0][0], db=db, cache=lcache)
-            next_bin = next_event.get_bin()
-            if not next_bin.items:
+            if not next_event.bin.items:
                 raise Exception
             if next_event["run_mode"]:
                 raise Exception
-            return next_bin.items[0]
+            return next_event.bin.items[0]
         except:
             logging.info("Looping current playlist")
             return current_bin.items[0]

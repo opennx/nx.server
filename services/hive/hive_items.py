@@ -104,7 +104,7 @@ def hive_set_events(auth_key, params={}):
             asset = Asset(id_asset, db=db)
             if asset:
                 logging.info("Replacing event primary asset")
-                pbin = pbin or event.get_bin()
+                pbin = pbin or event.bin
 
                 pbin.delete_childs()
                 pbin.items = []
@@ -159,9 +159,8 @@ def hive_get_runs(auth_key, params):
     result = []
     for id_event, in db.fetchall():
         event = Event(id_event, db=db)
-        ebin = event.get_bin()
         start = event["start"]
-        for item in ebin.items:
+        for item in event.bin.items:
             if item["id_asset"] in asset_ids:
                 result.append([id_event, item["id_asset"], start, False])
             start += item.get_duration()
@@ -202,7 +201,6 @@ def hive_rundown(auth_key, params):
     for i, e in enumerate(events):
         id_event = e[0]
         event = Event(id_event, db=db)
-        pbin  = event.get_bin()
 
         yield -1, {"progress" : i/rlen}
 
@@ -213,9 +211,9 @@ def hive_rundown(auth_key, params):
         event_meta["rundown_scheduled"] = ts_scheduled = event["start"]
         event_meta["rundown_broadcast"] = ts_broadcast = ts_broadcast or ts_scheduled
         
-        bin_meta   = pbin.meta
+        bin_meta   = event.bin.meta
         items = []
-        for item in pbin.items:
+        for item in event.bin.items:
             i_meta = item.meta
             if item["id_asset"]:
                 a_meta = item.asset.meta
@@ -258,7 +256,7 @@ def hive_rundown(auth_key, params):
             items.append(i_meta)
 
         # Reset broadcast time indicator after empty blocks and if run mode is not AUTO (0)
-        if not pbin.items:
+        if not event.bin.items:
             ts_broadcast = 0
 
         data.append({

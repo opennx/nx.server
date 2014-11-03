@@ -105,9 +105,8 @@ def nx_history_connector(start=False, stop=False, tstart=False):
     db.query("SELECT id_object FROM nx_events WHERE id_channel in ({}){} ORDER BY start ASC".format(", ".join([str(i) for i in config["playout_channels"] ]), cond ))
     for id_object, in db.fetchall():
         event = Event(id_object, db=db, cache=local_cache)
-        ebin = event.get_bin()
         tstamp = event["start"]
-        for item in ebin.items:
+        for item in event.bin.items:
             yield (event["id_channel"], tstamp, item["id_asset"])
             tstamp += item.get_duration()
 
@@ -167,12 +166,11 @@ class Session():
         for id_event, in db.fetchall():
             event = Event(id_event, db=db)
             self.msg = "Loading {}".format(event)
-            ebin = event.get_bin()
             event.meta["id_event"] = event.id
             block = DramaticaBlock(self.rundown, **event.meta)
             block.config = json.loads(block["dramatica/config"] or "{}")
 
-            for eitem in ebin.items:
+            for eitem in event.bin.items:
                 eitem.meta["id_item"] = eitem.id
                 eitem.meta["id_object"] = eitem["id_asset"] # Avoid id_object schisma
                 eitem.meta["is_optional"] = eitem["is_optional"]
@@ -209,7 +207,7 @@ class Session():
 
             if block["id_event"]:
                 event = Event(block["id_event"], db=db)
-                ebin = event.get_bin()
+                ebin = event.bin
             else:
                 event = Event(db=db)
                 ebin = Bin(db=db)
@@ -281,14 +279,14 @@ class Session():
             if not event:
                 logging.warning("Unable to delete non existent event ID {}".format(id_event))
                 continue
-            pbin = event.get_bin()
-            for item in pbin.items:
+            
+            for item in event.bin.items:
                 if not item.id:
                     continue
                 yield "Deleting {}".format(item)
                 item.delete()
-            pbin.items = []
-            pbin.delete()
+            event.bin.items = []
+            event.bin.delete()
             self.affected_events.append(event.id)
             yield "Deleting {}".format(event)
             event.delete()

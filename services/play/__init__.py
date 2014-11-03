@@ -387,7 +387,7 @@ class Service(ServicePrototype):
             if not run_mode:
                 continue
 
-            elif not next_event.get_bin().items:
+            elif not next_event.bin.items:
                 continue
 
             elif run_mode == RUN_MANUAL:
@@ -396,18 +396,18 @@ class Service(ServicePrototype):
             elif run_mode == RUN_SOFT:
                 logging.info("Soft cue {}".format(next_event))
 
-                for i,r in enumerate(current_event.get_bin().items):
+                for i,r in enumerate(current_event.bin.items):
                     if r["item_role"] == "lead_out":
                         try:
-                            self.cue(id_channel=id_channel, id_item=current_event.get_bin().items[i+1].id, db=db, cache=local_cache)
+                            self.cue(id_channel=id_channel, id_item=current_event.bin.items[i+1].id, db=db, cache=local_cache)
                             break
                         except IndexError:
                             pass
                     else:
-                        id_item = next_event.get_bin().items[0].id
+                        id_item = next_event.bin.items[0].id
                         if id_item != self.caspar.channels[id_channel].cued_item:
                             self.cue(id_channel=id_channel, id_item=id_item, db=db, cache=local_cache)
 
             elif run_mode == RUN_HARD:
-                id_item = next_event.get_bin().items[0].id
+                id_item = next_event.bin.items[0].id
                 self.cue(id_channel=id_channel, id_item=id_item, play=True, db=db, cache=local_cache)
