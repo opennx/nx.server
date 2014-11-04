@@ -42,7 +42,7 @@ class FFProbe(Probe):
 
     def work(self, asset):
         old_meta = asset.meta
-        fname = asset.get_file_path()
+        fname = asset.file_path
         try:
             dump = ffprobe(fname)
             streams = dump["streams"]
