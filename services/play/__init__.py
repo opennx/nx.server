@@ -148,6 +148,7 @@ class Service(ServicePrototype):
 
             channel.cued_asset    = False
             channel.current_asset = False
+            channel.current_event = False
             channel._changed      = False
             channel._last_run     = False
             channel.plugins       = PlayoutPlugins(channel)
@@ -270,9 +271,10 @@ class Service(ServicePrototype):
         db = DB()
         item = Item(channel.current_item, db=db)
         channel.current_asset = item.asset
+        channel.current_event = item.event
         channel.cued_asset = False
 
-        logging.info ("Advanced to {}".format(itm))
+        logging.info ("Advanced to {}".format(item))
 
         if channel._last_run:           
             db.query("UPDATE nx_asrun SET stop = %s WHERE id_run = %s",  [int(time.time()) , channel._last_run])
@@ -365,6 +367,7 @@ class Service(ServicePrototype):
             if not id_item:
                 continue
                 
+            # TODO: use channel.current_event
             current_event = get_item_event(id_item, db=db, cache=local_cache)
 
             if not current_event:
