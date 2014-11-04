@@ -22,7 +22,7 @@ class BaseAnalyzer():
 
 class Analyzer_AV(BaseAnalyzer):
     def proc(self):
-        fname = self.asset.get_file_path()
+        fname = self.asset.file_path
         r128tags = [
                 ("I:",         "audio/r128/i"),
                 ("Threshold:", "audio/r128/t"),
@@ -45,7 +45,7 @@ class Analyzer_AV(BaseAnalyzer):
 
 class Analyzer_BPM(BaseAnalyzer):
     def proc(self):
-        fname = self.asset.get_file_path()        
+        fname = self.asset.file_path
         s = shell("ffmpeg -i \"{}\" -vn -ar 44100 -f f32le - 2> /dev/null | ./bpm".format(fname))
         try:
             bpm = float(s.stdout().read())

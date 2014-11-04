@@ -31,7 +31,7 @@ class Service(ServicePrototype):
 
     def _proc(self, id_asset, db):
         asset = Asset(id_asset, db = db)
-        fname = asset.get_file_path()
+        fname = asset.file_path
 
         if asset["id_storage"] not in self.mounted_storages:
             return
