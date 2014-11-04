@@ -116,12 +116,10 @@ class BaseAsset(BaseObject):
             self["mark_out"] = new_val
         return self["mark_out"]
         
-    def get_file_path(self):
-        # DEPRECATED
+    def get_file_path(self): # DEPRECATED
         return self.file_path
 
-    def get_duration(self):
-        # DEPRECATED
+    def get_duration(self): # DEPRECATED
         return self.duration
 
     @property
@@ -140,6 +138,7 @@ class BaseAsset(BaseObject):
         if mko > 0: dur -= dur - mko
         if mki > 0: dur -= mki
         return dur
+
 
 
 
@@ -173,12 +172,10 @@ class BaseItem(BaseObject):
             self["mark_out"] = new_val
         return self["mark_out"]
 
-    def get_asset(self):
-        # DEPRECATED
+    def get_asset(self): # DEPRECATED
         return self.asset
 
-    def get_duration(self):
-        # DEPRECATED
+    def get_duration(self): # DEPRECATED
         return self.duration
 
     @property
@@ -195,9 +192,10 @@ class BaseItem(BaseObject):
 
     @property
     def duration(self):
+        """Final duration of the item"""
         if not self["id_asset"]: 
             return self.mark_out() - self.mark_in()
-        dur = self.get_asset()["duration"]
+        dur = self.asset["duration"]
         if not dur:
             return 0
         mark_in  = self.mark_in()

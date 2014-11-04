@@ -125,7 +125,7 @@ class Asset(ServerObject, BaseAsset):
     object_type = "asset"
 
     def load_sidecar_metadata(self):
-        path_elms = os.path.splitext(self.get_file_path())[0].split("/")[1:]
+        path_elms = os.path.splitext(self.file_path)[0].split("/")[1:]
         for i in range(len(path_elms)):
 
             nxmeta_name = "/" + reduce(os.path.join, path_elms[:i]+["{}.json".format(path_elms[i])])
@@ -175,7 +175,15 @@ class Item(ServerObject, BaseItem):
 
     @property
     def event(self):
-        pass #TODO
+        db = self._db
+        if not hasattr(self, "_event"):
+            db.query("SELECT id_object FROM nx_events WHERE id_magic=%s", [self["id_bin"]])
+            res = db.fetchall()
+            if not res:
+                self._event = False
+            else:
+                self._event = Event(res[0][0], db=self._db, cache=self._cache)
+        return self._event
 
 
 
