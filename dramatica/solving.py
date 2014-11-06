@@ -299,6 +299,8 @@ class DefaultSolver(DramaticaSolver):
             for key in ASSET_TO_BLOCK_INHERIT:
                 if asset[key]:
                     self.block[key] = asset[key]
+                elif self.block[key]:
+                    del (self.block[key])
 
 
     def insert_block(self, asset, start):
@@ -313,6 +315,8 @@ class DefaultSolver(DramaticaSolver):
         for key in ASSET_TO_BLOCK_INHERIT:
             if asset[key]:
                 n[key] = asset[key]
+            elif n[key]:
+                del(n[key])
 
         for v in ["jingles", "promos", "post_main", "block_source", "genres"]:
             if self.block.config.get(v, False):
@@ -375,7 +379,7 @@ class DefaultSolver(DramaticaSolver):
 
             if asset:
                 yield "Splitting block using {}".format(asset)
-                self.insert_block(asset, start=self.block["start"]+suggested)
+                self.insert_block(asset, start=self.block["start"] + suggested)
             
         ## If remaining time is long, split block
         ##########################################
