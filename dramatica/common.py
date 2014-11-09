@@ -24,6 +24,10 @@ class DramaticaObject(object):
     def __setitem__(self, key, value):
         self.meta[key] = value
 
+    def __delitem__(self, key):
+        if key in self.meta:
+            del (self.meta[key])
+
 
 class DramaticaAsset(DramaticaObject):
     default = {
