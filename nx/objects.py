@@ -139,7 +139,6 @@ class Asset(ServerObject, BaseAsset):
                     logging.debug("Applied meta from template %s" % nxmeta_name)
 
             nxmeta_name = "/" + reduce(os.path.join, path_elms[:i]+["{}.yaml".format(path_elms[i])])
-            print ("checking ", nxmeta_name)
             if os.path.exists(nxmeta_name):
                 if not yaml:
                     logging.warning("YAML sidecar file exists, but pyyaml is not installed")
