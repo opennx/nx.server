@@ -160,7 +160,10 @@ class DramaticaSolver(object):
             result.append(id_object)
             durs.append(adur)
 
-        self.remainder_duration_median = durs[(len(durs) - 1) // 2]
+        try:
+            self.remainder_duration_median = durs[(len(durs) - 1) // 2]
+        except:
+            pass
 
         if not result:
             return False
