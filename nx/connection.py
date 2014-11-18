@@ -8,7 +8,8 @@ __all__ = ["connection_type", "DB", "cache", "Cache"]
 ## Database
 
 class DBproto(object):
-    def __init__(self):
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
         self._connect()
 
     def _connect(self):
@@ -36,10 +37,10 @@ if config['db_driver'] == 'postgres':
     import psycopg2
     class DB(DBproto):
         def _connect(self):  
-            self.conn = psycopg2.connect(database = config['db_name'], 
-                                         host     = config['db_host'], 
-                                         user     = config['db_user'],
-                                         password = config['db_pass']
+            self.conn = psycopg2.connect(database = self.kwargs.get('db_name', False) or config['db_name'], 
+                                         host     = self.kwargs.get('db_host', False) or config['db_host'], 
+                                         user     = self.kwargs.get('db_user', False) or config['db_user'],
+                                         password = self.kwargs.get('db_pass', False) or config['db_pass']
                                          ) 
             self.cur = self.conn.cursor()
 

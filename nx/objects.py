@@ -71,7 +71,7 @@ class ServerObject(object):
             self.db.query(q, v)
             self.db.query("DELETE FROM nx_meta WHERE id_object = {0} and object_type = {1}".format(self["id_object"], self.id_object_type()))
         else:
-            self["ctime"] = time.time()
+            self["ctime"] = self["ctime"] or time.time()
             created = True
             q = "INSERT INTO nx_{0}s ({1}) VALUES ({2})".format( self.object_type,  
                                                           ", ".join(tag for tag in self.ns_tags if tag != 'id_object'),
