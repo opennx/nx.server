@@ -46,7 +46,10 @@ def get_data(rss_url):
         desc1 = item.find("description").text.strip() 
       
         matcher = r".*</font></b></font><br /><font size=\"-1\">(?P<article>.*?)\</font>.*"
-        m = re.match(matcher,desc1)
+        m = re.match(matcher, desc1)
+        if not m:
+            continue
+
         desc2 = m.group("article")
         
         if desc2.endswith("<b>...</b>"): 
@@ -60,11 +63,11 @@ def get_data(rss_url):
         article["content_type"] = 0 #text
         article["media_type"] = 1 # virutal
 
-        #article["content"] = re.sub(r"(\| foto (.*))\.",".",strip_tags(desc2)).replace("|"," ")
-        #if article["content"].endswith("..."):
-        #  continue
-        #if len(article["content"]) < 10:
-        #   continue
+        article["article"] = re.sub(r"(\| foto (.*))\.",".",strip_tags(desc2)).replace("|"," ")
+        if article["article"].endswith("..."):
+            continue
+        if len(article["article"]) < 10:
+            continue
 
         yield article
 
