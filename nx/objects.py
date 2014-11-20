@@ -129,7 +129,6 @@ class Asset(ServerObject, BaseAsset):
         for i in range(len(path_elms)):
 
             nxmeta_name = "/" + reduce(os.path.join, path_elms[:i]+["{}.json".format(path_elms[i])])
-            print ("checking ", nxmeta_name)
             if os.path.exists(nxmeta_name):
                 try:
                     self.meta.update(json.loads(open(nxmeta_name).read()))
