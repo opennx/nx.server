@@ -36,12 +36,22 @@ class DBproto(object):
 if config['db_driver'] == 'postgres': 
     import psycopg2
     class DB(DBproto):
-        def _connect(self):  
-            self.conn = psycopg2.connect(database = self.kwargs.get('db_name', False) or config['db_name'], 
-                                         host     = self.kwargs.get('db_host', False) or config['db_host'], 
-                                         user     = self.kwargs.get('db_user', False) or config['db_user'],
-                                         password = self.kwargs.get('db_pass', False) or config['db_pass']
-                                         ) 
+        def _connect(self):
+            i = 0
+            while i < 3:
+                try:
+                    self.conn = psycopg2.connect(database = self.kwargs.get('db_name', False) or config['db_name'], 
+                                                 host     = self.kwargs.get('db_host', False) or config['db_host'], 
+                                                 user     = self.kwargs.get('db_user', False) or config['db_user'],
+                                                 password = self.kwargs.get('db_pass', False) or config['db_pass']
+                                                 ) 
+                except psycopg2.OperationalError:
+                    time.sleep(1)
+                    i+=1
+                    continue
+                else:
+                    break
+
             self.cur = self.conn.cursor()
 
         def sanit(self, instr):
