@@ -148,11 +148,12 @@ def hive_set_meta(auth, params):
 
         if changed and create_script:
             logging.debug("Executing validation script")
+            tt = "{}".format(obj)
             exec(create_script)
-            stat, res = validate(obj)
-            if not stat:
-                logging.warning("Unable to save {}: {}".format(obj, res))
-                return [[400, res]]
+            obj = validate(obj)
+            if not isinstance(obj, BaseObject):
+                logging.warning("Unable to save {}: {}".format(tt, obj))
+                return [[400, obj]]
 
         if changed:
             changed_objects.append(obj.id)
