@@ -76,25 +76,28 @@ class Service(ServicePrototype):
                     logging.error("Unable to relay {} message to {} ".format(method, self.url))
 
                 if self.log_path and method == "log":
-                    log = "{}\t{}\t{}@{}\t{}\n".format(
-                            time.strftime("%H:%M:%S"),
+                    try:
+                        log = "{}\t{}\t{}@{}\t{}\n".format(
+                                time.strftime("%H:%M:%S"),
 
-                            {DEBUG      : "DEBUG    ",
-                            INFO       : "INFO     ",
-                            WARNING    : "WARNING  ",
-                            ERROR      : "ERROR    ",
-                            GOOD_NEWS  : "GOOD NEWS"}[data["msg_type"]],
+                                {DEBUG      : "DEBUG    ",
+                                INFO       : "INFO     ",
+                                WARNING    : "WARNING  ",
+                                ERROR      : "ERROR    ",
+                                GOOD_NEWS  : "GOOD NEWS"}[data["msg_type"]],
 
 
-                            data["user"],
-                            host,
-                            data["message"]
-                        )
-
-                    fn = os.path.join(self.log_path, time.strftime("%Y-%m-%d.txt"))
-                    f = open(fn, "a")
-                    f.write(log)
-                    f.close()
+                                data["user"],
+                                host,
+                                data["message"]
+                            )
+                    except:
+                        pass
+                    else:
+                        fn = os.path.join(self.log_path, time.strftime("%Y-%m-%d.txt"))
+                        f = open(fn, "a")
+                        f.write(log)
+                        f.close()
 
     
     def send_message(self, message):
