@@ -6,12 +6,10 @@ killtree() {
     for _child in $(ps -o pid --no-headers --ppid ${_pid}); do
         killtree ${_child} ${_sig}
     done
-    #echo ${_pid}
-    kill -${_sig} ${_pid}
+    kill -${_sig} ${_pid} 2> /dev/null
 }
 
 if [ $# -eq 0 -o $# -gt 2 ]; then
-    echo "Usage: $(basename $0) <pid> [signal]"
     exit 1
 fi
 
