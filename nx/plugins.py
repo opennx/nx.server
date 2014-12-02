@@ -13,13 +13,30 @@ else:
         os.makedirs(plugin_path)
 
 
+
+class PlayoutPluginSlot(object):
+    def __init__(self, slot_type, **kwargs):
+        self.slot_type = slot_type
+        self.ops = kwargs
+
+    def __getitem__(self, key):
+        return self.ops.get(key, False)
+
+    def __setitem__(self, key, value):
+        self.ops[key] = value
+
+
 class PlayoutPlugin(object):
     def __init__(self, channel):
         self.channel = channel
         self.id_layer = self.channel.feed_layer + 1
+        self.slots = []
         self.tasks = []
         self.on_init()
         self.busy = False
+
+    def add_slot(self, slot_type, **kwargs):
+        self.slots.append(PlayoutPluginSlot(slot_type, **kwargs))
 
     def main(self):
         self.busy = True

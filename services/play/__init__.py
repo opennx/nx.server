@@ -41,6 +41,7 @@ class PlayoutPlugins():
             
             logging.info("Initializing plugin {} on channel {}".format(py_mod.__manifest__["name"], channel.ident ))
             self.plugins.append(py_mod.Plugin(channel))    
+            self.plugins[-1].title = py_mod.__manifest__["name"]
         
     def __getitem__(self, key):
         return self.plugins[key]
@@ -74,7 +75,8 @@ class ControlHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         service = self.server.service
-        self.result(service.stat())
+        #self.result(service.stat())
+        self.result(service.cg_list(id_channel=1))
 
     def do_POST(self):
         service = self.server.service
@@ -231,10 +233,61 @@ class Service(ServicePrototype):
         return "200", "stat"
 
     def cg_list(self, **kwargs):
-        return "200", "cg_list"
+        id_channel = kwargs.get("id_channel", False)
+        if not id_channel in self.caspar.channels:
+            return 400, "Requested channel is not operated by this service"
+        channel = self.caspar[id_channel]
+
+        result = []
+
+        for j, plugin in enumerate(channel.plugins):
+            if not plugin.slots:
+                continue
+
+            p = {
+                "id" : j,
+                "title" : plugin.title, 
+                "slots":[]
+                }
+
+            for i, slot in enumerate(plugin.slots):
+                s = {
+                    "slot_type" : slot.slot_type,
+                    "id" : i
+                    }
+
+                for op in slot.ops:
+                    if op == "title":
+                        s["title"] = slot["title"]
+                    elif op == "source":
+                        s["data"] = slot["source"]()
+                    elif op == "value":
+                        s["value"] = slot["value"]
+
+                p["slots"].append(s)
+
+            result.append(p)
+        return 200, result
+
+
+
 
     def cg_exec(self, **kwargs):
-        return "200", "cg_exec"
+        id_channel = kwargs.get("id_channel", False)
+        if not id_channel in self.caspar.channels:
+            return 400, "Requested channel is not operated by this service"
+        channel = self.caspar[id_channel]
+
+        plugin = channel.plugins[kwargs["id_plugin"]]
+        slot = plugin.slots[kwargs["id_slot"]]
+
+        if slot.slot_type == "button":
+            slot["action"]()
+
+        if slot.slot_type in ["select", "text"]:
+            slot["value"] = kwargs["value"]
+        
+        return 200, "OK"
 
 
     def channel_main(self, channel):
