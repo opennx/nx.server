@@ -278,7 +278,7 @@ class DramaticaSolver(object):
 
 
 class DefaultSolver(DramaticaSolver):
-    default_block_source = "id_folder in (1,2)"
+    default_block_source = "id_folder = 1"
 
     def solve_empty(self):
         for id_asset in sorted(self.block.cache.assets, key=lambda x: self.block.cache.assets[x]["dramatica/weight"]):
@@ -356,7 +356,7 @@ class DefaultSolver(DramaticaSolver):
         suggested   = suggested_duration(self.block.duration)
         jingles     = self.block.config.get("jingles", False)
         jingle_span = self.block.config.get("jingle_span", 150)
-        fill_source = self.block.config.get("fill_source", "id_folder IN (3,5,7)")
+        fill_source = self.block.config.get("fill_source", "id_folder IN (5,7)")
     
         last_jingle = 0
 
