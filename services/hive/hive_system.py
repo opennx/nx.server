@@ -114,3 +114,10 @@ def hive_services(auth_key, params):
         res.append(s)   
 
     return [[200, res]]
+
+
+
+def hive_message(auth_key, params):
+    if params.get("message", False):
+        messaging.send("message", sender=auth_key, message=params["message"])
+    return [[200, ok]]
