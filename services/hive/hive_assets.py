@@ -110,6 +110,7 @@ def hive_set_meta(auth, params):
     changed_objects = []
     affected_bins = []
     for id_object in objects:
+        logging.debug("Updating object {} with {}".format(id_object, data))
 
         obj = {
             "asset" : Asset,
