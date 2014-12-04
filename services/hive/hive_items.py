@@ -303,9 +303,9 @@ def hive_bin_order(auth_key, params):
             else:
                 item = Item(id_object, db=db)
 
-            if not item:
-                logging.debug("Skipping {}".format(item))
-                continue
+                if not item:
+                    logging.debug("Skipping {}".format(item))
+                    continue
                 
             if not item["id_bin"] in affected_bins: 
                 affected_bins.append(item["id_bin"])
