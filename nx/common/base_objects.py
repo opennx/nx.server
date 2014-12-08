@@ -193,9 +193,12 @@ class BaseItem(BaseObject):
     @property
     def duration(self):
         """Final duration of the item"""
-        if not self["id_asset"]: 
+        if self["id_asset"]: 
+            dur = self.asset["duration"]
+        elif self["duration"]:
+            dur = self["duration"]
+        else:
             return self.mark_out() - self.mark_in()
-        dur = self.asset["duration"]
         if not dur:
             return 0
         mark_in  = self.mark_in()
