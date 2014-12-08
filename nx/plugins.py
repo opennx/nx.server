@@ -38,6 +38,9 @@ class PlayoutPlugin(object):
     def add_slot(self, slot_type, **kwargs):
         self.slots.append(PlayoutPluginSlot(slot_type, **kwargs))
 
+    def slot_value(self, index):
+        return self.slots[index]["value"]
+
     def main(self):
         self.busy = True
         try:
