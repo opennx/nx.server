@@ -4,11 +4,13 @@ from nx import *
 from nx.objects import *
 from nx.jobs import send_to
 
-from .auth import get_rights
+from .auth import sessions
 
 def hive_browse(auth_key, params):
-    if not get_rights(auth_key):
+    user = sessions[auth_key]
+    if not user:
         return [[403, "Not authorised"]]
+
     db = DB()
     conds = []
 
@@ -44,7 +46,8 @@ def hive_browse(auth_key, params):
 
 
 def hive_get_assets(auth_key, params):
-    if not get_rights(auth_key):
+    user = sessions[auth_key]
+    if not user:
         yield 403, "Not authorised"
         return
     asset_ids = params.get("asset_ids", [])

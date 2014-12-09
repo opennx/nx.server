@@ -5,7 +5,7 @@ from nx import *
 from nx.objects import *
 from nx.plugins import plugin_path
 
-from .auth import get_rights
+from .auth import sessions
 
 from dramatica.common import DramaticaCache
 from dramatica.scheduling import DramaticaBlock, DramaticaRundown

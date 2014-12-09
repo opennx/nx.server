@@ -1,11 +1,11 @@
 from nx import *
 from nx.common.metadata import meta_types
 from nx.objects import *
-from .auth import get_rights
+from .auth import sessions
 
 
 def hive_auth(auth_key, params):
-    if get_rights(auth_key):
+    if sessions[auth_key]:
         return [[200, "Already logged in"]]
 
     if params.get("login") and params.get("password"):
@@ -21,16 +21,18 @@ def hive_auth(auth_key, params):
     else:
         return [[403, "Not logged in"]]
 
+
 def hive_meta_types(auth_key, params):
-    if not get_rights(auth_key):
+    if not sessions[auth_key]:
         return [[403, "Not authorised"]]
     return [[200, [meta_types[t].pack() for t in meta_types.keys()]]]
 
+
 def hive_site_settings(auth_key,params):
-    if not get_rights(auth_key):
+    if not sessions[auth_key]:
         return [[403, "Not authorised"]]
     db = DB()
-    rights = get_rights(auth_key)
+    rights = sessions[auth_key].meta
 
     result = {}
     result["rights"] = rights
@@ -84,9 +86,8 @@ def hive_site_settings(auth_key,params):
     return [[200, result]]
 
 
-
 def hive_services(auth_key, params):
-    if not get_rights(auth_key):
+    if not sessions[auth_key]:
         return [[403, "Not authorised"]]
     command    = params.get("command", 0) 
     id_service = params.get("id_service", 0)
@@ -112,12 +113,14 @@ def hive_services(auth_key, params):
             "last_seen" : time.time() - last_seen
         }
         res.append(s)   
-
     return [[200, res]]
 
 
-
 def hive_message(auth_key, params):
+    user = sessions[auth_key]
+    if not user:
+        return [[403, "Not authorised"]]
+
     if params.get("message", False):
-        messaging.send("message", sender=auth_key, message=params["message"])
-    return [[200, ok]]
+        messaging.send("message", sender=auth_key, from_user=user["full_name"] or user["login"] , message=params["message"])
+    return [[200, "ok"]]

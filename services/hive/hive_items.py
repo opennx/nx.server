@@ -1,7 +1,7 @@
 from nx import *
 from nx.objects import *
 
-from .auth import get_rights
+from .auth import sessions
 
 BLOCK_MODES = ["LINK", "MANUAL", "SOFT AUTO", "HARD AUTO"]
 
@@ -60,6 +60,7 @@ def hive_set_events(auth_key, params={}):
     #TODO: AUTH
     delete = params.get("delete", [])
     events = params.get("events", [])
+    id_channel = params.get("id_channel", 0)
 
     db = DB()
 
@@ -81,7 +82,7 @@ def hive_set_events(auth_key, params={}):
     for event_data in params.get("events", []):
         id_event = event_data.get("id_object", False)
         pbin = False
-        db.query("SELECT id_object FROM nx_events WHERE id_channel = %s and start = %s", [event_data["id_channel"], event_data["start"]])
+        db.query("SELECT id_object FROM nx_events WHERE id_channel = %s and start = %s", [event_data.get("id_channel", id_channel), event_data["start"]])
         try:
             event_at_pos = db.fetchall()[0][0]
         except:
@@ -112,7 +113,7 @@ def hive_set_events(auth_key, params={}):
 #                if not event["dramatica/config"]:
                 item = Item(db=db)
                 item["id_asset"] = asset.id
-                item["position"] = 0
+                item["position"] = 1
                 item["id_bin"] = pbin.id
                 item.save()
                 pbin.items.append(item)
