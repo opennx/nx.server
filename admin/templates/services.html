@@ -2,7 +2,7 @@
 {% block body %}
 
 <div class="table-responsive">
-    <table class="table">
+    <table class="table table-hover table-striped">
         <thead>
             <tr>
                 <th style='width:50px;'>#</th>
@@ -39,11 +39,11 @@
 
         function timeout_init() {
             setTimeout('update_services()', 2000);
-            }
+        }
 
 
         function update_services() {            
-            $.getJSON("/services/json").done(function(data) {
+            $.getJSON(nx.settings.controller+"/json").done(function(data) {
 
                 if (data){
                 $.each( data, function( id_service, state ) {
@@ -70,7 +70,7 @@
 
 
         function stop_service(id_service){
-            $.post( "/services", { action: "stop", id_service: id_service } );
+            $.post( nx.settings.controller, { action: "stop", id_service: id_service } );
             update_services();
         }
 

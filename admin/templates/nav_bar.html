@@ -1,0 +1,14 @@
+{% set nav_bar = [
+    ('browser', 'Assets'),
+    ('jobs', 'Jobs'),
+    ('services', 'Services'),
+    ('users', 'Users'),
+    ('settings', 'Settings')
+] -%}
+
+
+<ul class="nav navbar-nav">
+{% for href, caption in nav_bar %}
+    <li{% if href == current_controller.controller|e %} class="active"{% endif %}><a href="/{{ href|e }}">{{ caption|e }}</a></li>
+{% endfor %}
+</ul>        

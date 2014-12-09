@@ -2,14 +2,14 @@
 {% block body %}
 <div class="view_switcher">
     <div class="btn-group">
-      <button type="button" onClick="window.location.href='/jobs/active'" class="btn {{ "active" if current_view=="active"}} btn-default">Active</button>
-      <button type="button" onClick="window.location.href='/jobs/completed'" class="btn {{ "active" if current_view=="completed"}} btn-default">Completed</button>
-      <button type="button" onClick="window.location.href='/jobs/failed'" class="btn {{ "active" if current_view=="failed"}} btn-default">Failed</button>
+      <button data-controller="/jobs/active" class="btn {{ "active" if current_controller.current_view=="active"}} btn-default">Active</button>
+      <button data-controller="/jobs/completed" class="btn {{ "active" if current_controller.current_view=="completed"}} btn-default">Completed</button>
+      <button data-controller="/jobs/failed" class="btn {{ "active" if current_controller.current_view=="failed"}} btn-default">Failed</button>
     </div>
 </div>
 
 <div class="table-responsive">
-    <table class="table">
+    <table class="table table-hover table-striped">
         <thead>
             <tr>
                 <th style='width:50px;'>#</th>
@@ -35,25 +35,20 @@
                         {% elif job.progress == -3%}
                             <span class="glyphicon glyphicon-remove"></span>
                         {% else %}
-                            <div class="progress">
-                                <div class="progress-bar" role="progressbar" aria-valuenow="{{ job.progress }}}" aria-valuemin="0" aria-valuemax="100" style="width: {{job.progress}}%;"></div>
+                            <div class="progress job-progress">
+                                <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ job.progress }}}" aria-valuemin="0" aria-valuemax="100" style="width: {{ job.progress }}%;"></div>
                             </div>
                         {% endif %}
                     </td>
                     
                     <td id='job_msg_{{job.id_job}}'>{{job.message}}</td>
                     
-                    <td>
-                        <form action="/jobs" method="post">
-                        <input type="hidden" name="id_job" value="{{job.id_job}}">
+                    <td class="action-box">
                         {% if job.progress < -1 %}
-                            <input type="hidden" name="action" value="restart">
-                            <button class="btn btn-default btn-xs" type="submit"><span class='glyphicon glyphicon-repeat'></span></button>
+                            <button class="btn btn-default btn-xs btn-primary job-action" data-action="-1" data-id-job="{{job.id_job}}"><span class='glyphicon glyphicon-repeat'></span></button>
                         {% else %}
-                            <input type="hidden" name="action" value="abort">
-                            <button class="btn btn-default btn-xs" type="submit"><span class='glyphicon glyphicon-remove'></span></button>
+                            <button class="btn btn-default btn-xs btn-danger job-action" data-action="-1" data-id-job="{{job.id_job}}"><span class='glyphicon glyphicon-remove'></span></button>
                         {% endif %}
-                        </form>
                     </td>
                 </tr>
             {% endfor %}
@@ -66,43 +61,88 @@
 
 
 {% block js %}
-    {% if current_view=="active"%}
     <script type='text/javascript'>
+    
+    /* ******************     
+    | States
+        
+        PROGRESS  = 0-100   
+        PENDING   = -1
+        COMPLETED = -2
+        FAILED    = -3
+        ABORTED   = -4
+    | 
+    ******************* */ 
 
-        function timeout_init() {
-            setTimeout('update_progress()', 2000);
-            }
+    var job_action = function(e){
+        
+        var data = {
+            id_job : e.data('id-job'), 
+            action : e.data('action')
+        }
 
-        function update_progress() {
-            
-            $.getJSON("/jobs/json").done(function(data) {
-                $.each( data, function( id_job, item ) {
-                    pval = item[0];
-                    pmsg = item[1];
-                    
-                    if (pval == -2){
-                        $("#job_progress_" + id_job).html("<span class='glyphicon glyphicon-ok'></span>");
-                    }
-                    else if (pval == -3){
-                        $("#job_progress_" + id_job).html("<span class='glyphicon glyphicon-remove'></span>");
-                    }
-                    else {
-                        $("#job_progress_" + id_job + " .progress-bar").css('width', pval+'%').attr('aria-valuenow', pval); 
-                    }
-                 
-                    $("#job_msg_" + id_job).html(pmsg);
+        nx.com.post({
+            url: nx.settings.controller+'/{{ current_controller.current_view }}',
+            data: data,
+            element: $('#nx-messages'),
+            notifyDone: true,
+            notifyFail: true,
+            notifyError: true,
+            postDone: load_job_callback
+        });        
+    }
 
-                  });
-                });
+    var load_job_callback = function(){
+        document.location.href = nx.settings.controller+'/{{ current_controller.current_view }}';
+    }
 
-            timeout_init();
-            }
+    {% if current_controller.current_view=="active"%}
 
-        $(document).ready(function(){
+    var timeout_init = function() {
+        setTimeout('update_progress()', 2000);
+    }
 
-            timeout_init();
+    function update_progress() {
+        
+        $.getJSON(nx.settings.controller+"/json").done(function(data) {
+            $.each( data, function( id_job, item ) {
+                pval = item[0];
+                pmsg = item[1];
+                
+                if (pval == -2){
+                    $("#job_progress_" + id_job).html("<span class='glyphicon glyphicon-ok'></span>");
+                }
+                else if (pval == -3){
+                    $("#job_progress_" + id_job).html("<span class='glyphicon glyphicon-remove'></span>");
+                }
+                else {
+                    $("#job_progress_" + id_job + " .progress-bar").css('width', pval+'%').attr('aria-valuenow', pval); 
+                }
+             
+                $("#job_msg_" + id_job).html(pmsg);
 
-        }); // document ready
-    </script>
+              });
+            });
+
+        timeout_init();
+    }
+
+    $(document).ready(function(){
+        timeout_init();
+    }); // document ready
+
     {% endif %}
+
+    $('.action-box').on('click', '.job-action', function(){
+        job_action($(this));    
+    });
+
+    $('.view_switcher').on('click', 'button', function(e){
+        e.preventDefault();
+        var controller = $(this).data('controller');
+        document.location.href = controller;
+    });
+
+    </script>
+
 {% endblock%}

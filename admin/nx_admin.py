@@ -9,8 +9,28 @@ from nx.objects import *
 
 
 
+########################################################################
+## Misc tools
+
+def set_current_controller(data={}):
+    if 'title' in data:
+       data['title'] = data['title']+' | OpenNX'
+    else:
+       data['title'] = 'OpenNX'      
+    return data
 
 
+def firefly_kill():
+    try:
+        messaging.send("firefly_shutdown")
+        res = {'status': True, 'reason': 'Ok', 'description': 'Everything went ok'}
+    except:
+        res = {'status': False, 'reason': 'Failed', 'description': 'Request failed' }
+    return res    
+    
+
+########################################################################
+## Assets
 
 
 def view_browser():
@@ -92,11 +112,22 @@ def view_jobs(view=""):
 
 
 def job_action(id_job, action, id_user=0):
-    db = DB()
-    id_job = id_job
-    db.query("UPDATE nx_jobs set id_service=0, progress=-1, retries=0, ctime=%s, stime=0, etime=0, message='Pending', id_user=%s WHERE id_job=%s", (time.time(), id_user, id_job))
-    db.commit()
+    
+    result = {'status': True, 'reason': 'Job action set'}
 
+    try:
+
+        db = DB()
+        id_job = id_job
+        db.query("UPDATE nx_jobs set id_service=0, progress=%s, retries=0, ctime=%s, stime=0, etime=0, message='Pending', id_user=%s WHERE id_job=%s", (action, time.time(), id_user, id_job))
+        db.commit()
+        
+    except:
+        
+        result['status'] = False
+        result['reason'] = 'Users not loaded, database error'
+
+    return result                 
 
 
 
@@ -106,15 +137,24 @@ def job_action(id_job, action, id_user=0):
 def view_users():
    
     db = DB()
-    db.query("SELECT id_object FROM nx_users")
     
-    users = []
-    for id_object, in db.fetchall():
-        user = User(id_object, db=db)
-        user["ctime_human"] = str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(user["ctime"]))) 
-        user["mtime_human"] = str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(user["mtime"]))) 
-        users.append(user)
-    return users    
+    result = {'users': [], 'status': True, 'reason': 'Users loaded'}
+
+    try: 
+        db.query("SELECT id_object FROM nx_users")
+        
+        for id_object, in db.fetchall():
+            user = User(id_object, db=db)
+            user["ctime_human"] = str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(user["ctime"]))) 
+            user["mtime_human"] = str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(user["mtime"]))) 
+            result['users'].append(user)
+        
+    except: 
+
+        result['status'] = False
+        result['reason'] = 'Users not loaded, database error'
+
+    return result     
 
 
 def get_user_data(id_user):
@@ -125,54 +165,60 @@ def get_user_data(id_user):
     _user = User(id_user, db=db)
     user["meta"] = _user.meta
 
-    db.query("SELECT key, id_user, host, ctime, mtime FROM nx_sessions WHERE id_user = "+str(id_user)+" ORDER BY mtime")
-    
-    sessions = []
-    for s in db.fetchall():
+    try: 
+        db.query("SELECT key, id_user, host, ctime, mtime FROM nx_sessions WHERE id_user = "+str(id_user)+" ORDER BY mtime")
         
-        session = {}
+        user["sessions"] = []
 
-        session["key"] = s[0] 
-        session["id_user"] = s[1]
-        session["host"] = s[2]
-        session["ctime_human"] = str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(s[3]))) 
-        session["mtime_human"] = str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(s[4]))) 
-        
-        sessions.append(session)
-    
-    user["sessions"] = sessions    
+        for s in db.fetchall():
+            
+            session = {}
+
+            session["key"] = s[0] 
+            session["id_user"] = s[1]
+            session["host"] = s[2]
+            session["ctime_human"] = str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(s[3]))) 
+            session["mtime_human"] = str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(s[4]))) 
+            
+            user["sessions"].append(session)
+
+        user['status'] = True
+        user['reason'] = 'User loaded'    
+
+    except:
+
+        user['status'] = False
+        user['reason'] = 'User not found'    
 
     return user
+
 
 
 def destroy_session(id_user, key, host):
  
     db = DB()
 
-    result = {}
+    result = {'id_user': id_user, 'status': True, 'reason': 'Session destroyed' }
     
-    result["status"] = True
-    result["reason"] = "Query ok"
-
     try:
         db.query("DELETE FROM nx_sessions WHERE id_user = "+str(id_user)+" AND key LIKE '"+str(key)+"' AND host LIKE '"+str(host)+"' ")
         db.commit()
-        result["reason"] = "Query ok"
     except:
         result["status"] = False
-        result["reason"] = "Query failed"
+        result["reason"] = "Session destroy, query failed"
 
     return result
 
 
+
 def save_user(user_data):
     
-    user = User()
-    if(user_data['id_user'] > 0):
-        user['id'] = user_data['id_user']
-    
+    result = {'status': True, 'reason': 'User saved'}
+
+    user = User(user_data['id_user'])
     user['login'] = user_data['login']
     user.set_password(user_data['password'])
 
-    return user.save()
+    user.save()
+    return result
 

@@ -2,7 +2,7 @@
 {% block body %}
 
 <div class="table-responsive user-list ui-form">
-    <table class="table">
+    <table class="table table-hover table-striped">
         <thead>
             <tr>
                 <th style='width:50px;'>#</th>
@@ -15,7 +15,7 @@
             </tr>
         </thead>
         <tbody>
-           {% for user in users %}
+           {% for user in users.users %}
             <tr>
                 <td>{{user.id}}</td>
                 <td>{{user.login}}</td>
@@ -123,12 +123,9 @@ var id_user = 0;
 
 
 $( function(){
-
     setTimeout( function(){
         clearForm();
     }, 152);
-
-
 });
 
 
@@ -203,10 +200,50 @@ save_btn.on('click', function(e){
     {
         save_user(user_data);    
     }else{
-        alert('Passwords not match');
+        
+        nx.utils.alert({
+            message : 'Passwords not match',
+            type : 'warning', 
+            clear : true
+        });    
+
+        //alert('Passwords not match');
     }    
     
 });
+
+
+
+
+
+
+/* **************************
+| Functions
+*************************** */
+
+var load_user_callback = function(r,d){
+    $('#_login').val(r.meta.login);
+ 
+    pwd.attr('type', 'password').val('');  
+
+    for(i in r.sessions)
+    {
+        s = r.sessions[i];
+        
+        var row = $('<tr><td>'+s.host+'</td><td>'+s.mtime_human+'</td><td>'+s.ctime_human+'</td><td><button class="btn btn-default btn-xs btn-danger btn-force-logout" data-s-key="'+s.key+'" data-s-host="'+s.host+'"><span class="glyphicon glyphicon-flash"></span> Force logout</button></td></tr>');
+
+        $('.slist').append(row);
+
+    }       
+
+    $('.sessions-wrap').show();
+
+    $('.btn-force-logout').off('click').on('click', function(e){
+        e.preventDefault();
+
+        destroy_session( $(this) );    
+    });
+}
 
 var clearForm = function(){
    id_user = 0;
@@ -218,44 +255,31 @@ var clearForm = function(){
 
 var load_user = function(id_user)
     { 
-        $.ajax({
-            type: "POST",
-            url: '/users',
-            dataType: 'json',
-            data: {
-                get_user : id_user
-            },
-            async: true,
-            cache: false,
-            error: function(a,b,c){
-                
-            },
-            success: function(r){
-                
-                $('#_login').val(r.meta.login);
-                pwd.attr('type', 'password').val('');  
+        
+        var data = {
+             get_user : id_user
+        }
 
-                for(i in r.sessions)
-                {
-                    s = r.sessions[i];
-                    
-                    var row = $('<tr><td>'+s.host+'</td><td>'+s.mtime_human+'</td><td>'+s.ctime_human+'</td><td><button class="btn btn-default btn-xs btn-danger btn-force-logout" data-s-key="'+s.key+'" data-s-host="'+s.host+'"><span class="glyphicon glyphicon-flash"></span> Force logout</button></td></tr>');
-
-                    $('.slist').append(row);
-
-                }       
-
-                $('.sessions-wrap').show();
-
-                $('.btn-force-logout').off('click').on('click', function(e){
-                    e.preventDefault();
-
-                    destroy_session( $(this) );    
-                });
-            }
-        });
+        nx.com.post({
+            url: nx.settings.controller,
+            data: data,
+            element: $('#nx-messages'),
+            notifyDone: true,
+            notifyFail: true,
+            notifyError: true,
+            postDone: load_user_callback
+        });        
     }
 
+var destroy_session_callback = function(r,d){
+    load_user(r.id_user);
+}
+
+var save_user_callback = function(r){
+    if(r.status === true){
+        document.location.href = nx.settings.controller;
+    }
+}
 
 var destroy_session = function(e)
     {
@@ -266,48 +290,31 @@ var destroy_session = function(e)
             destroy_id_user: id_user
         }
 
-        $.ajax({
-            type: "POST",
-            url: '/users',
-            dataType: 'json',
+        nx.com.post({
+            url: nx.settings.controller,
             data: session_data,
-            async: true,
-            cache: false,
-            error: function(a,b,c){
-                console.log(a);
-            },
-            success: function(r){
-               console.log(r);     
-               load_user(id_user);
-            }
-        });
-        
+            element: $('#nx-messages'),
+            notifyDone: true,
+            notifyFail: true,
+            notifyError: true,
+            postDone: destroy_session_callback
+        });        
+
     }
 
 
 var save_user = function(user_data)
     {
-        
-        $.ajax({
-            type: "POST",
-            url: '/users',
-            dataType: 'json',
+ 
+        nx.com.post({
+            url: nx.settings.controller,
             data: user_data,
-            async: true,
-            cache: false,
-            error: function(a,b,c){
-                console.log(a);
-            },
-            success: function(r){
-
-                if( r === true ){
-                    document.location.href = '/users';
-                }else{
-                    alert('Error');
-                }
-            }
-        });
-        
+            element: $('#nx-messages'),
+            notifyDone: false,
+            notifyFail: true,
+            notifyError: true,
+            postDone: save_user_callback
+        });       
     }
 
 
