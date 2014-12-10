@@ -143,6 +143,7 @@ def send_to(id_object, id_action, settings={}, id_user=0, priority=1, restart_ex
         if restart_existing:
             db.query("UPDATE nx_jobs SET id_service=0, progress=-1, ctime={ctime} WHERE id_job={id_job}".format(ctime=time.time(), id_job=res[0][0] ))
             db.commit()
+            messaging.send("job_progress", id_job=res[0][0], id_object=id_object, id_action=id_action, progress=-1)
             return 200, "Job restarted"
         else:
             return 200, "Job exists. Not restarting"
@@ -159,4 +160,5 @@ def send_to(id_object, id_action, settings={}, id_user=0, priority=1, restart_ex
                 )
             )
     db.commit()
+    messaging.send("job_progress", id_job=0, id_object=id_object, id_action=id_action, progress=-1) #TODO: more realistic id_job
     return 201, "Job created"
