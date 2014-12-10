@@ -29,8 +29,8 @@ class CasparChannel():
         
         self._cueing        = False
         self._changing      = False
-        self.request_time   = time.time()
-        
+        self.request_time = self.recovery_time = time.time()
+
         self.pos = self.dur = self.fpos = self.fdur = 0
         self.cued_in = self.cued_out = self.current_in = self.current_out = 0
 
@@ -201,9 +201,10 @@ class CasparChannel():
         except:  
             cued_fname = False
 
-        if current_fname == -1:
+        if current_fname == -1 and time.time() - self.recovery_time > 10:
             self.on_recovery(self)
             return        
+        self.recovery_time = time.time()
         
         if not cued_fname and current_fname:
             self._changing = True
