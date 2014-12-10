@@ -190,6 +190,12 @@ def hive_rundown(auth_key, params):
         return
 
     db = DB()
+
+    job_progress = {}
+    if channel_config["send_action"]:
+        db.query("SELECT id_object, progress FROM nx_jobs WHERE id_action = %s AND progress >= -1", [channel_config["send_action"]])
+        job_progress = {id_object: progress for id_object, progress in db.fetchall()}
+
     end_time   = start_time + (3600*24)
     item_runs  = get_item_runs(id_channel, start_time, end_time, db=db)
     data = []
@@ -253,6 +259,9 @@ def hive_rundown(auth_key, params):
                     i_meta["rundown_status"] = 1
                 else:
                     i_meta["rundown_status"] = 2 # Playout asset is ready
+
+            if item["id_asset"] in job_progress:
+                item["rundown_transfer_progress"] = job_progress[item["id_asset"]]
 
             items.append(i_meta)
 
