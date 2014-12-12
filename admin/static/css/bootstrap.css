@@ -5,8 +5,8 @@
  */
 
 /*!
- * Generated using the Bootstrap Customizer (http://getbootstrap.com/customize/?id=aaf4a2eba585bda4dc98)
- * Config saved to config.json and https://gist.github.com/aaf4a2eba585bda4dc98
+ * Generated using the Bootstrap Customizer (http://getbootstrap.com/customize/?id=937499ba059a313f3ff1)
+ * Config saved to config.json and https://gist.github.com/937499ba059a313f3ff1
  */
 /*! normalize.css v3.0.2 | MIT License | git.io/normalize */
 html {
@@ -3654,7 +3654,7 @@ select[multiple].input-group-sm > .input-group-btn > .btn {
 .nav > li > a:hover,
 .nav > li > a:focus {
   text-decoration: none;
-  background-color: #ffffff;
+  background-color: transparent;
 }
 .nav > li.disabled > a {
   color: #dddddd;
@@ -3669,7 +3669,7 @@ select[multiple].input-group-sm > .input-group-btn > .btn {
 .nav .open > a,
 .nav .open > a:hover,
 .nav .open > a:focus {
-  background-color: #ffffff;
+  background-color: transparent;
   border-color: #46bcff;
 }
 .nav .nav-divider {
@@ -3682,7 +3682,7 @@ select[multiple].input-group-sm > .input-group-btn > .btn {
   max-width: none;
 }
 .nav-tabs {
-  border-bottom: 1px solid #dddddd;
+  border-bottom: 1px solid #555555;
 }
 .nav-tabs > li {
   float: left;
@@ -3695,14 +3695,14 @@ select[multiple].input-group-sm > .input-group-btn > .btn {
   border-radius: 0 0 0 0;
 }
 .nav-tabs > li > a:hover {
-  border-color: #ffffff #ffffff #dddddd;
+  border-color: 0 0 #555555;
 }
 .nav-tabs > li.active > a,
 .nav-tabs > li.active > a:hover,
 .nav-tabs > li.active > a:focus {
   color: #bbbbbb;
   background-color: #242424;
-  border: 1px solid #dddddd;
+  border: 1px solid #666666;
   border-bottom-color: transparent;
   cursor: default;
 }
@@ -3737,11 +3737,11 @@ select[multiple].input-group-sm > .input-group-btn > .btn {
 .nav-tabs.nav-justified > .active > a,
 .nav-tabs.nav-justified > .active > a:hover,
 .nav-tabs.nav-justified > .active > a:focus {
-  border: 1px solid #dddddd;
+  border: 1px solid #555555;
 }
 @media (min-width: 768px) {
   .nav-tabs.nav-justified > li > a {
-    border-bottom: 1px solid #dddddd;
+    border-bottom: 1px solid #555555;
     border-radius: 0 0 0 0;
   }
   .nav-tabs.nav-justified > .active > a,
@@ -3805,11 +3805,11 @@ select[multiple].input-group-sm > .input-group-btn > .btn {
 .nav-tabs-justified > .active > a,
 .nav-tabs-justified > .active > a:hover,
 .nav-tabs-justified > .active > a:focus {
-  border: 1px solid #dddddd;
+  border: 1px solid #555555;
 }
 @media (min-width: 768px) {
   .nav-tabs-justified > li > a {
-    border-bottom: 1px solid #dddddd;
+    border-bottom: 1px solid #555555;
     border-radius: 0 0 0 0;
   }
   .nav-tabs-justified > .active > a,

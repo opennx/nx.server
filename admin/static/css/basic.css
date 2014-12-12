@@ -1,3 +1,13 @@
+html, body {
+font-family: robotoregular, sans-serif;
+-ms-text-size-adjust: 100%;
+-webkit-text-size-adjust: 100%;	
+-webkit-font-smoothing: antialiased;
+font-smoothing: antialiased;
+-moz-osx-font-smoothing: grayscale;
+font-smooth: always;
+}
+
 html {
     overflow-y: scroll; 
 }
@@ -34,6 +44,13 @@ body {
 	box-shadow: inset 0 1px 1px rgba(0, 0, 0, .05);
 }
 
+strong, b, th, label {
+	font-family: robotobold;
+}
+
+h1, h2, h3, h4, h5, .text-primary-brand {
+	font-family: robotothin;
+}
 
 .user-editor {
 	display: none;
@@ -46,6 +63,14 @@ body {
 
 .page-header {
 	border-bottom: 1px solid #333;
+}
+
+@media (max-width: 600px) {
+
+	.nav-justified {
+		max-width: 600px;
+	}
+
 }
 
 /* ***********************************
@@ -116,6 +141,14 @@ a>.glyphicon-remove {
 	margin-bottom: 0;
 }
 
+.btn-job-search, .btn-job-search-clear {
+	border: 0;
+	background: transparent;
+}
+
+.configuration-nav {
+	padding: 20px 0;
+}
 
 /* ***********************************
 | Webkit highlight off
@@ -124,13 +157,15 @@ input:-webkit-autofill, textarea:-webkit-autofill, select:-webkit-autofill,
 input:-webkit-autofill:focus, textarea:-webkit-autofill:focus, select:-webkit-autofill:focus, 
 #login, #password
 {
--webkit-box-shadow: 0 0 10px 1000px #222222 inset !important;
+	-webkit-box-shadow: 0 0 10px 1000px #222222 inset !important;
+	-webkit-text-fill-color: #BBB;
 }
 
 input --webkit-autocomplete {
-  color: inherit;
-  background: inherit;
-  border: inherit;
+	color: inherit;
+	-webkit-text-fill-color: #BBB;
+	background: inherit;
+	border: inherit;
 }
 
 a:focus, button:focus, input:focus {

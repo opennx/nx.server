@@ -49,7 +49,10 @@ def browser():
  
 @app.route("/jobs", methods=['GET', 'POST'])
 @app.route("/jobs/<view>", methods=['GET', 'POST'])
-def jobs(view="active"):
+@app.route("/jobs/<view>/search", methods=['GET'])
+@app.route("/jobs/<view>/search/<search>", methods=['GET'])
+def jobs(view="active", search=""):
+
     if request.method == "POST" and "id_job" and "action" in request.form:
         id_job = int(request.form.get("id_job"))
         action = int(request.form.get("action"))
@@ -57,6 +60,7 @@ def jobs(view="active"):
         flash("Job {} restarted".format(id_job), "info")
         return json.dumps(action_result)
 
+        
     if view == "failed":
         current_view = "failed"
     elif view == "completed":
@@ -64,13 +68,13 @@ def jobs(view="active"):
     elif view == "json":
         current_view = "json"
     else:
-        current_view = "active"
+        current_view = "active" 
 
-    jobs = view_jobs(current_view)
+    jobs = view_jobs(current_view, search)
     if view=="json":
         return jobs
 
-    current_controller = set_current_controller({'title': 'Jobs', 'current_view': current_view, 'controller': 'jobs' })   
+    current_controller = set_current_controller({'title': 'Jobs', 'current_view': current_view, 'controller': 'jobs', 'search': search })   
     return render_template("job_monitor.html", jobs=jobs, current_controller=current_controller)
 
 
@@ -123,17 +127,35 @@ def users(view="default"):
 
 
 
-@app.route("/settings",methods=['GET', 'POST'])
-def settings(view="default"):
+@app.route("/configuration",methods=['GET', 'POST'])
+@app.route("/configuration/<view>",methods=['GET', 'POST'])
+def settings(view="system-tools"):
    
     if request.method == "POST" and "firefly_kill" in request.form:
         res = firefly_kill()
         
         return json.dumps(res)
 
-    settings = {}     
-    current_controller = set_current_controller({'title': 'Settings', 'controller': 'settings' }) 
-    return render_template("settings.html", settings=settings, current_controller=current_controller)
+    if len(view)>1:
+        current_view = view    
+
+    if current_view == "nx-settings":
+       data = load_settings()
+    elif current_view == "system-tools":
+       data = {} 
+    elif current_view == "storages":
+       data = load_storages() 
+    elif current_view == "services":
+       data = load_services() 
+    elif current_view == "views":
+       data = load_views() 
+    elif current_view == "channels":
+       data = load_channels() 
+    else:
+       data = {} 
+
+    current_controller = set_current_controller({'title': 'Configuration', 'controller': 'configuration', 'current_view': current_view }) 
+    return render_template("configuration.html", data=data, current_controller=current_controller)
 
 
 
@@ -161,7 +183,8 @@ def login():
 def logout():
     logout_user()
     flash("Logged out.", "info")
-    return render_template("index.html")
+    current_controller = set_current_controller({'title': 'Logout', 'controller': 'logout' }) 
+    return render_template("index.html", current_controller=current_controller)
   
 
 

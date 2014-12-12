@@ -10,6 +10,7 @@
 
     <title>{{ current_controller.title }}</title>
 
+    <link href="/static/fonts/roboto/stylesheet.css" rel="stylesheet">
     <link href="/static/css/bootstrap.css" rel="stylesheet">
     <link href="/static/css/basic.css" rel="stylesheet">
 
@@ -35,7 +36,7 @@
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <a class="navbar-brand" href="/"><span class="text-primary">{{ current_user.name + "@" if current_user.is_authenticated() }}nebula</span></a>
+      <a class="navbar-brand" href="/"><span class="text-primary-brand">{{ current_user.name + "@" if current_user.is_authenticated() }}nebula</span></a>
     </div>
     <nav class="collapse navbar-collapse bs-navbar-collapse" role="navigation">
 
@@ -99,6 +100,12 @@
             </form>
             </div>
         </div>
+
+        <script type="text/javascript">
+        	$('#username, #password').css({
+        		'-webkit-text-fill-color: #333;': '#BBB'
+        	});
+        </script>
 
         {% endif %}
     </div> <!-- container -->

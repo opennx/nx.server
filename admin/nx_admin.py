@@ -1,4 +1,6 @@
 import sys
+reload(sys)
+sys.setdefaultencoding('utf-8')
 
 NX_ROOT = sys.argv[1]
 if not NX_ROOT in sys.path:
@@ -77,9 +79,11 @@ def service_action(id_service, action):
 ##
 
 
-def view_jobs(view=""):
+def view_jobs(view="", search=""):
     db = DB()
     cols = [ "id_job", "id_object", "id_action", "settings", "id_service", "priority", "progress", "retries", "ctime", "stime", "etime", "message", "id_user", "action_title", "asset_title" ]
+
+    sql_join = ""
 
     if view == "failed":
         cond = " AND j.progress = -3"
@@ -88,8 +92,18 @@ def view_jobs(view=""):
     else:
         cond = " AND (j.progress >= -1 OR {} - etime < 60)".format(time.time())
 
+    if len(search)>1:
+        
+        sql_join = """ JOIN nx_meta as m ON m.id_object = j.id_object """ 
+
+        cond = cond + """ AND m.tag IN(SELECT tag FROM nx_meta_types WHERE searchable = 1)  
+                AND lower(unaccent(m.value)) LIKE lower(unaccent('%"""+search.encode('utf-8').strip()+"""%')) """    
+
     db.query("""SELECT j.id_job, j.id_object, j.id_action, j.settings, j.id_service, j.priority, j.progress, j.retries, j.ctime, j.stime, j.etime, j.message, j.id_user, a.title 
-        FROM nx_jobs as j, nx_actions as a WHERE a.id_action = j.id_action{} ORDER BY etime DESC, stime DESC, ctime DESC """.format(cond))
+        FROM nx_jobs as j 
+        JOIN nx_actions as a ON a.id_action = j.id_action 
+        """+sql_join+""" 
+        WHERE a.id_action = j.id_action{} ORDER BY etime DESC, stime DESC, ctime DESC """.format(cond))
 
     if view=="json":
         jobs = {}
@@ -116,7 +130,7 @@ def job_action(id_job, action, id_user=0):
     result = {'status': True, 'reason': 'Job action set'}
 
     try:
-
+        # abort -> don't modify stime
         db = DB()
         id_job = id_job
         db.query("UPDATE nx_jobs set id_service=0, progress=%s, retries=0, ctime=%s, stime=0, etime=0, message='Pending', id_user=%s WHERE id_job=%s", (action, time.time(), id_user, id_job))
@@ -222,3 +236,104 @@ def save_user(user_data):
     user.save()
     return result
 
+
+########################################################################
+## Dashboard tools, loaders
+
+def load_storages():
+
+    db = DB()
+    
+    result = {'storages': [], 'status': True, 'reason': 'Storages loaded'}
+
+    try: 
+        db.query("SELECT * FROM nx_storages ORDER BY title")
+        
+        for storage in db.fetchall():
+            result['storages'].append(storage)
+        
+    except: 
+
+        result['status'] = False
+        result['reason'] = 'Storages not loaded, database error'
+
+    return result         
+
+
+def load_settings():
+
+    db = DB()
+    
+    result = {'settings': [], 'status': True, 'reason': 'Settings loaded'}
+
+    try: 
+        db.query("SELECT * FROM nx_settings ORDER BY key")
+        
+        for storage in db.fetchall():
+            result['settings'].append(storage)
+        
+    except: 
+
+        result['status'] = False
+        result['reason'] = 'Settings not loaded, database error'
+
+    return result             
+
+
+def load_services():
+
+    db = DB()
+    
+    result = {'services': [], 'status': True, 'reason': 'Services loaded'}
+
+    try: 
+        db.query("SELECT * FROM nx_services ORDER BY title")
+        
+        for storage in db.fetchall():
+            result['services'].append(storage)
+        
+    except: 
+
+        result['status'] = False
+        result['reason'] = 'Services not loaded, database error'
+
+    return result             
+
+
+def load_views():
+
+    db = DB()
+    
+    result = {'views': [], 'status': True, 'reason': 'Views loaded'}
+
+    try: 
+        db.query("SELECT * FROM nx_views ORDER BY title")
+        
+        for storage in db.fetchall():
+            result['views'].append(storage)
+        
+    except: 
+
+        result['status'] = False
+        result['reason'] = 'Views not loaded, database error'
+
+    return result                 
+
+def load_channels():
+
+    db = DB()
+    
+    result = {'channels': [], 'status': True, 'reason': 'Channels loaded'}
+
+    try: 
+        db.query("SELECT * FROM nx_channels ORDER BY title")
+        
+        for storage in db.fetchall():
+            result['channels'].append(storage)
+        
+    except: 
+
+        result['status'] = False
+        result['reason'] = 'Channels not loaded, database error'
+
+    return result                 

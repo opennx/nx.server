@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block body %}
+
+<div class="configuration-nav">
+
+        {% set activeClass = " class=\"active\"" %}
+
+        <ul class="nav nav-tabs nav-justified">
+          <li role="presentation"{{ activeClass|safe if current_controller.current_view=="system-tools" }}>
+            <a href="/configuration/system-tools">System tools</a>
+          </li>
+          <li role="presentation"{{ activeClass|safe if current_controller.current_view=="nx-settings" }}>
+            <a href="/configuration/nx-settings">Settings</a>
+          </li>
+          <li role="presentation"{{ activeClass|safe if current_controller.current_view=="storages" }}>
+            <a href="/configuration/storages">Storages</a>
+          </li>
+          <li role="presentation"{{ activeClass|safe if current_controller.current_view=="views" }}>
+            <a href="/configuration/views">Views</a>
+          </li>
+          <li role="presentation"{{ activeClass|safe if current_controller.current_view=="services" }}>
+            <a href="/configuration/services">Services</a>
+          </li>
+          <li role="presentation"{{ activeClass|safe if current_controller.current_view=="channels" }}>
+            <a href="/configuration/channels">Channels</a>
+          </li>
+
+</div>
+
+{% include "configuration."+current_controller.current_view+".html" ignore missing %}
+
+
+{% endblock %}
+
+
+{% block js %}
+<script type="text/javascript">
+
+var firefly_kill = function()
+    {
+       var data = {
+            firefly_kill: 1
+        }
+
+        nx.com.post({
+            url: nx.settings.controller,
+            data: data,
+            element: $('#nx-messages'),
+            notifyDone: true,
+            notifyFail: true,
+            notifyError: true,
+            /*
+            postError: nx.utils.logDev,
+            postFail: nx.utils.logDev,
+            postDone: nx.utils.logError
+            */
+        });
+    }
+
+$( function(){
+    $('.firefly-kill').on('click', function(e){
+        e.preventDefault();
+        firefly_kill();
+    });
+});
+
+</script>
+
+{% endblock %}
