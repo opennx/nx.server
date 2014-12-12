@@ -333,7 +333,8 @@ class Caspar():
             time.sleep(.2) 
 
     def _main(self):
-        for ident in self.channels:
+        idents = self.channels.keys()
+        for ident in idents:
             channel = self.channels[ident]
             if not channel.update_stat():
                 self.bad_requests += 1
