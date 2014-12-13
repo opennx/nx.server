@@ -8,6 +8,8 @@ import json
 import time
 import hashlib
 
+import fuckit
+
 from xml.etree import ElementTree as ET
 from nx.common.constants import *
 
