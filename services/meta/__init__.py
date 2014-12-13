@@ -116,6 +116,10 @@ class Service(ServicePrototype):
             asset["status"] = ONLINE
             asset.save()
     
-            #db = dbconn()
-            #db.query("UPDATE nebula_asset_states SET progress=0, id_service=0 WHERE id_asset=%s AND id_state > 0 and progress = -1" % id_asset)
-            #db.commit()       
+            db = DB()
+            db.query("""UPDATE nx_jobs SET progress=0, id_service=0, ctime=%s, stime=0, etime=0, id_user=0, message='Restarting after source update' 
+                    WHERE id_object=%s AND id_action > 0 and progress IN (-2, -3)""", 
+                    [time.time(), id_asset]
+                    )
+            
+            db.commit()       
