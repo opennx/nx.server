@@ -3,6 +3,13 @@
 
 from nx import *
 
+# Shared python libraries
+from nx.plugins import plugin_path
+if plugin_path:
+    python_plugin_path = os.path.join(plugin_path, "python")
+    if os.path.exists(python_plugin_path):
+        sys.path.append(python_plugin_path)
+
 if __name__ == "__main__":
     try:
         id_service = int(sys.argv[1])
