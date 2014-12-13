@@ -86,7 +86,12 @@ def hive_actions(auth_key, params):
 
 
 def hive_send_to(auth_key, params):
-    #TODO: AUTH
+    user = sessions[auth_key]
+    if not user:
+        yield 403, "Not authorised"
+        return
+
+
     db = DB()
     try:
         id_action = params["id_action"]
@@ -98,14 +103,17 @@ def hive_send_to(auth_key, params):
     restart_existing = params.get("restart_existing", True)
 
     for id_object in params.get("objects", []):
-        yield -1, send_to(id_object, id_action, settings={}, id_user=0, restart_existing=restart_existing, db=db)[1]
+        yield -1, send_to(id_object, id_action, settings={}, id_user=user.id, restart_existing=restart_existing, db=db)[1]
     yield 200, "OK"
     return
 
 
 
-def hive_set_meta(auth, params):
-    #TODO: AUTH
+def hive_set_meta(auth_key, params):
+    user = sessions[auth_key]
+    if not user:
+        return [[403, "Not authorised"]]
+
     objects = [int(id_object) for id_object in params.get("objects",[])]
     object_type = params.get("object_type","asset")
     data = params.get("data", {})
@@ -113,7 +121,6 @@ def hive_set_meta(auth, params):
     changed_objects = []
     affected_bins = []
     for id_object in objects:
-        logging.debug("Updating object {} with {}".format(id_object, data))
 
         obj = {
             "asset" : Asset,
@@ -142,12 +149,23 @@ def hive_set_meta(auth, params):
                     logging.warning(msg)
                     return [[400, msg]]
                 
-
         changed = False
+        messages = []
         for key in data:
             value = data[key]
-            if obj[key] != value:
-                obj[key] = value
+            old_value = obj[key]
+            obj[key] = value
+            if obj[key] != old_value:
+                
+                with fuckit:
+                    v1 = old_value
+                    v1 = v1.encode("utf-8")
+    
+                with fuckit:
+                    v2 = obj[key]
+                    v2 = v2.encode("utf-8")
+                
+                messages.append("{} set {} {} from {} to {}".format(user, obj, key, v1, v2).capitalize())
                 changed = True
 
         if changed and create_script:
@@ -164,15 +182,23 @@ def hive_set_meta(auth, params):
             obj.save(notify=False)
             if object_type == "item" and obj["id_bin"] not in affected_bins:
                 affected_bins.append(obj["id_bin"])
+            for message in messages:
+                logging.info(message)
 
     if affected_bins:
         bin_refresh(affected_bins, db=db)
 
-    messaging.send("objects_changed", objects=changed_objects, object_type=object_type, user="anonymous Firefly user") # TODO
+    messaging.send("objects_changed", objects=changed_objects, object_type=object_type, user="{}".format(user))
     return [[200, obj.meta]]
 
-def hive_trash(auth, params):
-    #TODO: AUTH
+
+
+
+def hive_trash(auth_key, params):
+    user = sessions[auth_key]
+    if not user:
+        return [[403, "Not authorised"]]
+
     objects = [int(id_object) for id_object in params.get("objects",[])]
     db = DB()
     for id_asset in objects:
@@ -180,5 +206,18 @@ def hive_trash(auth, params):
         asset = Asset(id_asset, db=db)
         asset["status"] = TRASHED
         asset.save()
+    return [[200, "OK"]]
 
+
+def hive_untrash(auth_key, params):
+    user = sessions[auth_key]
+    if not user:
+        return [[403, "Not authorised"]]
+
+    objects = [int(id_object) for id_object in params.get("objects",[])]
+    db = DB()
+    for id_asset in objects:
+        asset = Asset(id_asset, db=db)
+        asset["status"] = RESET
+        asset.save()
     return [[200, "OK"]]
