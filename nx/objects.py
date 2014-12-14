@@ -278,6 +278,18 @@ class User(ServerObject, BaseObject):
     def set_password(self, password):
         self["password"] = get_hash(password)
 
+    def __repr__(self):
+        if self.id:
+            iid = "{} ID:{}".format(self.object_type, self.id)
+        else:
+            iid = "new {}".format(self.object_type)
+        try:
+            title = self["login"] or ""
+            if title: 
+                title = " ({})".format(title)
+            return "{}{}".format(iid, title)
+        except:
+            return iid
 
 ######################################################################################
 ## Utilities
