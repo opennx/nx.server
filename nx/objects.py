@@ -61,7 +61,6 @@ class ServerObject(object):
 
     def _save(self,**kwargs):
         created = False
-     
         if self["id_object"]:
             q = "UPDATE nx_{0}s SET {1} WHERE id_object = {2}".format(self.object_type,
                                                                   ", ".join("{} = %s".format(tag) for tag in self.ns_tags if tag != "id_object"),
@@ -111,7 +110,7 @@ class ServerObject(object):
             self.db.commit()
             self.cache.delete("{0}{1}".format(self.ns_prefix, self.id))
             logging.info("{!r} deleted.".format(self))
-            return True    
+            return True
         return False
 
 
@@ -211,7 +210,6 @@ class Bin(ServerObject, BaseBin):
             self.items = []
             for id_item, in self.db.fetchall():
                 self.items.append(Item(id_item, db=self._db))
-
             self._save_to_cache()
         return True
 
@@ -229,16 +227,12 @@ class Bin(ServerObject, BaseBin):
     def _save_to_cache(self):
         return self.cache.save("%s%d" % (self.ns_prefix, self["id_object"]), json.dumps([self.meta, [i.meta for i in self.items]]))
 
-    @property 
+    @property
     def duration(self):
         dur = 0
         for item in self.items:
             dur += item.get_duration()
         return dur
-
-    def get_duration(self):
-        # DEPRECATED
-        return self.duration
 
     def delete_childs(self):
         for item in self.items:
@@ -247,29 +241,18 @@ class Bin(ServerObject, BaseBin):
         return True
 
 
-
-
 class Event(ServerObject, BaseEvent):
-    @property 
+    @property
     def bin(self):
         if not self._bin:
             self._bin = Bin(self["id_magic"], db=self._db, cache=self.cache)
         return self._bin
 
-    @property 
+    @property
     def asset(self):
         if not self._asset:
             self._asset = Asset(self["id_magic"], db=self._db, cache=self.cache)
         return self._asset
-
-    def get_bin(self):
-        # DEPRECATED
-        return self.bin
-
-    def get_asset(self):
-        # DEPRECATED
-        return self.asset
-
 
 
 class User(ServerObject, BaseObject):
@@ -277,6 +260,14 @@ class User(ServerObject, BaseObject):
 
     def set_password(self, password):
         self["password"] = get_hash(password)
+
+    def __getitem__(self, key):
+        if self.meta.get("is_admin", False) and key.startswith("can/"):
+            return True
+        key = key.lower().strip()
+        if not key in self.meta:
+            return meta_types.format_default(key)
+        return self.meta[key]
 
     def __repr__(self):
         if self.id:
@@ -308,7 +299,7 @@ def get_user(login, password, db=False):
 
 
 def asset_by_path(id_storage, path, db=False):
-    if not db: 
+    if not db:
         db = DB()
     db.query("""SELECT id_object FROM nx_meta 
                 WHERE object_type = 0 
@@ -318,7 +309,7 @@ def asset_by_path(id_storage, path, db=False):
                 """ % (id_storage, db.sanit(path.replace("\\","/"))))
     try:
         return db.fetchall()[0][0]
-    except: 
+    except:
         return False
 
 
@@ -361,15 +352,14 @@ def bin_refresh(bins, sender=False, db=False):
     changed_events = []
     db.query("SELECT e.id_object, e.id_channel, e.start FROM nx_events as e, nx_channels as c WHERE c.channel_type = 0 AND c.id_channel = e.id_channel AND id_magic in ({})".format(bq))
     for id_event, id_channel, start_time in db.fetchall():
-        #chg = {"id_channel": id_channel, "id_object": id_event, "start":start_time}
-	chg = id_event
+        chg = id_event
         if not chg in changed_events:
             changed_events.append(chg)
     if changed_events:
         messaging.send("objects_changed", sender=sender, objects=changed_events, object_type="event")
     return 202, "OK"
 
-        
+
 def get_day_events(id_channel, date, num_days=1):
     start_time = datestr2ts(date, *config["playout_channels"][id_channel].get("day_start", [6,0]))
     end_time   = start_time + (3600*24*num_days)
@@ -388,10 +378,11 @@ def get_bin_first_item(id_bin, db=False):
     except:
         return False
 
+
 def get_item_event(id_item, **kwargs):
     db = kwargs.get("db", DB())
     lcache = kwargs.get("cahce", cache)
-    
+
     db.query("""SELECT e.id_object, e.start, e.id_channel from nx_items as i, nx_events as e where e.id_magic = i.id_bin and i.id_object = {} and e.id_channel in ({})""".format(
         id_item,
         ", ".join([str(f) for f in config["playout_channels"].keys()]) 
@@ -401,8 +392,8 @@ def get_item_event(id_item, **kwargs):
     except:
         return False
     return Event(id_object, db=db, cache=lcache)
-    
-    
+
+
 def get_item_runs(id_channel, from_ts, to_ts, db=False):
     db = db or DB()
     db.query("SELECT id_item, start, stop FROM nx_asrun WHERE start >= %s and start < %s ORDER BY start ASC", [int(from_ts), int(to_ts)] )
@@ -410,8 +401,6 @@ def get_item_runs(id_channel, from_ts, to_ts, db=False):
     for id_item, start, stop in db.fetchall():
         result[id_item] = (start, stop)
     return result
-
-
 
 
 def get_next_item(id_item, **kwargs):
