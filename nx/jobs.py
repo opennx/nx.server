@@ -8,17 +8,22 @@ from nx import *
 MAX_RETRIES = 3
 
 class Job():
-    def __init__(self, id_service,  actions=[]):
-        
+    def __init__(self, id_service,  actions=[], id_object=False):
+        """Gets pending job or create new one (for import)"""
+
         self.id_job    = False
-        self.id_object = False
+        self.id_object = id_object
+        self.id_service=id_service
         self.id_action = False
         self.settings  = False
         self.retries   = False
 
-        if not actions:
-            return
+        if actions:
+            self.get_job(actions)
 
+
+
+    def get_job(self, actions):
         qactions = ", ".join([str(k) for k in actions])
 
         db = DB()
@@ -37,7 +42,7 @@ class Job():
                     )
                   """.format(
                       stime       = time.time(),
-                      id_service  = id_service, 
+                      id_service  = self.id_service, 
                       actions     = qactions, 
                       max_retries = MAX_RETRIES
                       )
@@ -46,9 +51,9 @@ class Job():
         db.commit()
 
         db.query("""SELECT id_job, id_object, id_action, settings, priority, retries FROM nx_jobs 
-            WHERE progress = -1 
-            AND id_service={id_service}
-            """.format(id_service=id_service)
+            WHERE progress = -1
+            AND id_service= %s
+            """, [self.id_service]
             )
 
 
