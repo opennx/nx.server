@@ -12,7 +12,6 @@ if not NX_ROOT in sys.path:
 if NX_ROOT != os.getcwd():
     os.chdir(NX_ROOT)
 
-
 import subprocess
 import thread
 
@@ -21,13 +20,11 @@ from optparse import OptionParser
 from nx import *
 from nx.shell import shell
 
-
-
 class StorageMonitor():
     def __init__(self,once=False):
         if once: 
             self._main()
-        else:    
+        else:
             thread.start_new_thread(self._run,())
             logging.info("Storage monitor started")
 
@@ -42,7 +39,7 @@ class StorageMonitor():
             if ismount(storage.get_path()): 
                 storage_string = "{}:{}".format(config["site_name"], storage.id_storage)
                 storage_ident_path = os.path.join(storage.get_path(),".nebula_root")
-                
+
                 if not (os.path.exists(storage_ident_path) and storage_string in [line.strip() for line in open(storage_ident_path).readlines()]):
                     try:
                         f = open(storage_ident_path, "a")
@@ -195,12 +192,12 @@ class ServiceMonitor():
 
 
 
-def nebula_run():    
+def nebula_run(options):    
     storage_monitor = StorageMonitor()
     service_monitor = ServiceMonitor()
-
-    logging.debug("Starting admin interface")
-    admin = subprocess.Popen([os.path.join("admin", "run_admin.py"), format(NX_ROOT)], cwd=NX_ROOT)
+    if options.admin:
+        logging.debug("Starting admin interface")
+        admin = subprocess.Popen([os.path.join("admin", "run_admin.py"), format(NX_ROOT)], cwd=NX_ROOT)
 
     try:
         while True:
@@ -224,15 +221,20 @@ if __name__ == "__main__":
                           type="string",
                           )
 
+    parser.add_option("-a", "--admin", dest="admin",
+                          help="Serve web administration interface",
+                          action="store",
+                          type="string"
+                          )
+
     (options, args) = parser.parse_args()
 
 
-
     if options.daemon:
-
+        from functools import partial
         from daemon import NebulaDaemon
         
-        daemon = NebulaDaemon(proc=nebula_run, root=NX_ROOT)
+        daemon = NebulaDaemon(proc=partial(nebula_run, options), root=NX_ROOT, options=options)
 
         if options.daemon == 'start':
             daemon.start()
@@ -247,4 +249,4 @@ if __name__ == "__main__":
         sys.exit(0)
 
     else:
-        nebula_run()
+        nebula_run(options)
