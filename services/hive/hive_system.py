@@ -4,7 +4,12 @@ from nx.objects import *
 from .auth import sessions
 
 
+REQUIRED_PROTOCOL = 140000
+
 def hive_auth(auth_key, params):
+    if params.get("protocol", 0) < REQUIRED_PROTOCOL:
+        return [[400, "Your Firefly version is outdated.\nPlease download latest update from support website."]]
+
     if sessions[auth_key]:
         return [[200, "Already logged in"]]
 
@@ -20,6 +25,17 @@ def hive_auth(auth_key, params):
 
     else:
         return [[403, "Not logged in"]]
+
+
+def hive_logout(auth_key, params):
+    user = sessions[auth_key]
+    if not user:
+        return [[403, "Not logged in"]]
+    db = DB()
+    db.query("DELETE FROM nx_sessions WHERE key = %s", [auth_key])
+    db.commit()
+    del sessions[auth_key]
+    return [[200, "ok"]]
 
 
 def hive_meta_types(auth_key, params):
