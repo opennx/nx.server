@@ -192,7 +192,7 @@ def hive_rundown(auth_key, params):
     db = DB()
 
     job_progress = {}
-    if channel_config["send_action"]:
+    if channel_config.get("send_action"):
         db.query("SELECT id_object, progress FROM nx_jobs WHERE id_action = %s AND progress >= -1", [channel_config["send_action"]])
         job_progress = {id_object: progress for id_object, progress in db.fetchall()}
 
