@@ -30,6 +30,9 @@ class PlayoutPlugins():
             if file_ext != ".py":
                 continue
 
+            if not mod_name in channel.enabled_plugins:
+                continue
+
             py_mod = imp.load_source(mod_name, os.path.join(bpath, fname))
 
             if not "__manifest__" in dir(py_mod):
@@ -153,7 +156,8 @@ class Service(ServicePrototype):
             channel.current_event = False
             channel._changed      = False
             channel._last_run     = False
-            channel.plugins       = PlayoutPlugins(channel)
+            channel.enabled_plugins = channel_cfg.get("plugins", []) 
+            channel.plugins         = PlayoutPlugins(channel)
 
         port = 42100
 
@@ -192,6 +196,11 @@ class Service(ServicePrototype):
         
         kwargs["mark_in"] = item["mark_in"]
         kwargs["mark_out"] = item["mark_out"]
+
+        if item["run_mode"] == 1:
+            kwargs["auto"] = False
+        else:
+            kwargs["auto"] = True
 
         fname = os.path.splitext(os.path.basename(playout_asset["path"]))[0].encode("utf-8")
         return channel.cue(fname, **kwargs)
@@ -394,8 +403,12 @@ class Service(ServicePrototype):
         lcache = Cache()
         id_item = id_item or channel.current_item
         item_next = get_next_item(id_item, db=db, cache=lcache)
+        if item_next["run_mode"] == 1:
+            auto = False
+        else:
+            auto = True
         logging.info("Auto-cueing {}".format(item_next))
-        stat, res = self.cue(id_item=item_next.id, id_channel=channel.ident, play=play, cache=lcache)
+        stat, res = self.cue(id_item=item_next.id, id_channel=channel.ident, play=play, cache=lcache, auto=auto)
         if failed(stat):
             if level > 5:
                 logging.error("Cue it yourself....")
