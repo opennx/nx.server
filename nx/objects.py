@@ -261,6 +261,14 @@ class User(ServerObject, BaseObject):
     def set_password(self, password):
         self["password"] = get_hash(password)
 
+    def has_right(self, key, val=True):
+        if self["is_admin"]:
+            return True
+        key = "can/{}".format(key)
+        if not self[key]:
+            return False
+        return self[key] == True or (type(self[key]) == list and val in self[key])
+
     def __getitem__(self, key):
         if self.meta.get("is_admin", False) and key.startswith("can/"):
             return True
