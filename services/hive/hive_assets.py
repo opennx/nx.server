@@ -131,15 +131,15 @@ def hive_set_meta(auth_key, params):
 
         create_script = False
         if object_type == "asset":
-            db.query("SELECT create_script FROM nx_folders WHERE id_folder=%s", [data.get("id_folder", False) or obj["id_folder"]])
+            db.query("SELECT validator FROM nx_folders WHERE id_folder=%s", [data.get("id_folder", False) or obj["id_folder"]])
             try:
-                create_script = db.fetchall()[0][0]
+                validator_script = db.fetchall()[0][0]
             except:
                 pass
 
             # New asset need create_script and id_folder
             if not id_object:
-                if not create_script:
+                if not validator_script:
                     msg = "It is not possible create asset in this folder."
                     logging.warning(msg)
                     return [[400, msg]]
@@ -168,10 +168,10 @@ def hive_set_meta(auth_key, params):
                 messages.append("{} set {} {} from {} to {}".format(user, obj, key, v1, v2).capitalize())
                 changed = True
 
-        if changed and create_script:
+        if changed and validator_script:
             logging.debug("Executing validation script")
             tt = "{}".format(obj)
-            exec(create_script)
+            exec(validator_script)
             obj = validate(obj)
             if not isinstance(obj, BaseObject):
                 logging.warning("Unable to save {}: {}".format(tt, obj))
