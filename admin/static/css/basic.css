@@ -97,10 +97,55 @@ h1, h2, h3, h4, h5, .text-primary-brand {
 .navbar-inverse .navbar-nav>.dropdown>a .caret { border-bottom-color: #999999}
 .navbar-inverse .navbar-nav>.dropdown>a:hover .caret { border-bottom-color: #FFFFFF}
 
-.input-group-addon {
-	
+
+/* **********************************
+| Datetime
+********************************** */
+
+.dropdown-menu {
+	-webkit-box-shadow: 0 6px 12px rgba(0, 0, 0, 1);
+	box-shadow: 0 6px 12px rgba(0, 0, 0, 1);
 }
 
+
+.bootstrap-datetimepicker-widget {
+  border-radius: 0;
+}
+.bootstrap-datetimepicker-widget td,
+.bootstrap-datetimepicker-widget th {
+  border-radius: 0;
+}
+.bootstrap-datetimepicker-widget td span {
+  border-radius: 0;
+}
+.bootstrap-datetimepicker-widget {
+	background: #222;
+	color: #A1A1A1; 
+}
+
+.bootstrap-datetimepicker-widget td.day:hover,
+.bootstrap-datetimepicker-widget td.hour:hover,
+.bootstrap-datetimepicker-widget td.minute:hover,
+.bootstrap-datetimepicker-widget td.second:hover {
+  background: #111;
+  cursor: pointer;
+}
+
+.bootstrap-datetimepicker-widget td span:hover {
+  background: #111;
+}
+.bootstrap-datetimepicker-widget thead tr:first-child th:hover {
+  background: #111;
+}
+
+.bootstrap-datetimepicker-widget.bottom:after {
+	border-bottom: 7px solid #222;
+	border-bottom-color: #222;
+}
+.bootstrap-datetimepicker-widget.top:after {
+	border-bottom: 7px solid #222;
+	border-bottom-color: #222;
+}
 
 /* **********************************
 | Misc 

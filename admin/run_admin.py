@@ -2,6 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import sys
+
+import jinja2
+
+reload(sys)
+sys.setdefaultencoding('utf-8')
+
 import thread
 import hashlib
 
@@ -17,7 +23,7 @@ SECRET_KEY = "yeah, not actually a secret"
 DEBUG = True
  
 
-app = Flask(__name__)
+app = Flask(__name__, )
 app.config.from_object(__name__)
 
 login_manager = LoginManager()
@@ -31,7 +37,23 @@ login_manager.setup_app(app)
 
 @login_manager.user_loader
 def load_user(id):
-    return flask_users.get(int(id))
+    return FlaskUser(int(id))
+
+
+########################################################################
+## APP TEMPLATE FILTERS
+
+@app.template_filter('datetime')
+def _jinja2_filter_datetime(date, format='%Y-%m-%d %H:%M:%S'):
+    return str(time.strftime(format, time.localtime(date)))
+
+@app.template_filter('date')
+def _jinja2_filter_datetime(date, format='%Y-%m-%d'):
+    return str(time.strftime(format, time.localtime(date)))
+
+
+########################################################################
+## APP ROUTES
 
 @app.route("/")
 def index():
@@ -140,17 +162,17 @@ def settings(view="system-tools"):
         current_view = view    
 
     if current_view == "nx-settings":
-       data = load_settings()
+       data = load_config_data('nx_settings', 'key')
     elif current_view == "system-tools":
        data = {} 
     elif current_view == "storages":
-       data = load_storages() 
+       data = load_config_data('nx_storages', 'title')
     elif current_view == "services":
-       data = load_services() 
+       data = load_config_data('nx_services', 'title') 
     elif current_view == "views":
-       data = load_views() 
+       data = load_config_data('nx_views', 'title')
     elif current_view == "channels":
-       data = load_channels() 
+       data = load_config_data('nx_channels', 'title') 
     else:
        data = {} 
 
@@ -165,17 +187,16 @@ def settings(view="system-tools"):
 def login():
     current_controller = set_current_controller({'title': 'Login', 'controller': 'login' })         
     if request.method == "POST" and "username" in request.form:
-        id_user = auth_helper(request.form.get("username"), request.form.get("password"))
-        if id_user:
+        _user = auth_helper(request.form.get("username"), request.form.get("password"))
+        if _user.is_authenticated():
             remember = request.form.get("remember", "no") == "yes"
-            if login_user(flask_users[id_user], remember=remember):
+            if login_user(_user, remember=remember):
                 return render_template("index.html", current_controller=current_controller)
             else:
                 flash("Sorry, but you could not log in.", "danger")
         else:
             flash("Login failed", "danger")
 
-    
     return render_template("index.html", current_controller=current_controller)
 
 
@@ -189,8 +210,84 @@ def logout():
 
 
  
+@app.route("/reports",methods=['GET', 'POST'])
+@app.route("/reports/<view>",methods=['GET', 'POST'])
+def reports(view=False):
+    
+    if view == False:
+        plugins = AdmPlugins('reports')
+        plugins.get_plugins()
+        ctrl = ''
+        template = "reports.html"
+        env = plugins.env
+    else:
+        plugin = AdmPlugins('reports')
+        plugin.env['get'] = request.args
+        plugin.env['post'] = request.form
+        
+        ################################
+        # CUSTOM LOADER
+        plugin_loader = jinja2.ChoiceLoader([
+            app.jinja_loader,
+            jinja2.FileSystemLoader(plugin.env['plugin_path']),
+        ])
+        app.jinja_loader = plugin_loader
+
+        plugin.run(view)
+        # ctrl = '/'+view
+        ctrl = ''
+
+        env = plugin.env
+
+        template = plugin.env['plugin']['data']['template']
+        
+    current_controller = set_current_controller({'title': 'Reports', 'controller': 'reports'+ctrl }) 
+    return render_template(template, view=view, env=env, current_controller=current_controller)
 
 
+@app.route("/api/<view>",methods=['GET', 'POST'])
+def api(view=False):
+    
+    type = 'reports'
+    result = {'data': {}, 'status': False, 'reason': 'Plugin error' }
+
+    if view != False:
+        
+        if request.method == "POST" and "plugin_type" in request.form:
+           type = request.form.get("plugin_type")
+
+        if request.method == "GET" and "plugin_type" in request.args:
+           type = request.args.get("plugin_type")
+
+        plugins = AdmPlugins(type)
+        plugins.env['get'] = request.args
+        plugins.env['post'] = request.form
+        
+        ################################
+        # CUSTOM LOADER
+    
+        plugin_loader = jinja2.ChoiceLoader([
+            app.jinja_loader,
+            jinja2.FileSystemLoader(plugins.env['plugin_path']),
+        ])
+        app.jinja_loader = plugin_loader
+
+        plugins.api(view)
+
+        result['data'] = plugins.env['plugin']
+        result['status'] = True
+        result['reason'] = 'Request sent'
+
+        ctrl = '/'+view
+
+    return json.dumps(result)
+
+
+
+
+
+###############################
+# GO
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0")

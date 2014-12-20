@@ -12,6 +12,7 @@
 
     <link href="/static/fonts/roboto/stylesheet.css" rel="stylesheet">
     <link href="/static/css/bootstrap.css" rel="stylesheet">
+    <link href="/static/css/bootstrap-datetimepicker.css" rel="stylesheet">
     <link href="/static/css/basic.css" rel="stylesheet">
 
     <script type="text/javascript">
@@ -25,7 +26,7 @@
 
 <body>
 
-{% if current_user.is_authenticated() %}
+{% if current_user.id %}
  {# Navigation #}
 <header class="navbar navbar-inverse navbar-fixed-top bs-docs-nav" role="banner">
   <div class="container-fluid">
@@ -114,6 +115,8 @@
 
     <script src="/static/js/jquery-2.1.1.min.js"></script>
     <script src="/static/js/bootstrap.min.js"></script>
+    <script src="/static/js/moment/moment-with-locales.min.js"></script>
+    <script src="/static/js/bootstrap-datetimepicker.min.js"></script>
     <script src="/static/js/nx.js"></script>
 
     {# JS custom #}

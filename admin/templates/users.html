@@ -19,8 +19,8 @@
             <tr>
                 <td>{{user.id}}</td>
                 <td>{{user.login}}</td>
-                <td>{{user.mtime_human}}</td>
-                <td>{{user.ctime_human}}</td>
+                <td>{{user.mtime|datetime}}</td>
+                <td>{{user.ctime|datetime}}</td>
                 <td>
                     <button id="btn_user_{{user.id}}" class="btn btn-default btn-xs btn-edit btn-primary" data-id-obj="{{user.id}}" data-action="edit"><span class="glyphicon glyphicon-edit"></span> Edit</button>    
                 </td>
@@ -71,7 +71,8 @@
 
             <div class="form-group">
                 <div class="col-sm-offset-3 col-sm-10">
-                    <button id="user-save" class="btn btn btn-success"><span class="glyphicon glyphicon-ok"></span> Save</button>
+                    <button id="user-save" class="btn btn-success btn-user-save"><span class="glyphicon glyphicon-ok"></span> Save</button>
+                    <button id="user-save-and-close" class="btn btn-primary btn-user-save"><span class="glyphicon glyphicon-ok"></span> Save and close</button>
                 </div>
             </div>
 
@@ -116,7 +117,7 @@
 var user_list = $('.user-list');
 var user_editor = $('.user-editor');
 var edit_btn = $('.btn-edit');
-var save_btn = $('#user-save');
+var save_btn = $('.btn-user-save');
 var pwd = $('#password');
 var pwr = $('#password-retype');
 var id_user = 0;
@@ -193,6 +194,7 @@ save_btn.on('click', function(e){
             id_user: id_user,
             login: $('#_login').val(), 
             password: pwd.val(), 
+            and_close: $(this).attr('id') == 'user-save-and-close' ? true: false
         }    
 
 
@@ -223,8 +225,10 @@ save_btn.on('click', function(e){
 
 var load_user_callback = function(r,d){
     $('#_login').val(r.meta.login);
- 
+    
     pwd.attr('type', 'password').val('');  
+
+    $('.slist').html('');
 
     for(i in r.sessions)
     {
@@ -245,13 +249,15 @@ var load_user_callback = function(r,d){
     });
 }
 
-var clearForm = function(){
-   id_user = 0;
-   $('.slist').html('');
-   $('#_login').val('');
-   pwd.attr('type', 'password').val('');
-   pwr.attr('type', 'password').val('');
-}
+var clearForm = function()
+    {
+       id_user = 0;
+       $('.slist').html('');
+       $('#_login').val('');
+       pwd.attr('type', 'password').val('');
+       pwr.attr('type', 'password').val('');
+    }
+
 
 var load_user = function(id_user)
     { 
@@ -275,9 +281,17 @@ var destroy_session_callback = function(r,d){
     load_user(r.id_user);
 }
 
-var save_user_callback = function(r){
-    if(r.status === true){
+var save_user_callback = function(r,d){
+    if(r.status === true && d.and_close === true){
         document.location.href = nx.settings.controller;
+    }else{
+        nx.utils.alert({ 
+           close: true,
+           clear: true,
+           type: 'info', 
+           element: $('#nx-messages'), 
+           message: 'User saved'
+        });
     }
 }
 
@@ -297,7 +311,9 @@ var destroy_session = function(e)
             notifyDone: true,
             notifyFail: true,
             notifyError: true,
-            postDone: destroy_session_callback
+            postDone: destroy_session_callback, 
+            postFail: nx.utils.logDev,
+            postError: nx.utils.logError
         });        
 
     }

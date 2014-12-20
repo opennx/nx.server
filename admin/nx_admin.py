@@ -1,4 +1,6 @@
 import sys
+import imp
+
 reload(sys)
 sys.setdefaultencoding('utf-8')
 
@@ -9,6 +11,11 @@ if not NX_ROOT in sys.path:
 from nx import *
 from nx.objects import *
 
+from nx.plugins import plugin_path
+if plugin_path:
+    python_plugin_path = os.path.join(plugin_path, "python")
+    if os.path.exists(python_plugin_path):
+        sys.path.append(python_plugin_path)
 
 
 ########################################################################
@@ -159,8 +166,6 @@ def view_users():
         
         for id_object, in db.fetchall():
             user = User(id_object, db=db)
-            user["ctime_human"] = str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(user["ctime"]))) 
-            user["mtime_human"] = str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(user["mtime"]))) 
             result['users'].append(user)
         
     except: 
@@ -179,8 +184,10 @@ def get_user_data(id_user):
     _user = User(id_user, db=db)
     user["meta"] = _user.meta
 
+    format='%Y-%m-%d %H:%M:%S'
+
     try: 
-        db.query("SELECT key, id_user, host, ctime, mtime FROM nx_sessions WHERE id_user = "+str(id_user)+" ORDER BY mtime")
+        db.query("SELECT key, id_user, host, ctime, mtime FROM nx_sessions WHERE id_user = %s ORDER BY mtime", [id_user])
         
         user["sessions"] = []
 
@@ -191,9 +198,9 @@ def get_user_data(id_user):
             session["key"] = s[0] 
             session["id_user"] = s[1]
             session["host"] = s[2]
-            session["ctime_human"] = str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(s[3]))) 
-            session["mtime_human"] = str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(s[4]))) 
-            
+            session["ctime_human"] = str(time.strftime(format, time.localtime(s[3])))
+            session["mtime_human"] = str(time.strftime(format, time.localtime(s[4])))
+
             user["sessions"].append(session)
 
         user['status'] = True
@@ -215,7 +222,7 @@ def destroy_session(id_user, key, host):
     result = {'id_user': id_user, 'status': True, 'reason': 'Session destroyed' }
     
     try:
-        db.query("DELETE FROM nx_sessions WHERE id_user = "+str(id_user)+" AND key LIKE '"+str(key)+"' AND host LIKE '"+str(host)+"' ")
+        db.query("DELETE FROM nx_sessions WHERE id_user = %s AND key LIKE %s AND host LIKE %s ", [id_user, key, host])
         db.commit()
     except:
         result["status"] = False
@@ -240,100 +247,135 @@ def save_user(user_data):
 ########################################################################
 ## Dashboard tools, loaders
 
-def load_storages():
+def load_config_data(query_table, query_order):
 
     db = DB()
     
-    result = {'storages': [], 'status': True, 'reason': 'Storages loaded'}
+    result = {'data': [], 'status': True, 'reason': 'Data loaded'}
 
     try: 
-        db.query("SELECT * FROM nx_storages ORDER BY title")
+        db.query("SELECT * FROM "+str(query_table)+" ORDER BY "+str(query_order))
         
-        for storage in db.fetchall():
-            result['storages'].append(storage)
+        for item in db.fetchall():
+            result['data'].append(item)
         
     except: 
 
         result['status'] = False
-        result['reason'] = 'Storages not loaded, database error'
-
-    return result         
-
-
-def load_settings():
-
-    db = DB()
-    
-    result = {'settings': [], 'status': True, 'reason': 'Settings loaded'}
-
-    try: 
-        db.query("SELECT * FROM nx_settings ORDER BY key")
-        
-        for storage in db.fetchall():
-            result['settings'].append(storage)
-        
-    except: 
-
-        result['status'] = False
-        result['reason'] = 'Settings not loaded, database error'
-
-    return result             
-
-
-def load_services():
-
-    db = DB()
-    
-    result = {'services': [], 'status': True, 'reason': 'Services loaded'}
-
-    try: 
-        db.query("SELECT * FROM nx_services ORDER BY title")
-        
-        for storage in db.fetchall():
-            result['services'].append(storage)
-        
-    except: 
-
-        result['status'] = False
-        result['reason'] = 'Services not loaded, database error'
-
-    return result             
-
-
-def load_views():
-
-    db = DB()
-    
-    result = {'views': [], 'status': True, 'reason': 'Views loaded'}
-
-    try: 
-        db.query("SELECT * FROM nx_views ORDER BY title")
-        
-        for storage in db.fetchall():
-            result['views'].append(storage)
-        
-    except: 
-
-        result['status'] = False
-        result['reason'] = 'Views not loaded, database error'
+        result['reason'] = 'Data not loaded, database error'
 
     return result                 
 
-def load_channels():
 
-    db = DB()
+
+#########################################################################
+## PLUGIN LOADER
+
+class AdmPlugins():
+    def __init__(self, type='reports', name=''):
+        
+        self.env = {}
+
+        self.env['plugin_name']  = name
+        self.env['plugin'] = {}
+        self.env['plugin_path'] = ''
+        self.env['plugins_available'] = {}
+        self.env['errors'] = {}
+        self.env['template']  = ''
+
+        if plugin_path:
+            self.env['plugin_path'] = os.path.join(plugin_path, type)
     
-    result = {'channels': [], 'status': True, 'reason': 'Channels loaded'}
-
-    try: 
-        db.query("SELECT * FROM nx_channels ORDER BY title")
+            
+    def get_plugins(self):
         
-        for storage in db.fetchall():
-            result['channels'].append(storage)
+        if not os.path.exists(self.env['plugin_path']):
+            self.env['errors']['plugin_path'] = "Admin plugins directory does not exist"
+
+        else:
+            for fname in os.listdir(self.env['plugin_path']):
+                
+                mod_name, file_ext = os.path.splitext(fname)
+
+                if file_ext != ".py":
+                    continue
+
+                try:     
+                    
+                    plugin = imp.load_source(mod_name, os.path.join(self.env['plugin_path'], fname))
+
+                    if not "__manifest__" in dir(plugin):
+                        self.env['errors'][mod_name] = "No plugin manifest found in {}".format(fname)
+                        continue
+
+                    self.env['plugins_available'][mod_name] = {'manifest': plugin.__manifest__, 'path': os.path.join(self.env['plugin_path'], fname), 'data': plugin}
+                
+                except:
+
+                    self.env['errors'][mod_name] = 'Error while openning file {}'.format(fname)    
+
+
+ 
+    def run(self, mod_name):
         
-    except: 
+        if not os.path.exists(self.env['plugin_path']):
+            self.env['errors']['plugin_path'] = "Admin plugins directory does not exist"
 
-        result['status'] = False
-        result['reason'] = 'Channels not loaded, database error'
+        else:
+                
+            try:     
+                
+                plugin = imp.load_source(mod_name, os.path.join(self.env['plugin_path'], mod_name+'.py'))
+                
+                if not "__manifest__" in dir(plugin):
+                    self.env['errors'][mod_name] = "No plugin manifest found in {}".format(mod_name)
+                else:    
+                    
+                    import importlib
 
-    return result                 
+                    plugin_i = importlib.import_module(mod_name)
+
+                    plugin_class = plugin_i.Plugin()
+                    plugin_class.run()
+
+                    self.env['plugin'] = {'manifest': plugin.__manifest__, 'dir': self.env['plugin_path'], 'path': os.path.join(self.env['plugin_path'], mod_name+'.py'), 'token': mod_name, 'src': plugin,'data': plugin_class.env}
+            
+            except Exception, e:
+        
+                self.env['errors'][mod_name] = 'Error while openning file {}'.format(os.path.join(self.env['plugin_path'], mod_name+'.py'))  
+                self.env['errors']['Exception'] = format(e)  
+                self.env['errors']['Args'] = 'GET: ' + json.dumps(self.env['get']) + ' POST: ' + json.dumps(self.env['post'])
+
+
+
+    def api(self, mod_name):
+        
+        if not os.path.exists(self.env['plugin_path']):
+            self.env['errors']['plugin_path'] = "Admin plugins directory does not exist"
+
+        else:
+                
+            try:     
+                
+                plugin = imp.load_source(mod_name, os.path.join(self.env['plugin_path'], mod_name+'.py'))
+                
+                if not "__manifest__" in dir(plugin):
+                    self.env['errors'][mod_name] = "No plugin manifest found in {}".format(mod_name)
+                else:    
+                    
+                    import importlib
+
+                    plugin_i = importlib.import_module(mod_name)
+
+                    plugin_class = plugin_i.Plugin()
+                    plugin_class.api()
+
+                    self.env['plugin'] = plugin_class.api()
+                    
+            except Exception, e:
+        
+                self.env['errors'][mod_name] = 'Error while openning file {}'.format(os.path.join(self.env['plugin_path'], mod_name+'.py'))  
+                self.env['errors']['Exception'] = format(e)  
+                self.env['errors']['Args'] = 'GET: ' + json.dumps(self.env['get']) + ' POST: ' + json.dumps(self.env['post'])
+
+
