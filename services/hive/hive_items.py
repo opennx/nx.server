@@ -57,7 +57,10 @@ ASSET_TO_EVENT_INHERIT = [
 
 
 def hive_set_events(auth_key, params={}):
-    #TODO: AUTH
+    user = sessions[auth_key]
+    if not user:
+        return [[403, "Not authorised"]]
+
     delete = params.get("delete", [])
     events = params.get("events", [])
     id_channel = params.get("id_channel", 0)
@@ -90,15 +93,23 @@ def hive_set_events(auth_key, params={}):
 
         if id_event:
             event = Event(id_event, db=db)
+            if not event:
+                logging.warning("No such event id {}".format(id_event))
+                continue
             updated +=1
         elif event_at_pos:
             event = Event(event_at_pos, db=db)
-        else:
+            updated += 1
+        elif id_channel:
             event = Event(db=db)
             pbin = Bin(db=db)
             pbin.save()
             event["id_magic"] = pbin.id
+            event["id_channel"] = id_channel
             created +=1
+        else:
+            logging.warning("err... no")
+            continue
 
         id_asset = event_data.get("id_asset", False)
         if id_asset and id_asset != event["id_asset"]:
@@ -130,7 +141,7 @@ def hive_set_events(auth_key, params={}):
         changed_ids.append(event.id)
         event.save()
    
-    messaging.send("objects_changed", objects=changed_ids, object_type="event", user="anonymous Firefly user") # TODO
+    messaging.send("objects_changed", objects=changed_ids, object_type="event", user=user.__repr__()) 
 
     return [[200, "TODO: Statistics"]]
 
@@ -280,12 +291,17 @@ def hive_rundown(auth_key, params):
 
 
 def hive_bin_order(auth_key, params):
-    #TODO: AUTH
+    user = sessions[auth_key]
+    id_channel = params.get("id_channel", False) # Optional. Just for playlist-bin. 
+ 
+    if not user or (id_channel and not user.has_right("rundown_edit", id_channel)):
+        yield 403, [["Not authorised"]]
+        return
+ 
     id_bin = params.get("id_bin", False)
     order  = params.get("order", [])
     sender = params.get("sender", False)
 
-    id_channel = params.get("id_channel", False) # Optional. Just for playlist-bin. 
     append_cond = "True"
     if id_channel:
         append_cond = config["playout_channels"][id_channel].get("rundown_accepts", "True")

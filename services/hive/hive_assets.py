@@ -62,6 +62,10 @@ def hive_get_assets(auth_key, params):
 
 
 def hive_actions(auth_key, params):
+    user = sessions["auth_key"]
+    if not user:
+        return [[403, "Not authorised"]]
+
     i = 0
     assets = params.get("assets", [])
     if not assets: 
@@ -80,28 +84,27 @@ def hive_actions(auth_key, params):
             if not eval(cond):
                 break
         else:
-            result.append((id_action, title))
+            if user.has_right("job_control", id_action):
+                result.append((id_action, title))
     return [[200, result]]
 
 
 
 def hive_send_to(auth_key, params):
     user = sessions[auth_key]
-    if not user:
-        yield 403, "Not authorised"
-        return
-
-
-    db = DB()
-    try:
-        id_action = params["id_action"]
-    except:
-        yield 400, "No action specified"
-        return
-
+    id_action = params.get("id_action", False)
     settings  = params.get("settings", {})
     restart_existing = params.get("restart_existing", True)
 
+    if not id_action:
+        yield 400, "Bad request"
+        return
+
+    if not user.has_right("job_control", id_action):
+        yield 403, "Not authorised"
+        return
+ 
+    db = DB()
     for id_object in params.get("objects", []):
         yield -1, send_to(id_object, id_action, settings={}, id_user=user.id, restart_existing=restart_existing, db=db)[1]
     yield 200, "OK"
@@ -129,16 +132,27 @@ def hive_set_meta(auth_key, params):
             "event" : Event,
             }[object_type](id_object, db=db)
 
-        create_script = False
+
         if object_type == "asset":
-            db.query("SELECT validator FROM nx_folders WHERE id_folder=%s", [data.get("id_folder", False) or obj["id_folder"]])
+            id_folder = data.get("id_folder", False) or obj["id_folder"]
+
+            if not user.has_right("asset_edit", id_folder):
+                return [[403, "Unauthorised (edit asset in folder {})".format(id_folder)]]
+
+            db.query("SELECT validator FROM nx_folders WHERE id_folder=%s", [id_folder])
             try:
                 validator_script = db.fetchall()[0][0]
             except:
-                pass
+                validator_script = None
 
             # New asset need create_script and id_folder
             if not id_object:
+ 
+                if not user.has_right("asset_edit", id_folder):
+                    msg = "Unauthorised (create asset in folder {})".format(id_folder)
+                    logging.warning(msg)
+                    return [[403, msg]]
+
                 if not validator_script:
                     msg = "It is not possible create asset in this folder."
                     logging.warning(msg)
@@ -202,7 +216,6 @@ def hive_trash(auth_key, params):
     objects = [int(id_object) for id_object in params.get("objects",[])]
     db = DB()
     for id_asset in objects:
-        # TODO: CHeck if asset is not scheduled for playback
         asset = Asset(id_asset, db=db)
         asset["status"] = TRASHED
         asset.save()
