@@ -82,6 +82,19 @@ class DramaticaBlock(DramaticaObject):
             return    
         self.items[-1].meta.update(kwargs)
 
+    def insert(self, index, item, **kwargs):
+        if not item:
+            return
+        elif type(item) == int and item in self.cache.assets:
+            self.items.insert(index, self.cache[item])
+        elif type(item) == DramaticaAsset:
+            self.items.insert(index, item)
+        else:
+            return    
+        self.items[index].meta.update(kwargs)
+
+
+
     def solve(self):
         yield "Loading solvers"
         from .solving import solvers

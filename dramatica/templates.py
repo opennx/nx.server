@@ -24,5 +24,8 @@ class DramaticaTemplate(DramaticaObject):
     def configure(self, **kwargs):
         self.rundown.blocks[-1].config.update(kwargs)
 
+    def add_item(self, item, **kwargs):
+        self.rundown.blocks[-1].add(item, **kwargs)
+
     def apply(self):
         pass

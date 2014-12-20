@@ -7,7 +7,7 @@ from nx.plugins import plugin_path
 
 from .auth import sessions
 
-from dramatica.common import DramaticaCache
+from dramatica.common import DramaticaCache, DramaticaAsset
 from dramatica.scheduling import DramaticaBlock, DramaticaRundown
 from dramatica.templates import DramaticaTemplate
 from dramatica.timeutils import *
@@ -94,18 +94,26 @@ def nx_assets_connector():
         asset = Asset(id_object, db=db, cache=local_cache)
         yield asset.meta
 
-def nx_history_connector(start=False, stop=False, tstart=False):
+def nx_history_connector(now):
     local_cache = Cache()
     db = DB()
+   
+    start = now - (3600*24*90)
+    stop = now + (3400*24*7)
+    
     cond = ""
-    if start:
-        cond += " AND start > {}".format(start)
-    if stop:
-        cond += " AND stop < {}".format(start)
+    cond += " AND start > {}".format(start)
+    cond += " AND start < {}".format(stop)
     db.query("SELECT id_object FROM nx_events WHERE id_channel in ({}){} ORDER BY start ASC".format(", ".join([str(i) for i in config["playout_channels"] ]), cond ))
+    
     for id_object, in db.fetchall():
         event = Event(id_object, db=db, cache=local_cache)
         tstamp = event["start"]
+        if tstamp < now - (3600*24*30):
+            if event["id_asset"]:
+                yield (event["id_channel"], tstamp, event["id_asset"])
+                continue
+
         for item in event.bin.items:
             yield (event["id_channel"], tstamp, item["id_asset"])
             tstamp += item.get_duration()
@@ -149,7 +157,7 @@ class Session():
 
         logging.debug("Loading history")
         stime = time.time()
-        for msg in self.cache.load_history(nx_history_connector()):
+        for msg in self.cache.load_history(nx_history_connector(self.start_time)):
             self.status = msg
 
         logging.debug("History items loaded in {} seconds".format(time.time()-stime))
@@ -174,7 +182,10 @@ class Session():
                 eitem.meta["id_item"] = eitem.id
                 eitem.meta["id_object"] = eitem["id_asset"] # Avoid id_object schisma
                 eitem.meta["is_optional"] = eitem["is_optional"]
-                item = self.cache[eitem["id_asset"]]
+                if eitem["id_asset"]:
+                    item = self.cache[eitem["id_asset"]]
+                else:
+                    item = DramaticaAsset()
                 block.add(item, **eitem.meta)
             self.rundown.add(block)
 
@@ -227,19 +238,22 @@ class Session():
                 t_keys.extend(["mark_in", "mark_out", "item_role", "promoted", "is_optional"])
                 if not bitem.id:
                     t_keys.append("title")
+                    t_keys.append("duration")
 
                 if item.id:
                     item.meta = {"id_object":item.id}
                 else:
                     item.meta = {}
-                item["ctime"] = item["mtime"] = time.time()
-                item["id_bin"] = ebin.id
-                item["id_asset"] = bitem.id
-                item["position"] = pos
 
                 for key in t_keys:
                     if bitem[key]:
                         item.meta[key] = bitem[key]
+
+                item["ctime"] = item["mtime"] = time.time()
+                item["id_bin"] = ebin.id
+                item["id_asset"] = bitem.id
+                item["position"] = pos+1
+
 
                 yield "Saving {}".format(item)
                 item.save()
