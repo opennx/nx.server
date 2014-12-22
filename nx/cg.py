@@ -22,9 +22,6 @@ def hex_color(hex_string):
     return r,g,b,a
 
 
-
-
-
 def plugins():
     bpath = os.path.join(plugin_path, "cg")
 
@@ -39,11 +36,12 @@ def plugins():
             plugin = open(os.path.join(bpath, fname)).read()
             yield plugin
 
-    
-
 
 class CG(object):
     def __init__(self, width=1920, height=1080):
+        self.new(width, height)
+
+    def new(self, width, height):
         self.w = width
         self.h = height
         self.surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
