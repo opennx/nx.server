@@ -231,8 +231,6 @@ class CasparChannel():
         self.current_fname = current_fname
         self._cueing = False
 
-        self.on_main(self)
-        
 
 ## Channel stuff... tricky
 ########################################################################
@@ -350,6 +348,8 @@ class Caspar():
             else:
                 self.bad_requests = 0
                 channel.main() 
+                channel.on_main(channel)
+        
 
 
     def __getitem__(self, id_channel):
