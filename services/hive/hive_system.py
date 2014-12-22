@@ -1,54 +1,15 @@
 from nx import *
 from nx.common.metadata import meta_types
 from nx.objects import *
-from .auth import sessions
 
 
-REQUIRED_PROTOCOL = 140000
-
-def hive_auth(auth_key, params):
-    if params.get("protocol", 0) < REQUIRED_PROTOCOL:
-        return [[400, "Your Firefly version is outdated.\nPlease download latest update from support website."]]
-
-    if sessions[auth_key]:
-        return [[200, "Already logged in"]]
-
-    if params.get("login") and params.get("password"):
-        db = DB()
-        user = get_user(params["login"], params["password"], db=db)
-        if user:
-            db.query("INSERT INTO nx_sessions (key, id_user, host, ctime, mtime) VALUES (%s, %s , %s, %s, %s)", [ auth_key, user.id, params.get("host", "unknown"), time.time(), time.time()])
-            db.commit()
-            return [[200, "Logged in"]]
-        else:
-            return [[403, "Incorrect login/password combination"]]
-
-    else:
-        return [[403, "Not logged in"]]
-
-
-def hive_logout(auth_key, params):
-    user = sessions[auth_key]
-    if not user:
-        return [[403, "Not logged in"]]
-    db = DB()
-    db.query("DELETE FROM nx_sessions WHERE key = %s", [auth_key])
-    db.commit()
-    del sessions[auth_key]
-    return [[200, "ok"]]
-
-
-def hive_meta_types(auth_key, params):
-    if not sessions[auth_key]:
-        return [[403, "Not authorised"]]
+def hive_meta_types(user, params):
     return [[200, [meta_types[t].pack() for t in meta_types.keys()]]]
 
 
-def hive_site_settings(auth_key,params):
-    if not sessions[auth_key]:
-        return [[403, "Not authorised"]]
+def hive_site_settings(user, params):
     db = DB()
-    rights = sessions[auth_key].meta
+    rights = user.meta
 
     result = {}
     result["rights"] = rights
@@ -102,9 +63,7 @@ def hive_site_settings(auth_key,params):
     return [[200, result]]
 
 
-def hive_services(auth_key, params):
-    if not sessions[auth_key]:
-        return [[403, "Not authorised"]]
+def hive_services(user, params):
     command    = params.get("command", 0) 
     id_service = params.get("id_service", 0)
     db = DB()
@@ -132,11 +91,7 @@ def hive_services(auth_key, params):
     return [[200, res]]
 
 
-def hive_message(auth_key, params):
-    user = sessions[auth_key]
-    if not user:
-        return [[403, "Not authorised"]]
-
+def hive_message(user, params):
     if params.get("message", False):
         messaging.send("message", sender=auth_key, from_user=user["full_name"] or user["login"] , message=params["message"])
     return [[200, "ok"]]

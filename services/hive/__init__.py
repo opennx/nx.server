@@ -10,6 +10,69 @@ import cgi
 import thread
 import zlib
 
+import hive_assets
+import hive_system
+import hive_items
+import hive_dramatica
+
+
+REQUIRED_PROTOCOL = 140000
+
+
+class Sessions():
+    def __init__(self):
+        self.data = {}
+
+    def __getitem__(self, key):
+        if key in self.data:
+            return self.data[key]
+        db = DB()
+        db.query("SELECT id_user FROM nx_sessions WHERE key=%s", [key])
+        try:
+            user = User(db.fetchall()[0][0])
+            return user
+        except IndexError:
+            return False
+
+    def __delitem__(self, key):
+        if key in self.data:
+            del(self.data[key])
+
+    def login(self, auth_key, params):
+        if params.get("protocol", 0) < REQUIRED_PROTOCOL:
+            return [400, "Your Firefly version is outdated.\nPlease download latest update from support website."]
+
+        if self[auth_key]:
+            return [200, "Already logged in"]
+
+        if params.get("login") and params.get("password"):
+            db = DB()
+            user = get_user(params["login"], params["password"], db=db)
+            if user:
+                db.query("INSERT INTO nx_sessions (key, id_user, host, ctime, mtime) VALUES (%s, %s , %s, %s, %s)", [ auth_key, user.id, params.get("host", "unknown"), time.time(), time.time()])
+                db.commit()
+                return [200, "Logged in"]
+            else:
+                return [403, "Incorrect login/password combination"]
+
+        else:
+            return [403, "Not logged in"]
+
+
+    def logout(self, auth_key):
+        user = self[auth_key]
+        if not user:
+            return [403, "Not logged in"]
+        db = DB()
+        db.query("DELETE FROM nx_sessions WHERE key = %s", [auth_key])
+        db.commit()
+        del self[auth_key]
+        return [200, "ok"]
+
+
+
+
+
 class AdminHandler(BaseHTTPRequestHandler):
     def log_request(self, code='-', size='-'): 
         pass 
@@ -32,6 +95,11 @@ class AdminHandler(BaseHTTPRequestHandler):
             self._echo(data)
         else:
             self._echo(False)
+
+    @property
+    def sessions(self):
+        return self.server.service.sessions
+
 
     def do_POST(self):
         start_time =  time.time()
@@ -61,36 +129,47 @@ class AdminHandler(BaseHTTPRequestHandler):
             params = {}
      
         methods = self.server.service.methods
-     
-        if method in methods:    
+        
+
+        if method in ["auth", "login"]: # AUTH is deprecated
+            self._do_headers("application/octet-stream", 200)            
+            response, data = self.sessions.login(auth_key, params)
+            self.push_response(response, data)
+
+            
+        elif method == "logout":
+            self._do_headers("application/octet-stream", 200)                
+            response, data = self.sessions.logout(auth_key)
+            self.push_response(response, data)
+
+
+        elif method in methods:            
+
+            user = self.sessions[auth_key]
+            if not user:
+                self.result(403, "Not authorised")
+                return
+
             self._do_headers("application/octet-stream", 200)
 
-            q_start_time = time.time()
-            #try:
-            
-            for response, data in methods[method](auth_key, params):
-                data = json.dumps([response, data])
-                if params.get("use_zlib", False):
-                    data = zlib.compress(data)
-                self._echo("{}\n".format(data))
-                
-            #except:
-            #    import pprint
-            #    pprint.pprint(sys.exc_info())
-            #    response, data = "501", "Unhandled Hive exception"
-            query_time = time.time() - start_time
+            for response, data in methods[method](user, params):
+                self.push_response(response, data)
             
         else:                    
             logging.error("%s not implemented" % method)
             self.result(ERROR_NOT_IMPLEMENTED,False)
             return
 
-        logging.debug("Query {} completed in {:.03f} seconds (Query time: {:.03f})".format(method, time.time()-start_time, query_time ))
+        logging.debug("Query {} completed in {:.03f} seconds".format(method, time.time()-start_time))
 
 
+    def push_response(self, response, data):
+        data = json.dumps([response, data])
+        #if params.get("use_zlib", False):
+        #    data = zlib.compress(data)
+        self._echo("{}\n".format(data))
 
 
-import hive_assets, hive_system, hive_items, hive_dramatica
 
 
 
@@ -121,6 +200,7 @@ class Service(ServicePrototype):
         if use_ssl:
             self.server.socket = ssl.wrap_socket (self.server.socket, certfile=cert_name, server_side=True)
         
+        self.sessions = Sessions()
         self.server.service = self
         thread.start_new_thread(self.server.serve_forever,())
 

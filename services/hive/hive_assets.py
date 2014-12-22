@@ -4,14 +4,20 @@ from nx import *
 from nx.objects import *
 from nx.jobs import send_to
 
-from .auth import sessions
 
-def hive_browse(auth_key, params):
-    user = sessions[auth_key]
-    if not user:
-        return [[403, "Not authorised"]]
-
+def hive_browse(user, params):
     db = DB()
+
+    if params.get("fulltext", "").startswith("\\"):
+        #TODO: Hello. I am security hole. FIXME FIXME FIXME
+        q = params["fulltext"].lstrip("\\")
+        try:
+            db.query("SELECT DISTINCT(a.id_object), a.mtime FROM nx_assets AS a, nx_meta AS m WHERE a.id_object=m.id_object AND object_type=0 AND ({})".format(q))
+        except:
+            return[[400, "Query error"]]
+        return [[200, {"result":db.fetchall(), "asset_data":[]}]]
+    
+
     conds = []
 
     id_view = params.get("view", 1)
@@ -45,11 +51,7 @@ def hive_browse(auth_key, params):
 
 
 
-def hive_get_assets(auth_key, params):
-    user = sessions[auth_key]
-    if not user:
-        yield 403, "Not authorised"
-        return
+def hive_get_assets(user, params):
     asset_ids = params.get("asset_ids", [])
     db = DB()
     result = {}
@@ -61,11 +63,7 @@ def hive_get_assets(auth_key, params):
 
 
 
-def hive_actions(auth_key, params):
-    user = sessions["auth_key"]
-    if not user:
-        return [[403, "Not authorised"]]
-
+def hive_actions(user, params):
     i = 0
     assets = params.get("assets", [])
     if not assets: 
@@ -90,8 +88,7 @@ def hive_actions(auth_key, params):
 
 
 
-def hive_send_to(auth_key, params):
-    user = sessions[auth_key]
+def hive_send_to(user, params):
     id_action = params.get("id_action", False)
     settings  = params.get("settings", {})
     restart_existing = params.get("restart_existing", True)
@@ -112,11 +109,7 @@ def hive_send_to(auth_key, params):
 
 
 
-def hive_set_meta(auth_key, params):
-    user = sessions[auth_key]
-    if not user:
-        return [[403, "Not authorised"]]
-
+def hive_set_meta(user, params):
     objects = [int(id_object) for id_object in params.get("objects",[])]
     object_type = params.get("object_type","asset")
     data = params.get("data", {})
@@ -208,11 +201,7 @@ def hive_set_meta(auth_key, params):
 
 
 
-def hive_trash(auth_key, params):
-    user = sessions[auth_key]
-    if not user:
-        return [[403, "Not authorised"]]
-
+def hive_trash(user, params):
     objects = [int(id_object) for id_object in params.get("objects",[])]
     db = DB()
     for id_asset in objects:
@@ -222,11 +211,7 @@ def hive_trash(auth_key, params):
     return [[200, "OK"]]
 
 
-def hive_untrash(auth_key, params):
-    user = sessions[auth_key]
-    if not user:
-        return [[403, "Not authorised"]]
-
+def hive_untrash(user, params):
     objects = [int(id_object) for id_object in params.get("objects",[])]
     db = DB()
     for id_asset in objects:

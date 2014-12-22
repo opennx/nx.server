@@ -1,18 +1,13 @@
 from nx import *
 from nx.objects import *
 
-from .auth import sessions
-
 BLOCK_MODES = ["LINK", "MANUAL", "SOFT AUTO", "HARD AUTO"]
-
-
 
 ##################################################################################
 ## MACRO SCHEDULING BEGIN
   
 
-def hive_get_events(auth_key, params={}):
-    #TODO: AUTH
+def hive_get_events(user, params={}):
     start_time = params.get("start_time", 0)
     end_time = params.get("end_time", start_time + (3600*24*7))
     extend = params.get("extend", False)
@@ -56,11 +51,7 @@ ASSET_TO_EVENT_INHERIT = [
     ]
 
 
-def hive_set_events(auth_key, params={}):
-    user = sessions[auth_key]
-    if not user:
-        return [[403, "Not authorised"]]
-
+def hive_set_events(user, params={}):
     delete = params.get("delete", [])
     events = params.get("events", [])
     id_channel = params.get("id_channel", 0)
@@ -84,6 +75,7 @@ def hive_set_events(auth_key, params={}):
 
     for event_data in params.get("events", []):
         id_event = event_data.get("id_object", False)
+        id_channel = id_channel or event_data.get("id_channel", False)
         pbin = False
         db.query("SELECT id_object FROM nx_events WHERE id_channel = %s and start = %s", [event_data.get("id_channel", id_channel), event_data["start"]])
         try:
@@ -108,7 +100,7 @@ def hive_set_events(auth_key, params={}):
             event["id_channel"] = id_channel
             created +=1
         else:
-            logging.warning("err... no")
+            logging.warning("err... no : {}".format(params))
             continue
 
         id_asset = event_data.get("id_asset", False)
@@ -147,8 +139,7 @@ def hive_set_events(auth_key, params={}):
 
 
 
-def hive_get_runs(auth_key, params):
-    #TODO: AUTH
+def hive_get_runs(user, params):
     asset_ids  = params.get("asset_ids", [])
     id_channel = int(params.get("id_channel", 0))
     
@@ -190,8 +181,7 @@ def hive_get_runs(auth_key, params):
 
 
 
-def hive_rundown(auth_key, params):
-    #TODO: AUTH
+def hive_rundown(user, params):
     start_time = params.get("start_time", 0)
     try:
         id_channel = int(params["id_channel"])
@@ -290,8 +280,7 @@ def hive_rundown(auth_key, params):
 
 
 
-def hive_bin_order(auth_key, params):
-    user = sessions[auth_key]
+def hive_bin_order(user, params):
     id_channel = params.get("id_channel", False) # Optional. Just for playlist-bin. 
  
     if not user or (id_channel and not user.has_right("rundown_edit", id_channel)):
@@ -364,8 +353,7 @@ def hive_bin_order(auth_key, params):
 
 
 
-def hive_del_items(auth_key, params):
-    #TODO: AUTH
+def hive_del_items(user, params):
     items = params.get("items",[])
     sender = params.get("sender", False)
     affected_bins = []

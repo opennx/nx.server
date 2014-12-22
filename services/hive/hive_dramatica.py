@@ -5,8 +5,6 @@ from nx import *
 from nx.objects import *
 from nx.plugins import plugin_path
 
-from .auth import sessions
-
 from dramatica.common import DramaticaCache, DramaticaAsset
 from dramatica.scheduling import DramaticaBlock, DramaticaRundown
 from dramatica.templates import DramaticaTemplate
@@ -310,7 +308,7 @@ class Session():
 ################################################################################################
 
 
-def hive_dramatica(auth_key, params={}):
+def hive_dramatica(user, params={}):
     id_channel = params["id_channel"]
     date = params["date"]
     session = Session()
