@@ -66,7 +66,7 @@ class Service(ServicePrototype):
             try:
                 tstamp, site_name, host, method, data = json.loads(message)
             except:
-                logging.warning("Malformed seismic message detected: {}".format(message))
+                logging.warning("Malformed seismic message detected")
                 continue
 
             if site_name == config["site_name"]:
