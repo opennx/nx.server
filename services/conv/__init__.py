@@ -107,7 +107,7 @@ class Service(ServicePrototype):
                 if now - last_info_time > FORCE_INFO_EVERY:
                     logging.debug("{}: {}, {:.2f}% completed".format(asset, msg, progress*100))
                     last_info_time = now
-                time.sleep(.01)
+                time.sleep(.0001)
 
 
             progress, msg = encoder.get_progress()
