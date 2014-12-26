@@ -103,7 +103,7 @@ class ControlHandler(BaseHTTPRequestHandler):
             self.error(400)
             return
 
-        logging.debug("Requested {} /w params {}".format(method, params))        
+        #logging.debug("Requested {} /w params {}".format(method, params))        
 
         methods = {
             "take" : service.take,
