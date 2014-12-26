@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import hashlib
 
 from nx import *
@@ -40,7 +42,8 @@ def hive_browse(user, params):
     if params.get("fulltext", False):
         fulltext_base = "id_object IN (SELECT id_object FROM nx_meta WHERE object_type=0 AND {})"
         element_base  = "unaccent(value) ILIKE unaccent('%{}%')"
-        fulltext_cond = " AND ".join([element_base.format(db.sanit(elm)) for elm in params["fulltext"].split()])
+        fq = params["fulltext"].encode("utf-8")
+        fulltext_cond = " AND ".join([element_base.format(elm) for elm in fq.split()])
         conds.append(fulltext_base.format(fulltext_cond))
 
     query_conditions = " WHERE {}".format(" AND ".join(conds)) if conds else ""
@@ -172,7 +175,7 @@ def hive_set_meta(user, params):
                     v2 = obj[key]
                     v2 = v2.encode("utf-8")
                 
-                messages.append("{} set {} {} from {} to {}".format(user, obj, key, v1, v2).capitalize())
+                messages.append("{} set {} {} from {} to {}".format(user, obj, key, v1, v2))
                 changed = True
 
         if changed and validator_script:
