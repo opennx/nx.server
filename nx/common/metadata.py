@@ -138,7 +138,7 @@ class MetaTypes(dict):
         elif mtype.class_ == BOOLEAN:     return int(value)
         elif mtype.class_ == DATETIME:    return float(value)
         elif mtype.class_ == TIMECODE:    return float(value)
-        elif mtype.class_ == REGIONS:     return json.loads(value)
+        elif mtype.class_ == REGIONS:     return value if type(value) == dict else json.loads(value)
         elif mtype.class_ == FRACTION:    return str(value).strip().replace(":","/")
     
         elif mtype.class_ == SELECT:      return value
