@@ -10,7 +10,7 @@ class BaseObject(object):
 
     def __init__(self, *args, **kwargs):
         self.id = int(args[0]) if args else False
-        
+
         self.ns_prefix = self.object_type[0]
         self.ns_tags   = meta_types.ns_tags(self.ns_prefix)
         self.meta = {}
@@ -18,7 +18,7 @@ class BaseObject(object):
         self._loaded = False
         self._db = kwargs.get("db", False)
         self._cache = kwargs.get("cache", False)
-        
+
         if "from_data" in kwargs:
             assert hasattr(kwargs["from_data"], "keys")
             self.meta = kwargs["from_data"]
@@ -45,7 +45,7 @@ class BaseObject(object):
 
     def _save(self,**kwargs):
         pass
-  
+
     def save(self, **kwargs):
         if kwargs.get("set_mtime", True):
             self["mtime"] = int(time.time())
@@ -67,7 +67,7 @@ class BaseObject(object):
         else:
             del self[key] # empty strings
         return True
-        
+
     def __delitem__(self, key):
         key = key.lower().strip()
         if key in meta_types and meta_types[key].namespace == self.object_type[0]: 
@@ -96,7 +96,7 @@ class BaseObject(object):
 
 
 
-        
+
 
 
 class BaseAsset(BaseObject):
@@ -115,7 +115,7 @@ class BaseAsset(BaseObject):
         if new_val:
             self["mark_out"] = new_val
         return self["mark_out"]
-        
+
     def get_file_path(self): # DEPRECATED
         return self.file_path
 
@@ -127,7 +127,7 @@ class BaseAsset(BaseObject):
         try:
             return os.path.join(storages[self["id_storage"]].local_path, self["path"])
         except:
-            return False
+            return "" # Yes. empty string. keep it this way!!! (because of os.path.exists and so on)
 
     @property
     def duration(self):
@@ -164,12 +164,12 @@ class BaseItem(BaseObject):
     def mark_in(self, new_val=False):
         if new_val:
             self["mark_in"] = new_val
-        return self["mark_in"]
+        return float(self["mark_in"])
 
     def mark_out(self, new_val=False):
         if new_val:
             self["mark_out"] = new_val
-        return self["mark_out"]
+        return float(self["mark_out"])
 
     def get_asset(self): # DEPRECATED
         return self.asset
