@@ -5,10 +5,12 @@ from nx import *
 from nx.objects import *
 
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-import ssl
+from SocketServer import ThreadingMixIn
+
 import cgi
 import thread
 import zlib
+import traceback
 
 import hive_assets
 import hive_system
@@ -73,7 +75,7 @@ class Sessions():
 
 
 
-class AdminHandler(BaseHTTPRequestHandler):
+class HiveHandler(BaseHTTPRequestHandler):
     def log_request(self, code='-', size='-'): 
         pass 
        
@@ -151,10 +153,11 @@ class AdminHandler(BaseHTTPRequestHandler):
                 return
 
             self._do_headers("application/octet-stream", 200)
-
-            for response, data in methods[method](user, params):
-                self.push_response(response, data)
-            
+            try:
+                for response, data in methods[method](user, params):
+                    self.push_response(response, data)
+            except:
+                self.push_response(400, "\n{}\n".format(traceback.format_exc()))
         else:                    
             logging.error("%s not implemented" % method)
             self.result(ERROR_NOT_IMPLEMENTED,False)
@@ -170,15 +173,12 @@ class AdminHandler(BaseHTTPRequestHandler):
         self._echo("{}\n".format(data))
 
 
-
+class HiveHTTPServer(ThreadingMixIn, HTTPServer):
+    pass
 
 
 class Service(ServicePrototype):
     def on_init(self):
-        self.root_path = os.path.join(__path__[0])
-        cert_name = os.path.join(self.root_path,"cert","server.pem")
-        use_ssl = os.path.exists(cert_name)
-        
         self.methods = {}
 
         for module in [hive_assets, hive_system, hive_items, hive_dramatica]:
@@ -189,6 +189,7 @@ class Service(ServicePrototype):
                 module_name  = module.__name__.split(".")[-1] 
                 exec ("self.methods['{}'] = {}.{}".format(method_title, module_name, method ))
                 logging.debug("Enabling method '{}'".format(method_title))
+        
         try:
             port = int(self.config.find("port").text)
         except:
@@ -196,9 +197,7 @@ class Service(ServicePrototype):
 
         logging.debug("Starting hive at port {}".format(port))
 
-        self.server = HTTPServer(('',port), AdminHandler)
-        if use_ssl:
-            self.server.socket = ssl.wrap_socket (self.server.socket, certfile=cert_name, server_side=True)
+        self.server = HiveHTTPServer(('',port), HiveHandler)
         
         self.sessions = Sessions()
         self.server.service = self
