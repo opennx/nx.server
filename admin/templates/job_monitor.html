@@ -83,14 +83,16 @@
 	                    <td>{{ job.action_title }}</td>
 	                    <td>{{ job.priority }}</td>
 	                    
-	                    <td id='job_progress_{{job.id_job}}'>
+	                    <td id='job_progress_{{job.id_job}}' data-id_job="{{job.id_job}}">
 	                        {% if job.progress == -2%}
 	                            <span class="glyphicon glyphicon-ok"></span>
 	                        {% elif job.progress == -3%}
 	                            <span class="glyphicon glyphicon-remove"></span>
+	                        {% elif job.progress == -1%}
+	                            <span class="glyphicon glyphicon-refresh"></span>
 	                        {% else %}
 	                            <div class="progress job-progress">
-	                                <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ job.progress }}}" aria-valuemin="0" aria-valuemax="100" style="width: {{ job.progress }}%;"></div>
+	                                <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ job.progress }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ job.progress }}%;">{{ job.progress }}%</div>
 	                            </div>
 	                        {% endif %}
 	                    </td>
@@ -99,9 +101,9 @@
 	                    
 	                    <td class="action-box">
 	                        {% if job.progress < -1 %}
-	                            <button class="btn btn-default btn-xs btn-primary job-action" data-action="-1" data-id-job="{{job.id_job}}"><span class='glyphicon glyphicon-repeat'></span></button>
+	                            <button class="btn btn-default btn-xs btn-primary job-action" data-action="-1" data-id-job="{{job.id_job}}"><span class="glyphicon glyphicon-repeat"></span></button>
 	                        {% else %}
-	                            <button class="btn btn-default btn-xs btn-danger job-action" data-action="-4" data-id-job="{{job.id_job}}"><span class='glyphicon glyphicon-remove'></span></button>
+	                            <button class="btn btn-default btn-xs btn-danger job-action" data-action="-4" data-id-job="{{job.id_job}}"><span class="glyphicon glyphicon-remove"></span></button>
 	                        {% endif %}
 	                    </td>
 	                </tr>
@@ -177,21 +179,64 @@
         setTimeout('update_progress()', 2000);
     }
 
-    function update_progress() {
+    var buttonSwap = function(element, id_job, state){
+		var btnRepeat = $('<button class="btn btn-default btn-xs btn-primary job-action" data-action="'+state+'" data-id-job="'+id_job+'"><span class="glyphicon glyphicon-repeat"></span></button>');
+		var btnRemove = $('<button class="btn btn-default btn-xs btn-danger job-action" data-action="'+state+'" data-id-job="'+id_job+'"><span class="glyphicon glyphicon-remove"></span></button>');
+
+
+		if(state == -1){
+			element.html(btnRepeat);
+		}else{
+			element.html(btnRemove);
+		}
+	}
+
+    var update_progress = function() {
         
-        $.getJSON(nx.settings.controller+"/json").done(function(data) {
+    	$.getJSON(nx.settings.controller+"/json").done(function(data) {
+            
             $.each( data, function( id_job, item ) {
                 pval = item[0];
                 pmsg = item[1];
-                
+                var progressWrap = $("#job_progress_" + id_job);
+                var id_job = progressWrap.data('id_job');	
+                var btnParent = progressWrap.parent('tr').find('td.action-box');
+
                 if (pval == -2){
-                    $("#job_progress_" + id_job).html("<span class='glyphicon glyphicon-ok'></span>");
+                    progressWrap.html("<span class='glyphicon glyphicon-ok'></span>");
+                    buttonSwap(btnParent, id_job, -1);
                 }
                 else if (pval == -3){
-                    $("#job_progress_" + id_job).html("<span class='glyphicon glyphicon-remove'></span>");
+                    progressWrap.html("<span class='glyphicon glyphicon-remove'></span>");
+                    buttonSwap(btnParent, id_job, -1);
                 }
-                else {
-                    $("#job_progress_" + id_job + " .progress-bar").css('width', pval+'%').attr('aria-valuenow', pval); 
+                else if(pval == -1) {
+                    progressWrap.html("<span class='glyphicon glyphicon-refresh'></span>"); 
+                    buttonSwap(btnParent, id_job, -4);
+                }else{
+                	
+                	var progressBar = progressWrap.find(".progress-bar");
+                	var moveItem = false;
+
+                	if(progressBar.length == 0){
+                		//console.log('Changed: '+pval); 
+                		
+                		prp = $('<div class="progress job-progress"><div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="'+pval+'" aria-valuemin="0" aria-valuemax="100" style="width: '+pval+'%;">'+pval+'%</div></div>');
+
+                		progressWrap.html(prp);
+                		progressBar = progressWrap.find(".progress-bar");
+                		moveItem = true;
+                	}else{
+                		//console.log('Just add: '+pval);
+                	}
+                	progressBar.html(pval+'%').css('width', pval+'%').attr('aria-valuenow', pval); 
+
+                	// move up
+                	if(moveItem === true){
+                		parent = progressWrap.parent('tr');		
+                		parent.prependTo('#jobs_body');
+                		buttonSwap(btnParent, id_job, -4);
+	               	}
                 }
              
                 $("#job_msg_" + id_job).html(pmsg);

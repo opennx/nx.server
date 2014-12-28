@@ -19,7 +19,7 @@ class CasparChannel():
 
         self.xstat  = "<channel>init</channel>"  
         self.chdata = {}
-        plugins = []
+        self.plugins = []
         
         self.current_item   = False
         self.current_fname  = False
@@ -169,6 +169,7 @@ class CasparChannel():
            else:
              raise Exception
         except:
+            self.on_main(self) # cg channels need this
             return # Unable to find video feed layer # TODO: perform recovery???
          
 
@@ -227,7 +228,8 @@ class CasparChannel():
             logging.warning ("Cue mismatch: This is not the file which should be cued. IS: %s vs. SHOULDBE: %s" % (cued_file,self.cued_fname))
             self.cued_item = False # AutoCue in on_main should handle it next iteration
 
-        
+        self.on_main(self) 
+
         self.current_fname = current_fname
         self._cueing = False
 
@@ -348,7 +350,7 @@ class Caspar():
             else:
                 self.bad_requests = 0
                 channel.main() 
-                channel.on_main(channel)
+
         
 
 
