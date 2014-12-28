@@ -140,15 +140,21 @@ class GenreRule(DramaticaBlockRule):
 class RundownRepeatRule(DramaticaBlockRule):
     ruleset = ["rundown_repeat"]
     def rule(self):
+        data = {}
         for asset in self.assets:
-            if len(self.block.rundown.has_asset(asset.id)) > 0:
-                if asset["id_folder"] in [1, 2]: # Do not repeat movies and series in same day
-                    asset["dramatica/veto_reason"] = "Rundown repeat"
-                    self.set_weight(asset.id, -1)
-                else:
-                    self.set_weight(asset.id, 0)
-            else:
-                self.set_weight(asset.id, 1)
+            count =  len(self.block.rundown.has_asset(asset.id)) 
+            if count > 0 and asset["id_folder"] in [1, 2]: # Do not repeat movies and series in same day
+                asset["dramatica/veto_reason"] = "Rundown repeat"
+                self.set_weight(asset.id, -1)
+                continue
+            data[asset.id] = count
+        if not data:
+            return
+        max_runs = float(max(data.values()))
+        if not max_runs:
+            return
+        for id_asset in data.keys():
+            self.set_weight(asset.id, data[id_asset] / max_runs)
 
 ## Block rules
 ##########################################################################################################
@@ -160,12 +166,11 @@ class ArtistSpanRule(DramaticaItemRule):
         for asset in self.assets:
             if asset["id_folder"] == 5:
                 for item in self.block.items:
-                    if item["role/performer"] == asset["role/performer"]:
+                     if item["role/performer"] == asset["role/performer"]:
                         self.set_weight(asset.id, 0)
                         break
                 else:
                     self.set_weight(asset.id, 1)
-            
             # TODO:
             #  - check if artist is in current block.
             #  - if not use following query
@@ -173,6 +178,23 @@ class ArtistSpanRule(DramaticaItemRule):
             #asset["dramatica/last_same_artist"] = self.block.cache.query(
             #    "SELECT h.tstamp FROM history as h. assets as a WHERE h.id_asset = a.id_asset AND a.`role/performer` = ? ORDER BY ABS(tstamp - ?) ASC LIMIT 1", 
             #    [asset["role/performer"], self.block.scheduled_start] )
+
+class BlockRepeatRule(DramaticaItemRule):
+    ruleset = ["block_repeat"]
+    def rule(self):
+        data = {}
+        for item in self.block.items:
+            data[item.id] = data.get(item.id, 0) + 1
+        if not data:
+            return
+        max_runs = float(max(data.values()))
+        for asset in self.assets:
+            if not max_runs:
+                self.set_weight(asset.id, 1)
+            elif asset.id in data:
+                self.set_weight(asset.id, 1-(data[asset.id] / max_runs))
+            else:
+                self.set_weight(asset.id, 1)
 
 
 
@@ -184,4 +206,3 @@ def get_rules():
             continue
         if rule.ruleset:
             yield rule
-           

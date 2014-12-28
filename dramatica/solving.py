@@ -185,7 +185,7 @@ class DramaticaSolver(object):
         passes = 0
         while len(result) > 1:
             passes+=1
-            
+
             if DEBUG:
                 log("\nRUNNING PASS", passes)
 
@@ -193,7 +193,7 @@ class DramaticaSolver(object):
                 if len(result) == 1:
                     break
                 c = int(len(result)/2)
-                
+
                 if definition == "weights":
                     result = sorted(result, key=lambda id_asset: (sum(self.weights.data[id_asset]), random.random())  , reverse=True)[:c]
                     continue
@@ -202,7 +202,7 @@ class DramaticaSolver(object):
 
                 if len(definition) < 2:
                     continue
-                
+
                 if len(definition) > 2 and definition[2] == "asc":
                     desc = False
                 else:
@@ -235,7 +235,7 @@ class DramaticaSolver(object):
                                 "{:.02f} hours ago".format(abs(self.block.scheduled_start - self.cache[id_asset]["dramatica/runs"][0])/3600) if self.cache[id_asset]["dramatica/runs"] else "",
                                 )
                     result = result[:c]
-                        
+
                 elif definition[0] == "meta":
                     result = sorted(result, key=lambda id_asset: self.cache[id_asset][definition[1]], reverse=desc)[:c]
                     if DEBUG:
@@ -284,7 +284,7 @@ class DefaultSolver(DramaticaSolver):
         for id_asset in sorted(self.block.cache.assets, key=lambda x: self.block.cache.assets[x]["dramatica/weight"]):
             if not self.block.cache[id_asset]:
                 continue
-    
+
         asset = self.get(
             self.block.config.get("block_source", self.default_block_source),
             "io_duration < {}".format(self.block.remaining + SAFE_OVER),
@@ -357,7 +357,7 @@ class DefaultSolver(DramaticaSolver):
         jingles     = self.block.config.get("jingles", False)
         jingle_span = self.block.config.get("jingle_span", 150)
         fill_source = self.block.config.get("fill_source", "id_folder IN (5,7)")
-    
+
         last_jingle = 0
 
         # todo: insert post_main after main.
@@ -383,7 +383,7 @@ class DefaultSolver(DramaticaSolver):
             if asset:
                 yield "Splitting block using {}".format(asset)
                 self.insert_block(asset, start=self.block["start"] + suggested)
-            
+
         ## If remaining time is long, split block
         ##########################################
 
@@ -397,7 +397,7 @@ class DefaultSolver(DramaticaSolver):
                 fill_source, 
                 "io_duration < {}".format(self.block.remaining + SAFE_OVER),
                 ) ### Fillers
-            
+
             if not asset:
                 break
 
@@ -441,7 +441,7 @@ class MusicBlockSolver(DramaticaSolver):
             # PROMOS #
             ##########
             if promo_selector and self.block.remaining > promo_span and self.block.duration - last_promo > promo_span:
-                promo = self.get(promo_selector, allow_reuse=False)
+                promo = self.get(promo_selector, allow_reuse=False, order=["weight.block_repeat", "weight.rundown_repeat"])
                 if promo:
                     self.block.add(promo)
                 last_promo = self.block.duration
@@ -449,7 +449,7 @@ class MusicBlockSolver(DramaticaSolver):
             # JINGLES #
             ###########
             if jingle_selector and self.block.remaining > jingle_span and self.block.duration - last_jingle > jingle_span:
-                jingle = self.get(jingle_selector, allow_reuse=True)
+                jingle = self.get(jingle_selector, allow_reuse=True, order=["weight.block_repeat", "weight.rundown_repeat"])
                 if jingle:
                     self.block.add(jingle)
                 last_jingle = self.block.duration
