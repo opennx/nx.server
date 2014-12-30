@@ -129,6 +129,7 @@ def hive_set_meta(user, params):
             }[object_type](id_object, db=db)
 
 
+        validator_script = None
         if object_type == "asset":
             id_folder = data.get("id_folder", False) or obj["id_folder"]
 
