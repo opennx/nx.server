@@ -179,14 +179,20 @@ class Session():
             block.config = json.loads(block["dramatica/config"] or "{}")
 
             for eitem in event.bin.items:
-                eitem.meta["id_item"] = eitem.id
-                eitem.meta["id_object"] = eitem["id_asset"] # Avoid id_object schisma
-                eitem.meta["is_optional"] = eitem["is_optional"]
-                if eitem["id_asset"]:
-                    item = self.cache[eitem["id_asset"]]
+
+                imeta = { key : eitem[key] for key in eitem.meta if eitem[key] }
+                imeta.update({
+                    "id_item" : eitem.id,
+                    "id_object" : eitem["id_asset"],
+                    "is_optional" : eitem["is_optional"]
+                    })
+
+                if imeta["id_object"]:
+                    item = self.cache[imeta["id_object"]]
                 else:
                     item = DramaticaAsset()
-                block.add(item, **eitem.meta)
+                block.add(item, **imeta)
+
             self.rundown.add(block)
 
         self.busy = False
