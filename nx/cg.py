@@ -55,6 +55,33 @@ class CG(object):
         self.ctx.rectangle(x,y,w,h)
         self.ctx.fill()
 
+    def glyph(self, glyph, x=0, y=0, alignment=7):
+        if type(glyph) == str and glyph.lower().endswith(".png"):
+            if not os.path.exists(glyph):
+                print ("Glyph not found")
+                return False
+            glyph = cairo.ImageSurface.create_from_png(glyph)
+        elif type(glyph) == cairo.ImageSurface:
+            pass
+        else:
+            print ("CG: Wrong glyph type")
+            return False
+
+        w, h = glyph.get_width(), glyph.get_height()
+        if alignment in [4,5,6]:
+            y -= int(h/2)
+        elif alignment in [1,2,3]:
+            y -= h
+        if alignment in [8,5,2]:
+            x -= int(w/2)
+        elif alignment in [9,6,3]:
+            x -= w
+
+        self.ctx.set_source_surface(glyph, x, y)
+        self.ctx.rectangle(x, y, x + w, y + h)
+        self.ctx.fill()
+        return True
+
     def save(self, fname):
         self.surface.write_to_png(fname)
 
