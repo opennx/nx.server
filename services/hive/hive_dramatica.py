@@ -90,6 +90,8 @@ def nx_assets_connector():
     db.query("SELECT id_object FROM nx_assets WHERE id_folder != 10 AND media_type = 0 AND content_type=1 AND status = 1 AND origin IN ('Production')")
     for id_object, in db.fetchall():
         asset = Asset(id_object, db=db, cache=local_cache)
+        if asset["qc/state"] == 3:
+            continue
         yield asset.meta
 
 def nx_history_connector(now):
