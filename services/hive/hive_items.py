@@ -128,6 +128,8 @@ def hive_set_events(user, params={}):
                         event[key] = asset[key]
 
         for key in event_data:
+            if key == "id_magic" and not event_data[key]:
+                continue
             event.meta[key] = event_data[key]
 
         changed_ids.append(event.id)
