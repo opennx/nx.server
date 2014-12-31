@@ -24,7 +24,7 @@ class Service(ServicePrototype):
         id_service = self.id_service
         self.allowed_actions = {}
         db = DB()
-        db.query("UPDATE nx_jobs set id_service=0, progress=-1, retries=0, stime=0, etime=0, message='Restarting\nRestart requested after service crash.' WHERE id_service=%s AND progress > -1", [id_service])
+        db.query("UPDATE nx_jobs set id_service=0, progress=-1, retries=0, stime=0, etime=0, message='Restart requested after service crash.' WHERE id_service=%s AND progress > -1", [id_service])
         db.commit()
         db.query("SELECT id_action, title, config FROM nx_actions ORDER BY id_action")
         for id_action, title, config in db.fetchall():
