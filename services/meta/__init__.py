@@ -117,7 +117,7 @@ class Service(ServicePrototype):
             asset.save()
     
             db = DB()
-            db.query("""UPDATE nx_jobs SET progress=0, id_service=0, ctime=%s, stime=0, etime=0, id_user=0, message='Restarting after source update' 
+            db.query("""UPDATE nx_jobs SET progress=-1, id_service=0, ctime=%s, stime=0, etime=0, id_user=0, message='Restarting after source update' 
                     WHERE id_object=%s AND id_action > 0 and progress IN (-2, -3)""", 
                     [time.time(), id_asset]
                     )
