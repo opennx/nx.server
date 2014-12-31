@@ -128,6 +128,8 @@ def hive_set_events(user, params={}):
                         event[key] = asset[key]
 
         for key in event_data:
+            if key == "id_magic" and not event_data[key]:
+                continue
             event.meta[key] = event_data[key]
 
         changed_ids.append(event.id)
@@ -232,6 +234,7 @@ def hive_rundown(user, params):
             if as_start:
                 ts_broadcast = as_start
 
+            i_meta["asset_mtime"] = a_meta.get("mtime", 0)
             i_meta["rundown_scheduled"] = ts_scheduled
             i_meta["rundown_broadcast"] = ts_broadcast
 

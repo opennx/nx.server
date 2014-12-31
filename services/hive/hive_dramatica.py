@@ -90,6 +90,8 @@ def nx_assets_connector():
     db.query("SELECT id_object FROM nx_assets WHERE id_folder != 10 AND media_type = 0 AND content_type=1 AND status = 1 AND origin IN ('Production')")
     for id_object, in db.fetchall():
         asset = Asset(id_object, db=db, cache=local_cache)
+        if asset["qc/state"] == 3:
+            continue
         yield asset.meta
 
 def nx_history_connector(now):
@@ -177,14 +179,20 @@ class Session():
             block.config = json.loads(block["dramatica/config"] or "{}")
 
             for eitem in event.bin.items:
-                eitem.meta["id_item"] = eitem.id
-                eitem.meta["id_object"] = eitem["id_asset"] # Avoid id_object schisma
-                eitem.meta["is_optional"] = eitem["is_optional"]
-                if eitem["id_asset"]:
-                    item = self.cache[eitem["id_asset"]]
+
+                imeta = { key : eitem[key] for key in eitem.meta if eitem[key] }
+                imeta.update({
+                    "id_item" : eitem.id,
+                    "id_object" : eitem["id_asset"],
+                    "is_optional" : eitem["is_optional"]
+                    })
+
+                if imeta["id_object"]:
+                    item = self.cache[imeta["id_object"]]
                 else:
                     item = DramaticaAsset()
-                block.add(item, **eitem.meta)
+                block.add(item, **imeta)
+
             self.rundown.add(block)
 
         self.busy = False

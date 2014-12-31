@@ -57,11 +57,12 @@ def hive_browse(user, params):
 def hive_get_assets(user, params):
     asset_ids = params.get("asset_ids", [])
     db = DB()
-    result = {}
-    for i, id_asset in enumerate(asset_ids):
+
+    for id_asset in asset_ids:
         asset = Asset(id_asset, db=db)
         yield -1, asset.meta
-    yield 200, "OK"
+
+    yield 200, "{} assets updated".format(len(asset_ids))
     return
 
 
@@ -129,6 +130,7 @@ def hive_set_meta(user, params):
             }[object_type](id_object, db=db)
 
 
+        validator_script = None
         if object_type == "asset":
             id_folder = data.get("id_folder", False) or obj["id_folder"]
 

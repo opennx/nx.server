@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import random
+import copy
 
 from .common import DramaticaObject, DramaticaAsset
 from .timeutils import *
@@ -75,23 +76,25 @@ class DramaticaBlock(DramaticaObject):
         if not item:
             return
         elif type(item) == int and item in self.cache.assets:
-            self.items.append(self.cache[item])
+            self.items.append(copy.deepcopy(self.cache[item]))
         elif type(item) == DramaticaAsset:
-            self.items.append(item)
+            self.items.append(copy.deepcopy(item))
         else:
-            return    
+            return
         self.items[-1].meta.update(kwargs)
+        return self.items[-1]
 
     def insert(self, index, item, **kwargs):
         if not item:
             return
         elif type(item) == int and item in self.cache.assets:
-            self.items.insert(index, self.cache[item])
+            self.items.insert(index, copy.deepcopy(self.cache[item]))
         elif type(item) == DramaticaAsset:
-            self.items.insert(index, item)
+            self.items.insert(index, copy.deepcopy(item))
         else:
-            return    
+            return
         self.items[index].meta.update(kwargs)
+        return self.items[index]
 
 
 

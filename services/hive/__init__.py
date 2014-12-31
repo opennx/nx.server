@@ -5,7 +5,7 @@ from nx import *
 from nx.objects import *
 
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-from SocketServer import ThreadingMixIn
+#from SocketServer import ThreadingMixIn
 
 import cgi
 import thread
@@ -173,7 +173,10 @@ class HiveHandler(BaseHTTPRequestHandler):
         self._echo("{}\n".format(data))
 
 
-class HiveHTTPServer(ThreadingMixIn, HTTPServer):
+#class HiveHTTPServer(ForkingMixIn, HTTPServer):
+#    pass
+
+class HiveHTTPServer(HTTPServer):
     pass
 
 
