@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import sys
+import sys, os.path
 
 import jinja2
 
@@ -11,7 +11,7 @@ sys.setdefaultencoding('utf-8')
 import thread
 import hashlib
 
-from flask import Flask, request, render_template, redirect, url_for, flash, jsonify
+from flask import Flask, request, render_template, redirect, url_for, flash, jsonify, make_response
 from auth import *
 
 import logging
@@ -62,6 +62,7 @@ def index():
 
 
 @app.route("/browser")
+@app.route("/browser/")
 def browser():
     assets = view_browser()
     current_controller = set_current_controller({'title': 'Browser', 'controller': 'browser' })
@@ -70,6 +71,7 @@ def browser():
 
  
 @app.route("/jobs", methods=['GET', 'POST'])
+@app.route("/jobs/", methods=['GET', 'POST'])
 @app.route("/jobs/<view>", methods=['GET', 'POST'])
 @app.route("/jobs/<view>/search", methods=['GET'])
 @app.route("/jobs/<view>/search/<search>", methods=['GET'])
@@ -103,13 +105,22 @@ def jobs(view="active", search=""):
 
 
 @app.route("/services",methods=['GET', 'POST'])
-@app.route("/services/<view>")
+@app.route("/services/",methods=['GET', 'POST'])
+@app.route("/services/<view>",methods=['GET', 'POST'])
 def services(view="default"):
-    if request.method == "POST" and "id_service" in request.form:
+    
+    if request.method == "POST" and "id_service" in request.form and "action" in request.form:
         id_service = int(request.form.get("id_service"))
         action = request.form.get("action")
         service_action(id_service, action)
+    
+    if request.method == "POST" and "id_service" in request.form and "autostart" in request.form:
+        id_service = int(request.form.get("id_service"))
+        autostart = int(request.form.get("autostart"))
+        service_autostart(id_service, autostart)
+    
     services = view_services(view)
+    
     if view=="json":
         return services
 
@@ -121,26 +132,30 @@ def services(view="default"):
 
 
 @app.route("/users",methods=['GET', 'POST'])
+@app.route("/users/",methods=['GET', 'POST'])
+@app.route("/users/<view>",methods=['GET', 'POST'])
 def users(view="default"):
-    if request.method == "POST" and "id_user" and "login" and "password" in request.form:
-        user_data = {}
-        user_data["id_user"] = int(request.form.get("id_user"))
-        user_data["login"] = request.form.get("login")
-        user_data["password"] = request.form.get("password")
-        
-        return json.dumps(save_user(user_data))
+    
+    if view == 'api':
+	    if request.method == "POST" and "id_user" and "login" and "password" in request.form:
+	        user_data = {}
+	        user_data["id_user"] = int(request.form.get("id_user"))
+	        user_data["login"] = request.form.get("login")
+	        user_data["password"] = request.form.get("password")
+	        
+	        return json.dumps(save_user(user_data))
 
-    if request.method == "POST" and "get_user" in request.form:
-        id_user = int(request.form.get("get_user"))
-        
-        return json.dumps(get_user_data(id_user))
+	    if request.method == "POST" and "get_user" in request.form:
+	        id_user = int(request.form.get("get_user"))
+	        
+	        return json.dumps(get_user_data(id_user))
 
-    if request.method == "POST" and "destroy_session" and "destroy_host" and "destroy_id_user" in request.form:
-        id_user = int(request.form.get("destroy_id_user"))
-        key = str(request.form.get("destroy_session"))
-        host = str(request.form.get("destroy_host"))
-        
-        return json.dumps(destroy_session(id_user, key, host))
+	    if request.method == "POST" and "destroy_session" and "destroy_host" and "destroy_id_user" in request.form:
+	        id_user = int(request.form.get("destroy_id_user"))
+	        key = str(request.form.get("destroy_session"))
+	        host = str(request.form.get("destroy_host"))
+	        
+	        return json.dumps(destroy_session(id_user, key, host))
 
     users = view_users()
 
@@ -150,6 +165,7 @@ def users(view="default"):
 
 
 @app.route("/configuration",methods=['GET', 'POST'])
+@app.route("/configuration/",methods=['GET', 'POST'])
 @app.route("/configuration/<view>",methods=['GET', 'POST'])
 def settings(view="system-tools"):
    
@@ -211,6 +227,7 @@ def logout():
 
  
 @app.route("/reports",methods=['GET', 'POST'])
+@app.route("/reports/",methods=['GET', 'POST'])
 @app.route("/reports/<view>",methods=['GET', 'POST'])
 def reports(view=False):
     
@@ -245,6 +262,8 @@ def reports(view=False):
     return render_template(template, view=view, env=env, current_controller=current_controller)
 
 
+@app.route("/api",methods=['GET', 'POST'])
+@app.route("/api/",methods=['GET', 'POST'])
 @app.route("/api/<view>",methods=['GET', 'POST'])
 def api(view=False):
     
@@ -283,6 +302,34 @@ def api(view=False):
     return json.dumps(result)
 
 
+
+@app.route('/download/',methods=['GET', 'POST'])
+@app.route('/download/',methods=['GET', 'POST'])
+@app.route('/download/<file_name>',methods=['GET', 'POST'])
+def download(file_name='<no file>'):
+    
+    download_dir = '/tmp'
+    raw_data = """Invalid file \n
+File """+file_name+""" not found
+    """
+    response = make_response(raw_data)
+    response.headers["Content-type"] = "text/plain"
+
+    download_path = download_dir + '/' + file_name    
+
+    if os.path.exists(download_path) and os.path.isfile(download_path):
+
+        raw = open(download_path, 'r+b')
+        raw_data = raw.read()
+        
+        # Flask magic begins :D
+        response = make_response(raw_data)
+     
+        # Set the right header for the responseto be downloaded, instead of just printed on the browser
+        response.headers["Content-Disposition"] = "attachment; filename="+file_name
+        response.headers["Content-type"] = "text/plain"
+
+    return response
 
 
 
