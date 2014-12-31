@@ -14,9 +14,9 @@ def hive_browse(user, params):
         #TODO: Hello. I am security hole. FIXME FIXME FIXME
         q = params["fulltext"].lstrip("\\")
         try:
-            db.query("SELECT DISTINCT(a.id_object), a.mtime FROM nx_assets AS a, nx_meta AS m WHERE a.id_object=m.id_object AND object_type=0 AND ({})".format(q))
+            db.query("SELECT DISTINCT(a.id_object), a.mtime FROM nx_assets AS a, nx_meta AS m WHERE a.id_object=m.id_object AND object_type=0 AND ({})".format(q.encode("utf-8")))
         except:
-            return[[400, "Query error"]]
+            return[[400, "Query error: {}".format(sys.exc_info())]]
         return [[200, {"result":db.fetchall(), "asset_data":[]}]]
     
 
@@ -42,7 +42,7 @@ def hive_browse(user, params):
     if params.get("fulltext", False):
         fulltext_base = "id_object IN (SELECT id_object FROM nx_meta WHERE object_type=0 AND {})"
         element_base  = "unaccent(value) ILIKE unaccent('%{}%')"
-        fq = params["fulltext"].encode("utf-8")
+        fq = params["fulltext"].encode("utf-8").replace("'", "''")
         fulltext_cond = " AND ".join([element_base.format(elm) for elm in fq.split()])
         conds.append(fulltext_base.format(fulltext_cond))
 
@@ -104,7 +104,9 @@ def hive_send_to(user, params):
     if not user.has_right("job_control", id_action):
         yield 403, "Not authorised"
         return
- 
+    
+    logging.info("{} is starting action {} for following assets: {}".format(user, id_action, objects))
+
     db = DB()
     for id_object in params.get("objects", []):
         yield -1, send_to(id_object, id_action, settings={}, id_user=user.id, restart_existing=restart_existing, db=db)[1]
@@ -211,8 +213,10 @@ def hive_trash(user, params):
     db = DB()
     for id_asset in objects:
         asset = Asset(id_asset, db=db)
-        asset["status"] = TRASHED
-        asset.save()
+        if user.has_right("asset_edit", asset["id_folder"]):
+            logging.info("{} is trashing {}".format(user, asset))
+            asset["status"] = TRASHED
+            asset.save()
     return [[200, "OK"]]
 
 
@@ -221,6 +225,32 @@ def hive_untrash(user, params):
     db = DB()
     for id_asset in objects:
         asset = Asset(id_asset, db=db)
-        asset["status"] = RESET
-        asset.save()
+        if user.has_right("asset_edit", asset["id_folder"]):
+            logging.info("{} is untrashing {}".format(user, asset))
+            asset["status"] = RESET
+            asset.save()
+    return [[200, "OK"]]
+
+
+def hive_archive(user, params):
+    objects = [int(id_object) for id_object in params.get("objects",[])]
+    db = DB()
+    for id_asset in objects:
+        asset = Asset(id_asset, db=db)
+        if user.has_right("asset_edit", asset["id_folder"]):
+            logging.info("{} is archiving {}".format(user, asset))
+            asset["status"] = ARCHIVED
+            asset.save()
+    return [[200, "OK"]]
+
+
+def hive_unarchive(user, params):
+    objects = [int(id_object) for id_object in params.get("objects",[])]
+    db = DB()
+    for id_asset in objects:
+        asset = Asset(id_asset, db=db)
+        if user.has_right("asset_edit", asset["id_folder"]):
+            logging.info("{} is unarchiving {}".format(user, asset))
+            asset["status"] = RESET
+            asset.save()
     return [[200, "OK"]]
