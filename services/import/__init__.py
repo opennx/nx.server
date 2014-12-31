@@ -1,10 +1,30 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import uuid
+
 from nx import *
 from nx.objects import *
 
 from themis import Themis
+
+
+def temp_file(id_storage, ext):
+    if id_storage:
+        temp_path = os.path.join(storages[id_storage].get_path(),".nx", "creating")
+    else:
+        temp_path = "/tmp/nx"
+
+    if not os.path.exists(temp_path):
+        try:
+            os.makedirs(temp_path)
+        except: 
+            return False
+
+    temp_name = str(uuid.uuid1()) + ext
+    return os.path.join(temp_path, temp_name)
+
+
 
 
 class Service(ServicePrototype):
@@ -178,15 +198,30 @@ class Service(ServicePrototype):
         #############################################################
         ## Process file
 
+        tempfile = temp_file(asset["id_storage"], os.path.splitext(asset["path"])[1])
+
+        try:
+            open(tempfile,"w")
+        except:
+            mk_error(fname, "Unable to open target for writing")
+            return False
+
         themis = Themis(
             os.path.join(self.import_path, fname),
             logging=logging
             )
         themis.analyze()
 
-        if not themis.process(asset.file_path, self.profile):
+        if not themis.process(tempfile, self.profile):
             mk_error(fname, "Unable to import. Check log for more details")
             return False
+
+        try:
+            os.rename(tempfile, asset.file_path)
+        except:
+            mk_error(fname, "Unable to move converted file to it's destination")
+            return False
+
 
         ## Process file
         #############################################################
