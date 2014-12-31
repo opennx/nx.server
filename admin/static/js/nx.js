@@ -175,3 +175,4 @@ nx.utils = {
 		|| 'onmsgesturechange' in window; // works on ie10
 	}	
 }
+

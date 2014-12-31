@@ -267,10 +267,10 @@ var load_user = function(id_user)
         }
 
         nx.com.post({
-            url: nx.settings.controller,
+            url: nx.settings.controller+'/api',
             data: data,
             element: $('#nx-messages'),
-            notifyDone: true,
+            notifyDone: false,
             notifyFail: true,
             notifyError: true,
             postDone: load_user_callback
@@ -305,7 +305,7 @@ var destroy_session = function(e)
         }
 
         nx.com.post({
-            url: nx.settings.controller,
+            url: nx.settings.controller+'/api',
             data: session_data,
             element: $('#nx-messages'),
             notifyDone: true,
@@ -323,7 +323,7 @@ var save_user = function(user_data)
     {
  
         nx.com.post({
-            url: nx.settings.controller,
+            url: nx.settings.controller+'/api',
             data: user_data,
             element: $('#nx-messages'),
             notifyDone: false,

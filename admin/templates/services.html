@@ -9,7 +9,8 @@
                 <th>Title</th>
                 <th>Agent</th>
                 <th>Host</th>
-                <th style='width:76px;'>&nbsp;</th>
+                <th style='width:100px;'>Autostart</th>
+                <th style='width:80px;'>&nbsp;</th>
             </tr>
         </thead>
         <tbody>
@@ -19,9 +20,12 @@
                 <td>{{service.title}}</td>
                 <td>{{service.agent}}</td>
                 <td>{{service.host}}</td>
+                <td>
+                    <input type="checkbox" data-id-service="{{service.id_service}}" data-label="" name="service-autostart"{%if service.autostart == 1 %} checked{% endif %} value="1">
+                </td>
 
                 <td>
-                        <button id="btn_svc_{{service.id_service}}" style='width:70px;' class="btn btn-default btn-xs" onClick="stop_service({{service.id_service}});">loading....</button>    
+                    <button id="btn_svc_{{service.id_service}}" style='width:70px;' class="btn btn-default btn-xs" data-id-service="{{service.id_service}}">loading....</button>    
                 </td>
 
             </tr>
@@ -37,49 +41,120 @@
 {% block js %}
     <script type="text/javascript">
 
-        function timeout_init() {
-            setTimeout('update_services()', 2000);
+        $("[name='service-autostart']").on('change', function(e){
+            e.preventDefault();
+            id_service = $(this).data('id-service');
+            autostart = $(this).prop('checked') === true ? 1: 0;
+            $.post( nx.settings.controller+'/json', { autostart: autostart, id_service: id_service } ).done( function(r){
+                update_services( true );
+            });
+        });
+
+        var timeout_init = function() 
+        {
+            setTimeout('update_services( false )', 1500);
         }
 
+        var update_services = function(once) 
+        { 
+            $.getJSON(nx.settings.controller+"/json").done(function(data)
+            {
 
-        function update_services() {            
-            $.getJSON(nx.settings.controller+"/json").done(function(data) {
-
-                if (data){
-                $.each( data, function( id_service, state ) {
-
-                    if (state == 0){
-                        $("#btn_svc_" + id_service).html("START").removeClass("btn-default btn-warning btn-success").addClass("btn-danger").removeAttr('disabled');
-                    }  
-                    else if (state == 1){
-                        $("#btn_svc_" + id_service).html("STOP").removeClass("btn-default btn-warning btn-danger").addClass("btn-success").removeAttr('disabled');
-                    }
-                    else if (state == 2){
-                        $("#btn_svc_" + id_service).html("STARTING").removeClass("btn-default btn-danger btn-success").addClass("btn-warning").attr('disabled','disabled');
-                    }
-                    else if (state == 3){
-                        $("#btn_svc_" + id_service).html("STOPPING").removeClass("btn-default btn-danger btn-success").addClass("btn-warning").attr('disabled','disabled');
+                if (data)
+                {
+                    $.each( data, function( id_service, dataset ) 
+                    {
+                        if(once === true && id_service == 9){
+                            //console.log(dataset);
+                        }
+                        set_service_btn( id_service, dataset[7], dataset[4] );
+                    });
+                    
+                    if( once === false )
+                    {
+                        timeout_init();    
                     }
                     
-                  });
                 } //if data
-                });
+            });
+        }
+       
+        var set_service_btn = function( id_service, state, autostart ){
+            
+            // Set autostart checkbox
+            ch = autostart == 1 ? true: false;
+            $("[data-id-service='"+id_service+"']").prop('checked', ch);
 
-            timeout_init();
+            // Button state && behavior
+            var btn_text, 
+                btn_disabled, 
+                btn_set_state, 
+                btn_classes;
+
+            switch(state){
+                case 0:
+                    btn_text = 'START';
+                    btn_disabled = false;
+                    btn_set_state = 'start';
+                    btn_classes = 'btn-danger';
+                break; case 1:
+                    btn_text = 'STOP';
+                    btn_disabled = false;
+                    btn_set_state = 'stop';
+                    btn_classes = 'btn-success';
+                break; case 2:
+                    btn_text = 'STARTING';
+                    btn_disabled = true;
+                    btn_set_state = false;
+                    btn_classes = 'btn-warning disabled';
+                break; case 3:
+                    btn_text = 'STOPPING';
+                    btn_disabled = false;
+                    btn_set_state = 'kill';
+                    btn_classes = 'btn-warning';
+                break; case 4:
+                    btn_text = 'KILLING';
+                    btn_disabled = true;
+                    btn_set_state = false;
+                    btn_classes = 'btn-default disabled';    
+                break; default:
+                    btn_text = 'REQUEST ERROR';
+                    btn_disabled = true;
+                    btn_set_state = false;
+                    btn_classes = 'btn-default disabled';
             }
 
+            $("#btn_svc_" + id_service)
+                .html(btn_text)
+                .removeClass("btn-default btn-warning btn-success btn-danger disabled")
+                .addClass(btn_classes)
+                .prop('disabled', btn_disabled)
+                .off('click')
+                .on('click', function(e){
+                    e.preventDefault();
+                    if(btn_set_state !== false)
+                    {
+                        console.log(id_service, state, btn_set_state);
+                        set_service_state( id_service, btn_set_state );
+                        update_services( true );
+                    }
+                });
 
-        function stop_service(id_service){
-            $.post( nx.settings.controller, { action: "stop", id_service: id_service } );
-            update_services();
         }
 
-
-
+        var set_service_state = function( id_service, action ){
+            $.post( nx.settings.controller+"/json", { action: action, id_service: id_service } );   
+        }
+/*
+        var stop_service = function(id_service)
+        {
+            $.post( nx.settings.controller, { action: "stop", id_service: id_service } );
+            //update_services();
+        }
+*/
         $(document).ready(function(){
-            update_services();
-        }); // document ready
-
+            update_services( false );
+        });
 
     </script>
 {% endblock %}

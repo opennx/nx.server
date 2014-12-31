@@ -61,7 +61,7 @@ def view_services(view=""):
     if view=="json":
         services={}
         for sdata in db.fetchall():
-            services[str(sdata[0])] = sdata[7]
+            services[str(sdata[0])] = sdata
         return json.dumps(services)
     services = []
     for service_data in db.fetchall():
@@ -75,16 +75,22 @@ def service_action(id_service, action):
     db = DB()
     sstate = {
         "stop" : 3,
-        "start" : 2
+        "start" : 2,
+        "kill" : 4
         }[action]
     db.query("UPDATE nx_services set state = %s WHERE id_service=%s", [sstate, id_service])
     db.commit()
     return "OK"
 
-## Services administration
-########################################################################
-##
+def service_autostart(id_service, autostart):
+    db = DB()
+    db.query("UPDATE nx_services set autostart = %s WHERE id_service=%s", [autostart, id_service])
+    db.commit()
+    return "OK"
 
+
+########################################################################
+## Jobs administration
 
 def view_jobs(view="", search=""):
     db = DB()
@@ -93,7 +99,7 @@ def view_jobs(view="", search=""):
     sql_join = ""
 
     if view == "failed":
-        cond = " AND j.progress = -3"
+        cond = " AND (j.progress = -3 OR j.progress = -4)"
     elif view == "completed":
         cond = " AND j.progress = -2"
     else:
@@ -162,7 +168,7 @@ def view_users():
     result = {'users': [], 'status': True, 'reason': 'Users loaded'}
 
     try: 
-        db.query("SELECT id_object FROM nx_users")
+        db.query("SELECT id_object FROM nx_users ORDER BY login")
         
         for id_object, in db.fetchall():
             user = User(id_object, db=db)
