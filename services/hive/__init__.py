@@ -134,7 +134,7 @@ class HiveHandler(BaseHTTPRequestHandler):
         
 
         if method in ["auth", "login"]: # AUTH is deprecated
-            self._do_headers("application/octet-stream", 200)            
+            self._do_headers("application/octet-stream", 200)
             response, data = self.sessions.login(auth_key, params)
             self.push_response(response, data)
 
@@ -156,14 +156,18 @@ class HiveHandler(BaseHTTPRequestHandler):
             try:
                 for response, data in methods[method](user, params):
                     self.push_response(response, data)
+                    if response >= 300:
+                        logging.error("{} failed to {}: {}".format(user, method, data)) 
             except:
-                self.push_response(400, "\n{}\n".format(traceback.format_exc()))
+                msg = traceback.format_exc()
+                logging.error("{} failed to {}: {}".format(user, method, msg))
+                self.push_response(400, "\n{}\n".format(msg))
         else:                    
             logging.error("%s not implemented" % method)
             self.result(ERROR_NOT_IMPLEMENTED,False)
             return
 
-        logging.debug("Query {} completed in {:.03f} seconds".format(method, time.time()-start_time))
+        #logging.debug("Query {} completed in {:.03f} seconds ({})".format(method, time.time()-start_time, user))
 
 
     def push_response(self, response, data):
