@@ -189,16 +189,17 @@ class Themis():
             "-print_format", "json",
             self.fname
             ]
-
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        FNULL = open(os.devnull, "w")
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=FNULL)
         while proc.poll() == None:
             time.sleep(.1)
 
         if proc.returncode:
-            logging.error("Unable to ffprobe")
+            self.logging.error("Unable to ffprobe")
             return False
 
         self.probe_result = json.loads(decode_if_py3(proc.stdout.read()))
+        return self.probe_result
 
 
     def r128(self):
