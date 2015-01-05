@@ -405,7 +405,7 @@ class DefaultSolver(DramaticaSolver):
             self.block.add(asset)
 
             if jingles and self.block.remaining > jingle_span and self.block.duration - last_jingle > jingle_span:
-                jingle = self.get(jingles, allow_reuse=True)
+                jingle = self.get(jingles, allow_reuse=True, order=["weight.block_repeat", "weight.rundown_repeat"])
                 if jingle:
                     self.block.add(jingle)
                 last_jingle = self.block.duration
