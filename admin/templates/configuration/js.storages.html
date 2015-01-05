@@ -1,0 +1,30 @@
+{% if current_controller.current_item > 0 %}
+
+<script type="text/javascript">
+$( function(){
+
+	$('.btn-save, .btn-save-and-close').on('click', function(e){
+		e.preventDefault();
+
+
+	});
+
+});
+</script>
+
+{% else %}
+
+<script type="text/javascript">
+$( function(){
+
+	$('button[data-action="edit"]').on('click', function(e){
+		e.preventDefault();
+
+		document.location.href = '/{{ current_controller.controller }}/{{ current_controller.current_view }}/'+$(this).data('id-obj');
+	});
+
+
+});
+</script>
+
+{% endif %}

@@ -1,0 +1,88 @@
+{% if current_controller.current_item > 0 %}
+
+<script src="/static/tools/codemirror/lib/codemirror.js"></script>
+<script src="/static/tools/codemirror/addon/edit/matchbrackets.js"></script>
+<script src="/static/tools/codemirror/addon/scroll/simplescrollbars.js"></script>
+<script src="/static/tools/codemirror/addon/fold/foldcode.js"></script>
+<script src="/static/tools/codemirror/addon/fold/foldgutter.js"></script>
+<script src="/static/tools/codemirror/addon/fold/indent-fold.js"></script>
+<script src="/static/tools/codemirror/addon/fold/brace-fold.js"></script>
+<script src="/static/tools/codemirror/addon/fold/xml-fold.js"></script>
+<script src="/static/tools/codemirror/addon/fold/markdown-fold.js"></script>
+<script src="/static/tools/codemirror/addon/fold/comment-fold.js"></script>
+<script src="/static/tools/codemirror/mode/javascript/javascript.js"></script>
+
+<script type="text/javascript">
+
+var load_send_callback = function(r,d)
+{
+	console.log(r);
+}
+
+var send_data = function()
+{
+        var config = JSON.parse(code_editor.getValue());
+
+        var data = {
+             configuration : "channels",
+             id_channel : {{ data.data[0] }},
+             query_data : JSON.stringify({
+	             title : $('#title').val(),
+	             type : $('type').val(),
+	             config : JSON.stringify(config)
+	         })
+        }
+
+        //console.log(data);
+
+        nx.com.post({
+            url: nx.settings.controller+'/api',
+            data: data,
+            element: $('#nx-messages'),
+            notifyDone: false,
+            notifyFail: true,
+            notifyError: true,
+            postDone: load_send_callback,
+            postFail : load_send_callback
+        });
+
+}
+
+
+
+$('#config').val(JSON.stringify({{ data.data[3]|safe }}, null, 4));
+
+var code_editor = CodeMirror.fromTextArea(document.getElementById("config"), {
+	mode: "application/ld+json",
+	styleActiveLine: true,
+	matchBrackets: true,
+	lineNumbers: true,
+	lineWrapping: true,
+	extraKeys: {"Ctrl-Q": function(cm){ cm.foldCode(cm.getCursor()); }},
+	foldGutter: true,
+	viewportMargin: Infinity,
+	scrollbarStyle: "simple",
+	gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+	theme: 'base16-dark'
+});
+
+$('.btn-save, .btn-save-and-close').on('click', function(e){
+	e.preventDefault();
+	send_data();
+});
+
+
+</script>
+
+{% else %}
+
+<script type="text/javascript">
+$( function(){
+	$('button[data-action="edit"]').on('click', function(e){
+		e.preventDefault();
+		document.location.href = '/{{ current_controller.controller }}/{{ current_controller.current_view }}/'+$(this).data('id-obj');
+	});
+});
+</script>
+
+{% endif %}

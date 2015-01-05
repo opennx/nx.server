@@ -1,23 +1,13 @@
 {% extends "base.html" %}
 {% block body %}
-<!--
-<div class="view_switcher">
-    <div class="btn-group">
-      <button type="button" onClick="window.location.href='/jobs/active'" class="btn {{ "active" if current_view=="active"}} btn-default">Active</button>
-      <button type="button" onClick="window.location.href='/jobs/completed'" class="btn {{ "active" if current_view=="completed"}} btn-default">Completed</button>
-      <button type="button" onClick="window.location.href='/jobs/failed'" class="btn {{ "active" if current_view=="failed"}} btn-default">Failed</button>
-    </div>
-</div>
--->
-
 
 <div class="table-responsive">
-    <table class="table table-hover">
+    <table class="table table-hover sortable">
         <thead>
             <tr>
                 <th style='width:50px;'>#</th>
                 <th>Title</th>
-                <th>Aspect</th>
+                <th data-defaultsort="disabled">Aspect</th>
             </tr>
         </thead>
         <tbody>
