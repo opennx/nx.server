@@ -192,6 +192,7 @@ class Service(ServicePrototype):
                     return False
 
             asset["status"] = OFFLINE
+            asset["qc/state"] = 0
             asset.save()
 
         ## Remove / backup old file
