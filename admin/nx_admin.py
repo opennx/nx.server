@@ -118,7 +118,7 @@ def view_jobs(view="", search=""):
 		cond = cond + """ AND m.tag IN(SELECT tag FROM nx_meta_types WHERE searchable = 1)
 				AND lower(unaccent(m.value)) LIKE lower(unaccent('%"""+search.encode('utf-8').strip()+"""%')) """
 
-	db.query("""SELECT j.id_job, j.id_object, j.id_action, j.settings, j.id_service, j.priority, j.progress, j.retries, j.ctime, j.stime, j.etime, j.message, j.id_user, a.title
+	db.query("""SELECT DISTINCT(j.id_job), j.id_object, j.id_action, j.settings, j.id_service, j.priority, j.progress, j.retries, j.ctime, j.stime, j.etime, j.message, j.id_user, a.title
 		FROM nx_jobs as j
 		JOIN nx_actions as a ON a.id_action = j.id_action
 		"""+sql_join+"""
