@@ -17,6 +17,8 @@ import hive_system
 import hive_items
 import hive_dramatica
 
+reload(sys)
+sys.setdefaultencoding('utf-8')
 
 REQUIRED_PROTOCOL = 140000
 
