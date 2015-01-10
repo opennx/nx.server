@@ -14,7 +14,7 @@ def hive_browse(user, params):
         #TODO: Hello. I am security hole. FIXME FIXME FIXME
         q = params["fulltext"].lstrip("\\")
         try:
-            db.query("SELECT DISTINCT(a.id_object), a.mtime FROM nx_assets AS a, nx_meta AS m WHERE a.id_object=m.id_object AND object_type=0 AND ({})".format(q.encode("utf-8")))
+            db.query("SELECT DISTINCT(a.id_object) as id, a.mtime FROM nx_assets AS a, nx_meta AS m WHERE a.id_object=m.id_object AND object_type=0 AND ({})".format(q.encode("utf-8")))
         except:
             return[[400, "Query error: {}".format(sys.exc_info())]]
         return [[200, {"result":db.fetchall(), "asset_data":[]}]]
@@ -105,7 +105,7 @@ def hive_send_to(user, params):
         yield 403, "Not authorised"
         return
     
-    logging.info("{} is starting action {} for following assets: {}".format(user, id_action, objects))
+    logging.info("{} is starting action {} for following assets: {}".format(user, id_action, params.get("objects", [])))
 
     db = DB()
     for id_object in params.get("objects", []):
