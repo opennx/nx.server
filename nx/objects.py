@@ -172,11 +172,12 @@ class Item(ServerObject, BaseItem):
 
     @property
     def event(self):
-        if not self["id_bin"]:
+        id_bin = int(self["id_bin"])
+        if not id_bin:
             return False
         db = self._db
         if not hasattr(self, "_event"):
-            db.query("SELECT id_object FROM nx_events WHERE id_magic=%s", [self["id_bin"]])
+            db.query("SELECT id_object FROM nx_events WHERE id_magic=%s", [id_bin])
             res = db.fetchall()
             if not res:
                 self._event = False

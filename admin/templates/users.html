@@ -2,15 +2,15 @@
 {% block body %}
 
 <div class="table-responsive user-list ui-form">
-    <table class="table table-hover table-striped">
+    <table class="table table-hover table-striped sortable">
         <thead>
             <tr>
-                <th style='width:50px;'>#</th>
-                <th>Login</th>
-                <th>Modified</th>
-                <th>Created</th>
-                <th style='width:76px;'>
-                     <button id="btn_user_0" class="btn btn-default btn-sm btn-edit btn-primary" data-id-obj="0" data-action="edit"><span class="glyphicon glyphicon-plus"></span>  New</button>
+                <th style='width:50px;' data-firstsort="asc">#</th>
+                <th data-firstsort="asc">Login</th>
+                <th data-firstsort="asc">Modified</th>
+                <th data-firstsort="asc">Created</th>
+                <th style='width:76px;' data-defaultsort="disabled">
+                     <button id="btn_user_0" class="btn btn-default btn-sm btn-edit btn-primary" data-id-obj="0" data-action="edit"><span class="glyphicon glyphicon-plus"></span> New</button>
                 </th>
             </tr>
         </thead>
@@ -76,11 +76,8 @@
                 </div>
             </div>
 
-
         </form>
     </div>
-
-    
 
     <div class="col-lg-12 sessions-wrap">
         <div class="page-header">
@@ -122,15 +119,11 @@ var pwd = $('#password');
 var pwr = $('#password-retype');
 var id_user = 0;
 
-
 $( function(){
     setTimeout( function(){
         clearForm();
     }, 152);
 });
-
-
-
 
 $(document).on('keydown', function(e) {
     // ESCAPE key pressed

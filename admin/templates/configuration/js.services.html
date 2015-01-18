@@ -1,0 +1,56 @@
+{% if current_controller.current_item > 0 %}
+
+<script src="/static/tools/codemirror/lib/codemirror.js"></script>
+<script src="/static/tools/codemirror/addon/edit/matchbrackets.js"></script>
+<script src="/static/tools/codemirror/addon/scroll/simplescrollbars.js"></script>
+<script src="/static/tools/codemirror/addon/fold/foldcode.js"></script>
+<script src="/static/tools/codemirror/addon/fold/foldgutter.js"></script>
+<script src="/static/tools/codemirror/addon/fold/indent-fold.js"></script>
+<script src="/static/tools/codemirror/addon/fold/brace-fold.js"></script>
+<script src="/static/tools/codemirror/addon/fold/xml-fold.js"></script>
+<script src="/static/tools/codemirror/addon/fold/markdown-fold.js"></script>
+<script src="/static/tools/codemirror/addon/fold/comment-fold.js"></script>
+<script src="/static/tools/codemirror/mode/xml/xml.js"></script>
+
+<script type="text/javascript">
+$( function(){
+	var code_editor = CodeMirror.fromTextArea(document.getElementById("settings"), {
+		mode: "application/xml",
+		/*
+		mode: {
+			name: "python",
+			version: 2,
+			singleLineStringErrors: false
+        },
+        */
+        alignCDATA : true, 
+		styleActiveLine: true,
+		matchBrackets: true,
+		lineNumbers: true,
+		lineWrapping: true,
+		extraKeys: {"Ctrl-Q": function(cm){ cm.foldCode(cm.getCursor()); }},
+		foldGutter: true,
+		viewportMargin: Infinity, 
+		scrollbarStyle: "simple", 
+		gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"], 
+		theme: 'base16-dark'
+	});
+	 
+	$('.btn-save, .btn-save-and-close').on('click', function(e){
+		e.preventDefault();
+	});
+});
+</script>
+
+{% else %}
+
+<script type="text/javascript">
+$( function(){
+	$('button[data-action="edit"]').on('click', function(e){
+		e.preventDefault();
+		document.location.href = '/{{ current_controller.controller }}/{{ current_controller.current_view }}/'+$(this).data('id-obj');
+	});
+});
+</script>
+
+{% endif %}

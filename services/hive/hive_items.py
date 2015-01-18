@@ -60,9 +60,18 @@ def hive_set_events(user, params={}):
 
     changed_ids = []
 
+    if id_channel and not user.has_right("scheduler_edit"):
+        return [[403, "Set events: access denied"]]
+
+    logging.info("{} executes set_event method".format(user))
+
     deleted = created = updated = 0
     for id_event in params.get("delete", []):
         event = Event(id_event, db=db)
+
+        if not user.has_right("scheduler_edit", event["id_channel"]):
+            return [[403, "Delete events: access denied"]]            
+
         if not event:
             logging.warning("Unable to delete non existent event ID {}".format(id_event))
             continue
@@ -76,6 +85,10 @@ def hive_set_events(user, params={}):
     for event_data in params.get("events", []):
         id_event = event_data.get("id_object", False)
         id_channel = id_channel or event_data.get("id_channel", False)
+
+        if not user.has_right("scheduler_edit", id_channel):
+            return [[403, "Delete events: access denied"]]    
+
         pbin = False
         db.query("SELECT id_object FROM nx_events WHERE id_channel = %s and start = %s", [event_data.get("id_channel", id_channel), event_data["start"]])
         try:
@@ -298,12 +311,18 @@ def hive_bin_order(user, params):
     if id_channel:
         append_cond = config["playout_channels"][id_channel].get("rundown_accepts", "True")
 
+        if not user.has_right("rundown_edit", event["id_channel"]):
+            yield [403, "bin_order: access denied"]
+            return
+
     if not (id_bin and order):
         yield 400, "Bad request"
         return
 
     affected_bins = [id_bin]
     pos = 1
+
+    logging.info("{} executes bin_order method".format(user))
 
     db = DB()
     rlen = float(len(order))
@@ -360,6 +379,7 @@ def hive_del_items(user, params):
     items = params.get("items",[])
     sender = params.get("sender", False)
     affected_bins = []
+    logging.info("{} executes del_items method".format(user))
     db = DB()
     for id_item in items:
         item = Item(id_item, db=db)
