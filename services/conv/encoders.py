@@ -107,9 +107,13 @@ class Ffmpeg(Encoder):
         for p in self.task:
             if p.tag == "param":
                 value = eval(p.text) if p.text else ""
-                self.ffparams.append("-{}".format(p.attrib["name"]))
-                if value:
-                    self.ffparams.append(value)
+                if p.attrib["name"] == "ss":
+                    self.ffparams.insert(2, "-ss")
+                    self.ffparams.insert(3, value)
+                else:
+                    self.ffparams.append("-{}".format(p.attrib["name"]))
+                    if value:
+                        self.ffparams.append(value)
 
             elif p.tag == "pre":
                 exec(p.text)
