@@ -106,7 +106,7 @@ class Ffmpeg(Encoder):
 
         for p in self.task:
             if p.tag == "param":
-                value = eval(p.text) if p.text else ""
+                value = str(eval(p.text)) if p.text else ""
                 if p.attrib["name"] == "ss":
                     self.ffparams.insert(2, "-ss")
                     self.ffparams.insert(3, value)
@@ -120,7 +120,7 @@ class Ffmpeg(Encoder):
 
             elif p.tag == "paramset" and eval(p.attrib["condition"]):
                 for pp in p.findall("param"):
-                    value = eval(pp.text) if pp.text else ""
+                    value = str(eval(pp.text)) if pp.text else ""
                     self.ffparams.append("-{}".format(pp.attrib["name"]))
                     if value:
                         self.ffparams.append(value)
