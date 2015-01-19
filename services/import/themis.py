@@ -77,6 +77,7 @@ class BaseProcessor():
         self.buff = ""    
     
     def start(self, **kwargs):
+        print (" ".join(self.args))
         self.proc = subprocess.Popen(
             self.args, 
             stdin=kwargs.get("stdin", None), 
@@ -369,6 +370,13 @@ class Themis():
                         cmd.append("-filter:a")
                         cmd.append("volume={}dB".format(gain))
 
+
+                cmd.append("-map_metadata")
+                cmd.append("-1")
+
+                cmd.append("-video_track_timescale")
+                cmd.append(profile_fps)
+
                 cmd.append(output)
 
                 self.set_status("Encoding video (straight from {} to {})".format(source_fps, profile_fps), "info")
@@ -470,6 +478,13 @@ class Themis():
                 cmd2.append("-b:v")
                 cmd2.append(profile["video_bitrate"])
 
+
+                cmd2.append("-map_metadata")
+                cmd2.append("-1")
+
+                cmd2.append("-video_track_timescale")
+                cmd2.append(profile_fps)
+
                 cmd2.append(output)
 
 
@@ -517,6 +532,12 @@ class Themis():
             if profile.get("audio_bitrate", False):
                 cmd.append("-b:a")
                 cmd.append(profile["audio_bitrate"])
+
+            cmd.append("-map_metadata")
+            cmd.append("-1")
+
+            cmd.append("-video_track_timescale")
+            cmd.append(profile_fps)
 
             cmd.append(output)
 
