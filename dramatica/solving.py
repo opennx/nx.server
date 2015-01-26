@@ -146,7 +146,8 @@ class DramaticaSolver(object):
             log("VETO:")
             for id_asset in veto:
                 asset = self.cache[id_asset]
-                log (" - ", asset, asset["dramatica/veto_reason"] or "Used in block")
+                if asset:
+                    log (" - ", asset, asset["dramatica/veto_reason"] or "Used in block")
 
         conds = list(args)
         conds.append("id_object NOT IN ({})".format(", ".join([str(i) for i in veto])))
