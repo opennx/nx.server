@@ -383,7 +383,7 @@ def hive_del_items(user, params):
     db = DB()
     for id_item in items:
         item = Item(id_item, db=db)
-        if not item["id_bin"] in affected_bins: 
+        if not item["id_bin"] in affected_bins and item["id_bin"]: 
                 affected_bins.append(item["id_bin"])
         item.delete()
     bin_refresh(affected_bins, sender, db)
