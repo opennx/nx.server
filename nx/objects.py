@@ -359,7 +359,7 @@ def bin_refresh(bins, sender=False, db=False):
         db = DB()
     for id_bin in bins:
         cache.delete("b{}".format(id_bin))
-    bq = ", ".join([str(b) for b in bins])
+    bq = ", ".join([str(b) for b in bins if b])
     changed_events = []
     db.query("SELECT e.id_object, e.id_channel, e.start FROM nx_events as e, nx_channels as c WHERE c.channel_type = 0 AND c.id_channel = e.id_channel AND id_magic in ({})".format(bq))
     for id_event, id_channel, start_time in db.fetchall():
