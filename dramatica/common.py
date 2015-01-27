@@ -1,5 +1,5 @@
 import sqlite3
-
+import sys
 
 def io_dur(dur, mki, mko):
     if not dur: return 0
@@ -122,6 +122,7 @@ class DramaticaCache(object):
             self.cur.execute(*args)
         except:
             print(args)
+            print(sys.exc_info())
             raise Exception
         if kwargs.get("one_column", False):
             return [i[0] for i in self.cur.fetchall()]
