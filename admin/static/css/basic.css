@@ -28,7 +28,10 @@ body {
     margin-bottom : 15px;
 }
 
-
+#nx-messages {
+	max-width: 700px;
+	margin: 0 auto;
+}
 
 /* Login */
 .login-box {
