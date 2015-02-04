@@ -75,6 +75,7 @@ class Service(ServicePrototype):
             # It sucks, but mtime only condition is.... errr doesn't work always
             
             if fsize == asset["file/size"] and asset["status"] != RESET:
+                logging.debug("{} file mtime has been changed. Updating.".format(asset))
                 asset["file/mtime"] = fmtime
                 asset.save(set_mtime=False, notify=False)
             else:
