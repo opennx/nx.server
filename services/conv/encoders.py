@@ -193,7 +193,7 @@ class Ffmpeg(Encoder):
 
     def finalize(self):
         new = None
-        asset = self.asset
+        asset = Asset(self.asset.id) # Reload asset (possibly changed during encoding)
 
         if self.task.find("target").text == "new":    
             id_storage = self.id_storage
