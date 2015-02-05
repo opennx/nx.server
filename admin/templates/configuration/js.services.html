@@ -1,4 +1,4 @@
-{% if current_controller.current_item > 0 %}
+{% if current_controller.current_item > -1 %}
 
 <script src="/static/tools/codemirror/lib/codemirror.js"></script>
 <script src="/static/tools/codemirror/addon/edit/matchbrackets.js"></script>
@@ -35,10 +35,57 @@ $( function(){
 		gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"], 
 		theme: 'base16-dark'
 	});
-	 
+
+	// SAVE REDIRECT
+	var postSave = function(r,d){
+		nx.utils.logDev(r,d);
+		if(d.close === true){
+			document.location.href = '/{{ current_controller.controller }}/{{ current_controller.current_view }}';
+		}
+	}	 
+
+	// SAVE REQUEST
 	$('.btn-save, .btn-save-and-close').on('click', function(e){
 		e.preventDefault();
+
+		var settings = code_editor.getValue();
+
+		var data = {
+			query_table: 'nx_services', 
+			query_key: 'id_service', 
+			query_val: {{ current_controller.current_item }}, 
+			close: $(this).hasClass('btn-save-and-close') ? true: false,
+			query_data: JSON.stringify({
+				agent: $('#title').val(),
+				title: $('#title').val(),
+				host: $('#host').val(), 
+				autostart: $('#autostart').prop('checked')===true?1:0,
+				loop_delay: parseInt($('#loop_delay').val()),
+				{% if current_controller.current_item == 0 %}
+				state: 0,
+				pid: 0,
+				last_seen: 0,
+				{% endif %}
+				settings: settings
+			})
+		}
+
+		//console.log(data);
+        nx.com.post({
+            url: '/{{ current_controller.controller }}/api',
+            data: data,
+            element: $('#nx-messages'),
+            notifyDone: true,
+            notifyFail: true,
+            notifyError: true,
+            postDone: postSave,
+            postFail: nx.utils.logDev,
+            postError: nx.utils.logError,
+        });
+
 	});
+
+
 });
 </script>
 
@@ -50,6 +97,54 @@ $( function(){
 		e.preventDefault();
 		document.location.href = '/{{ current_controller.controller }}/{{ current_controller.current_view }}/'+$(this).data('id-obj');
 	});
+
+
+	// REMOVE REDIRECT
+	var removeDone = function(r,d){
+		
+		if(r.status === true){
+			document.location.href = '/{{ current_controller.controller }}/{{ current_controller.current_view }}';
+		}
+	}
+
+
+	// REMOVE REQUEST
+	$('button[data-action="remove"]').on('click', function(e){
+		e.preventDefault();
+
+		$('.remove-target').html( 'ID: '+$(this).data('id-obj')+' / '+$(this).data('title') );
+		$('.modal').modal();
+		
+		var id_obj = $(this).data('id-obj');
+
+		$('.modal-confirm').on('click', function(e){
+
+			e.preventDefault();
+
+			var data = {
+				remove_confirm: 1, 
+				query_table: 'nx_services', 
+				query_key: 'id_service', 
+				query_val: id_obj
+			}
+
+			//console.log(data);
+	        nx.com.post({
+	            url: '/{{ current_controller.controller }}/api',
+	            data: data,
+	            element: $('#nx-messages'),
+	            notifyDone: true,
+	            notifyFail: true,
+	            notifyError: true,
+	            postDone: removeDone,
+	            postFail: nx.utils.logDev,
+	            postError: nx.utils.logError,
+	        });
+	
+		});
+    });    
+
+
 });
 </script>
 

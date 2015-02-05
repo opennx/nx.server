@@ -48,8 +48,51 @@ def _jinja2_filter_datetime(date, format='%Y-%m-%d %H:%M:%S'):
 	return str(time.strftime(format, time.localtime(date)))
 
 @app.template_filter('date')
-def _jinja2_filter_datetime(date, format='%Y-%m-%d'):
+def _jinja2_filter_date(date, format='%Y-%m-%d'):
 	return str(time.strftime(format, time.localtime(date)))
+
+@app.template_filter('alert_icon')
+def _jinja2_filter_alert_icon(str):
+	
+	icon = '<span class="glyphicon glyphicon-ok-sign"></span>'
+	str = str.lower()
+
+	if str == 'info':
+		icon = '<span class="glyphicon glyphicon-info-sign"></span>'
+
+	elif str == 'success':
+		icon = '<span class="glyphicon glyphicon-ok-sign"></span>'
+
+	elif str == 'warning':
+		icon = '<span class="glyphicon glyphicon-warning-sign"></span>'
+
+	elif str == 'danger':
+		icon = '<span class="glyphicon glyphicon-ban-circle"></span>'
+
+	return icon
+
+@app.template_filter('bool_icon')
+def _jinja2_filter_bool_icon(b):
+	
+	icon = '<span class="text-primary glyphicon glyphicon-ok-sign"></span><span class="sr-only">1</span>'
+	
+	if b == 'false':
+		icon = '<span class="text-warning glyphicon glyphicon-ban-circle"></span><span class="sr-only">0</span>'
+		
+	return icon
+
+@app.template_filter('starts_with')
+def _jinja2_filter_starts_with(str, prefix):
+	res = False
+	if str.startswith(prefix):
+		res = True
+
+	return res
+
+@app.template_filter('ACL')
+def _jinja2_filter_ACL(token):
+	res = False
+	return acl_can(token, current_user)
 
 
 ########################################################################
@@ -57,16 +100,15 @@ def _jinja2_filter_datetime(date, format='%Y-%m-%d'):
 
 @app.route("/")
 def index():
-	current_controller = set_current_controller({'title': 'Dashboard', 'controller': 'dashboard' })
+	current_controller = set_current_controller({'title': 'Dashboard', 'controller': 'dashboard', 'current_user': current_user })
 	return render_template("index.html", current_controller=current_controller)
 
 
 @app.route("/browser")
 def browser():
 	assets = view_browser()
-	current_controller = set_current_controller({'title': 'Browser', 'controller': 'browser' })
+	current_controller = set_current_controller({'title': 'Browser', 'controller': 'browser', 'current_user': current_user })
 	return render_template("browser.html", assets=assets, current_controller=current_controller)
-
 
 
 @app.route("/jobs", methods=['GET', 'POST'])
@@ -75,29 +117,38 @@ def browser():
 @app.route("/jobs/<view>/search/<search>", methods=['GET'])
 def jobs(view="active", search=""):
 
-	if request.method == "POST" and "id_job" and "action" in request.form:
-		id_job = int(request.form.get("id_job"))
-		action = int(request.form.get("action"))
-		action_result = job_action(id_job, action, id_user=current_user.id)
-		flash("Job {} restarted".format(id_job), "info")
-		return json.dumps(action_result)
+	acl = acl_can('can/job_control', current_user)
 
+	jobs = []
+	current_view = ''
+	template = 'access.denied.html'
 
-	if view == "failed":
-		current_view = "failed"
-	elif view == "completed":
-		current_view = "completed"
-	elif view == "json":
-		current_view = "json"
-	else:
-		current_view = "active"
+	if acl['status'] == True:
 
-	jobs = view_jobs(current_view, search)
-	if view=="json":
-		return jobs
+		template = 'job_monitor.html'
 
-	current_controller = set_current_controller({'title': 'Jobs', 'current_view': current_view, 'controller': 'jobs', 'search': search })
-	return render_template("job_monitor.html", jobs=jobs, current_controller=current_controller)
+		if request.method == "POST" and "id_job" and "action" in request.form:
+			id_job = int(request.form.get("id_job"))
+			action = int(request.form.get("action"))
+			action_result = job_action(id_job, action, id_user=current_user.id)
+			flash("Job {} restarted".format(id_job), "info")
+			return json.dumps(action_result)
+
+		if view == "failed":
+			current_view = "failed"
+		elif view == "completed":
+			current_view = "completed"
+		elif view == "json":
+			current_view = "json"
+		else:
+			current_view = "active"
+
+		jobs = view_jobs(current_view, search)
+		if view=="json":
+			return jobs
+
+	current_controller = set_current_controller({'title': 'Jobs', 'current_view': current_view, 'controller': 'jobs', 'search': search, 'current_user': current_user, 'acl': acl })
+	return render_template(template, jobs=jobs, current_controller=current_controller)
 
 
 
@@ -106,128 +157,139 @@ def jobs(view="active", search=""):
 @app.route("/services/<view>",methods=['GET', 'POST'])
 def services(view="default"):
 
-	if request.method == "POST" and "id_service" in request.form and "action" in request.form:
-		id_service = int(request.form.get("id_service"))
-		action = request.form.get("action")
-		service_action(id_service, action)
+	acl = acl_can('can/service_control', current_user)
+	template = 'access.denied.html'
+	services = []
 
-	if request.method == "POST" and "id_service" in request.form and "autostart" in request.form:
-		id_service = int(request.form.get("id_service"))
-		autostart = int(request.form.get("autostart"))
-		service_autostart(id_service, autostart)
+	if acl['status'] == True:
 
-	services = view_services(view)
+		template = 'services.html'
 
-	if view=="json":
-		return services
+		if request.method == "POST" and "id_service" in request.form and "action" in request.form:
+			id_service = int(request.form.get("id_service"))
+			action = request.form.get("action")
+			service_action(id_service, action)
 
-	current_controller = set_current_controller({'title': 'Services', 'controller': 'services' })
-	return render_template("services.html", services=services, current_controller=current_controller)
+		if request.method == "POST" and "id_service" in request.form and "autostart" in request.form:
+			id_service = int(request.form.get("id_service"))
+			autostart = int(request.form.get("autostart"))
+			service_autostart(id_service, autostart)
 
+		services = view_services(view)
 
-
-
-
-@app.route("/users",methods=['GET', 'POST'])
-@app.route("/users/<view>",methods=['GET', 'POST'])
-def users(view="default"):
-
-	if view == 'api':
-		if request.method == "POST" and "id_user" and "login" and "password" in request.form:
-			user_data = {}
-			user_data["id_user"] = int(request.form.get("id_user"))
-			user_data["login"] = request.form.get("login")
-			user_data["password"] = request.form.get("password")
-
-			return json.dumps(save_user(user_data))
-
-		if request.method == "POST" and "get_user" in request.form:
-			id_user = int(request.form.get("get_user"))
-
-			return json.dumps(get_user_data(id_user))
-
-		if request.method == "POST" and "destroy_session" and "destroy_host" and "destroy_id_user" in request.form:
-			id_user = int(request.form.get("destroy_id_user"))
-			key = str(request.form.get("destroy_session"))
-			host = str(request.form.get("destroy_host"))
-
-			return json.dumps(destroy_session(id_user, key, host))
-
-	users = view_users()
-
-	current_controller = set_current_controller({'title': 'Users', 'controller': 'users' })
-	return render_template("users.html", users=users, current_controller=current_controller)
+		if view=="json":
+			return services
+			
+	current_controller = set_current_controller({'title': 'Services', 'controller': 'services', 'current_user': current_user, 'acl': acl })
+	return render_template(template, services=services, current_controller=current_controller)
 
 
 
 @app.route("/configuration",methods=['GET', 'POST'])
 @app.route("/configuration/<view>",methods=['GET', 'POST'])
 @app.route("/configuration/<view>/<citem>",methods=['GET', 'POST'])
-def settings(view="nx-settings", citem=0):
+def settings(view="nx-settings", citem=-1):
 
 	item = int(citem)
+	data = {'status':False,'reason':'Total fail'}
+	acl = acl_can('is_admin', current_user)
+	template = 'access.denied.html'
 
 	if len(view)>1:
 		current_view = view
 
+	current_controller = set_current_controller({'title': 'Configuration', 'controller': 'configuration', 'current_view': current_view, 'current_item': item, 'current_user': current_user, 'acl': acl })
 
-	# API actions
-	if current_view == 'api' and request.method == "POST" and "configuration" in request.form:
+	if acl['status'] == True:
 
-		current_configuration = request.form.get("configuration", "error")
+		template = 'configuration.html'
 
-		if current_configuration == "nx-settings":
+		# API actions
+		if current_view == 'api': 
 
-			a=1
-			# do
+			data = {'status':False,'reason':'Api request bad','post': request.form }
+	 		
+			if request.method == "POST" and "destroy_session" and "destroy_host" and "destroy_id_user" in request.form:
+				id_user = int(request.form.get("destroy_id_user"))
+				key = str(request.form.get("destroy_session"))
+				host = str(request.form.get("destroy_host"))
 
-		elif current_configuration == "system-tools":
+				data = destroy_session(id_user, key, host)
 
-			if request.method == "POST" and "firefly_kill" in request.form:
-				res = firefly_kill()
-				return json.dumps(res)
+			if request.method == "POST" and "query_table" in request.form and request.form.get('query_table') == 'nx_users' and "query_data" in request.form:
+				data = save_user_data(request.form.get('query_val'), request.form.get('query_data'))
 
-		elif current_configuration == "channels":
+			if request.method == "POST" and "query_table" in request.form and request.form.get('query_table') == 'nx_users' and "disable_confirm" in request.form:
+				data = save_user_state(request.form.get('query_val'), request.form.get('disable_confirm'))
 
-		   data = save_config_data('nx_channels', 'id_channel', request.form.get("id_channel"), request.form.get("query_data"))
+			if request.method == "POST" and "query_table" in request.form and "query_key" in request.form and "query_val" in request.form and "remove_confirm" in request.form:
+				data = remove_config_data(request.form.get("query_table"), request.form.get("query_key"), request.form.get("query_val"))
 
+			if request.method == "POST" and "query_table" in request.form and request.form.get('query_table') == 'nx_settings' and "query_data" in request.form:
+				data = save_nx_settins(request.form.get('query_data'))
+
+			if request.method == "POST" and "query_table" in request.form and "query_key" in request.form and "query_val" in request.form and "query_data" in request.form:
+				data = save_config_data(request.form.get("query_table"), request.form.get("query_key"), request.form.get("query_val"), request.form.get('query_data'))
+
+			
+			return json.dumps(data)	
+
+		# STD view
 		else:
-		   data = {}
 
-		return json.dumps(data)
+			current_controller = set_current_controller({'title': 'Configuration', 'controller': 'configuration', 'current_view': current_view, 'current_item': item, 'current_user': current_user })
 
-	 # STD view
-	else:
+			if current_view == "nx-settings":
+				
 
-		if current_view == "nx-settings":
-			data = load_config_data('nx_settings', 'key')
-		elif current_view == "system-tools":
-		   data = {}
-		elif current_view == "storages":
-			if item == 0:
-				data = load_config_data('nx_storages', 'title')
-			else:
-				data = load_config_item_data('nx_storages', 'id_storage', item)
-		elif current_view == "services":
-			if item == 0:
-				data = load_config_data('nx_services', 'title')
-			else:
-				data = load_config_item_data('nx_services', 'id_service', item)
-		elif current_view == "views":
-			if item == 0:
-				data = load_config_data('nx_views', 'title')
-			else:
-				data = load_config_item_data('nx_views', 'id_view', item)
-		elif current_view == "channels":
-			if item == 0:
-				data = load_config_data('nx_channels', 'title')
-			else:
-				data = load_config_item_data('nx_channels', 'id_channel', item)
-		else:
-		   data = {}
 
-	current_controller = set_current_controller({'title': 'Configuration', 'controller': 'configuration', 'current_view': current_view, 'current_item': item })
-	return render_template("configuration.html", data=data, current_controller=current_controller)
+				if request.method == "POST" and "firefly_kill" in request.form:
+					res = firefly_kill()
+					return json.dumps(res)
+				else:
+					
+					flash("Double check input, settings validity is critical and this action can not be undone.", "warning")
+
+					
+				data = load_config_data('nx_settings', 'key')
+
+			elif current_view == "system-tools":
+			   data = {}
+			elif current_view == "storages":
+				if item < 0:
+					data = load_config_data('nx_storages', 'title')
+				else:
+					data = load_config_item_data('nx_storages', 'id_storage', item)
+			elif current_view == "services":
+				if item < 0:
+					data = load_config_data('nx_services', 'title')
+				else:
+					data = load_config_item_data('nx_services', 'id_service', item)
+			elif current_view == "views":
+				if item < 0:
+					data = load_config_data('nx_views', 'title')
+				else:
+					current_controller['user_data'] = view_users()
+					data = load_config_item_data('nx_views', 'id_view', item)
+			elif current_view == "channels":
+				if item < 0:
+					data = load_config_data('nx_channels', 'title')
+				else:
+					data = load_config_item_data('nx_channels', 'id_channel', item)
+			elif current_view == "actions":
+				if item < 0:
+					data = load_config_data('nx_actions', 'title')
+				else:
+					data = load_config_item_data('nx_actions', 'id_action', item)
+			elif current_view == "users":
+				if item < 0:
+					data = view_users()
+				else:
+					data = get_user_data(item)
+			else:
+			   data = {}
+
+	return render_template(template, data=data, current_controller=current_controller)
 
 
 
@@ -235,7 +297,7 @@ def settings(view="nx-settings", citem=0):
 
 @app.route("/login", methods=["POST"])
 def login():
-	current_controller = set_current_controller({'title': 'Login', 'controller': 'login' })
+	current_controller = set_current_controller({'title': 'Login', 'controller': 'login', 'current_user': current_user })
 	if request.method == "POST" and "username" in request.form:
 		_user = auth_helper(request.form.get("username"), request.form.get("password"))
 		if _user.is_authenticated():
@@ -254,7 +316,7 @@ def login():
 def logout():
 	logout_user()
 	flash("Logged out.", "info")
-	current_controller = set_current_controller({'title': 'Logout', 'controller': 'logout' })
+	current_controller = set_current_controller({'title': 'Logout', 'controller': 'logout', 'current_user': current_user })
 	return render_template("index.html", current_controller=current_controller)
 
 
@@ -264,34 +326,50 @@ def logout():
 @app.route("/reports/<view>",methods=['GET', 'POST'])
 def reports(view=False):
 
-	if view == False:
-		plugins = AdmPlugins('reports')
-		plugins.get_plugins()
-		ctrl = ''
-		template = "reports.html"
-		env = plugins.env
-	else:
-		plugin = AdmPlugins('reports')
-		plugin.env['get'] = request.args
-		plugin.env['post'] = request.form
+	acl = acl_can('can/export', current_user)
+	template = 'access.denied.html'
+	ctrl = ''
+	env = {}
 
-		################################
-		# CUSTOM LOADER
-		plugin_loader = jinja2.ChoiceLoader([
-			app.jinja_loader,
-			jinja2.FileSystemLoader(plugin.env['plugin_path']),
-		])
-		app.jinja_loader = plugin_loader
+	if acl['status'] == True:
 
-		plugin.run(view)
-		# ctrl = '/'+view
-		ctrl = ''
+		if view == False:
+			plugins = AdmPlugins('reports')
+			plugins.get_plugins()
+			ctrl = ''
+			template = "reports.html"
+			env = plugins.env
+		else:
+			
+			plugin = AdmPlugins('reports')
+			plugin.env['get'] = request.args
+			plugin.env['post'] = request.form
 
-		env = plugin.env
+			################################
+			# CUSTOM LOADER
+			plugin_loader = jinja2.ChoiceLoader([
+				app.jinja_loader,
+				jinja2.FileSystemLoader(plugin.env['plugin_path']),
+			])
+			app.jinja_loader = plugin_loader
 
-		template = plugin.env['plugin']['data']['template']
+			try:
 
-	current_controller = set_current_controller({'title': 'Reports', 'controller': 'reports'+ctrl })
+				plugin.run(view)
+				# ctrl = '/'+view
+				ctrl = ''
+
+				env = plugin.env
+
+				template = plugin.env['plugin']['data']['template']
+
+			except Exception, e:
+
+				template = 'plugin.error.html'
+				plugin.env['errors']['plugin_error'] = format(e)
+
+
+	current_controller = set_current_controller({'title': 'Reports', 'controller': 'reports'+ctrl, 'current_user': current_user, 'acl': acl })
 	return render_template(template, view=view, env=env, current_controller=current_controller)
 
 

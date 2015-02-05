@@ -1,8 +1,13 @@
+{% if current_controller.current_item > -1 %}
+
+{% set subtitle = 'New' %}
 {% if current_controller.current_item > 0 %}
+    {% set subtitle = data.data[1] %}
+{% endif %}
 
 <ol class="breadcrumb">
   <li><a href="/{{ current_controller.controller }}/{{ current_controller.current_view }}">Views</a></li>
-  <li class="active">{{ data.data[1] }}</li>
+  <li class="active">{{ subtitle }}</li>
 </ol>
 
 <form>
@@ -13,12 +18,32 @@
         <input type="text" class="form-control" id="title" placeholder="Enter title" value="{{ data.data[1] }}" required>
     </div>
     <div class="form-group">
+        <label for="position">Owner</label>
+        <select class="select form-control" id="owner">
+            <option value="0">Everybody</option>
+            
+        {% for user in current_controller.user_data.users %}
+            
+            {% set selected = ''  %}
+
+            {% if data.data[2] == user.id %}
+                {% set selected = ' selected' %}
+            {% endif %}    
+
+
+            <option value="{{user.id}}" {{ selected }}>{{user.login}}</option>
+        {% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
         <label for="position">Position</label>
         <input type="text" class="form-control" id="position" placeholder="Enter position" value="{{ data.data[4] }}" required>
     </div>
     <div class="form-group">
         <button class="btn btn-primary btn-save"><span class="glyphicon glyphicon-ok"></span> Save</button>
-        <button class="btn btn-success btn-save-and-close"><span class="glyphicon glyphicon-saved"></span> Save and close</button>
+        {% if current_controller.current_item > 0 %}
+            <button class="btn btn-success btn-save-and-close"><span class="glyphicon glyphicon-saved"></span> Save and close</button>
+        {% endif %}
     </div>
 </div>
 <div class="col-lg-9">
@@ -40,8 +65,8 @@
                 <th style='width:50px;'>#</th>
                 <th>Title</th>
                 <th>Position</th>
-                <th style='width:90px;'>
-                    
+                <th style='width:170px;'>
+                    <button class="btn btn-default btn-sm btn-edit btn-success" data-id-obj="0" data-action="edit"><span class="glyphicon glyphicon-plus"></span> New</button>  
                 </th>
             </tr>
         </thead>
@@ -53,7 +78,8 @@
                 <td>{{ s[1] }}</td>
                 <td>{{ s[4] }}</td>
                 <td>
-                    <button class="btn btn-default btn-sm btn-edit btn-primary" data-id-obj="{{ s[0] }}" data-action="edit"><span class="glyphicon glyphicon-edit"></span> Edit</button>    
+                    <button class="btn btn-default btn-sm btn-edit btn-primary" data-id-obj="{{ s[0] }}" data-action="edit"><span class="glyphicon glyphicon-edit"></span> Edit</button>
+                    <button class="btn btn-default btn-sm btn-edit btn-danger" data-id-obj="{{ s[0] }}" data-title="{{ s[1] }}" data-action="remove"><span class="glyphicon glyphicon-trash"></span> Remove</button>    
                 </td>
 
             </tr>
@@ -61,5 +87,26 @@
         </tbody>
     </table>
 </div>
+
+
+<div class="modal fade">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h3 class="modal-title">Confirm removal</h3>
+      </div>
+      <div class="modal-body">
+        <p>Confirm removal of item <strong class="remove-target"></strong>.</p>
+        <p class="alert alert-danger"><span class="glyphicon glyphicon-warning-sign"></span> This operation can not be undone!</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary modal-cancel" data-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger modal-confirm">Confirm</button>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+
 
 {% endif %}

@@ -14,10 +14,16 @@
 
 <script type="text/javascript">
 $( function(){
-	
-	// INIT WYSIWYG
 	var code_editor = CodeMirror.fromTextArea(document.getElementById("config"), {
-		mode: "text/xml",
+		mode: "application/xml",
+		/*
+		mode: {
+			name: "python",
+			version: 2,
+			singleLineStringErrors: false
+        },
+        */
+        alignCDATA : true, 
 		styleActiveLine: true,
 		matchBrackets: true,
 		lineNumbers: true,
@@ -30,6 +36,7 @@ $( function(){
 		theme: 'base16-dark'
 	});
 	 
+
 	// SAVE REDIRECT
 	var postSave = function(r,d){
 		nx.utils.logDev(r,d);
@@ -45,14 +52,12 @@ $( function(){
 		var config = code_editor.getValue();
 
 		var data = {
-			query_table: 'nx_views', 
-			query_key: 'id_view', 
+			query_table: 'nx_actions', 
+			query_key: 'id_action', 
 			query_val: {{ current_controller.current_item }}, 
 			close: $(this).hasClass('btn-save-and-close') ? true: false,
 			query_data: JSON.stringify({
 				title: $('#title').val(),
-				owner: parseInt($('#owner').val()), 
-				position: parseInt($('#position').val()),
 				config: config
 			})
 		}
@@ -72,8 +77,6 @@ $( function(){
 
 	});
 
-
-
 });
 </script>
 
@@ -85,7 +88,6 @@ $( function(){
 		e.preventDefault();
 		document.location.href = '/{{ current_controller.controller }}/{{ current_controller.current_view }}/'+$(this).data('id-obj');
 	});
-
 
 	// REMOVE REDIRECT
 	var removeDone = function(r,d){
@@ -111,8 +113,8 @@ $( function(){
 
 			var data = {
 				remove_confirm: 1, 
-				query_table: 'nx_views', 
-				query_key: 'id_view', 
+				query_table: 'nx_actions', 
+				query_key: 'id_action', 
 				query_val: id_obj
 			}
 

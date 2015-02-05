@@ -156,7 +156,7 @@ nx.utils = {
 				_icon = '<span class="glyphicon glyphicon-warning-sign"></span>';
 				break;
 			case 'danger':
-				_icon = '<span class="glyphicon glyphicon-ban-sign"></span>';
+				_icon = '<span class="glyphiconban-ban-circle"></span>';
 				break;
 			case 'success':
 			default:

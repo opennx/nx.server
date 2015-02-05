@@ -1,11 +1,44 @@
-{% if current_controller.current_item > 0 %}
+{% if current_controller.current_item > -1 %}
 
 <script type="text/javascript">
 $( function(){
 
+	var postSave = function(r,d){
+		nx.utils.logDev(r,d);
+		if(d.close === true){
+			document.location.href = '/{{ current_controller.controller }}/{{ current_controller.current_view }}';
+		}
+	}
+
 	$('.btn-save, .btn-save-and-close').on('click', function(e){
 		e.preventDefault();
 
+		var data = {
+			query_table: 'nx_storages', 
+			query_key: 'id_storage', 
+			query_val: {{ current_controller.current_item }}, 
+			close: $(this).hasClass('btn-save-and-close') ? true: false,
+			query_data: JSON.stringify({
+				title: $('#title').val(),
+				protocol: 1,
+				path: $('#path').val(),
+				login: $('#l').val(),
+				password: $('#p').val()
+			})
+		}
+
+		//console.log(data);
+        nx.com.post({
+            url: '/{{ current_controller.controller }}/api',
+            data: data,
+            element: $('#nx-messages'),
+            notifyDone: true,
+            notifyFail: true,
+            notifyError: true,
+            postDone: postSave,
+            postFail: nx.utils.logDev,
+            postError: nx.utils.logError,
+        });
 
 	});
 

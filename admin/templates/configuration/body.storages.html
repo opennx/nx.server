@@ -1,9 +1,14 @@
 
+{% if current_controller.current_item > -1 %}
+
+{% set subtitle = 'New' %}
 {% if current_controller.current_item > 0 %}
+    {% set subtitle = data.data[1] %}
+{% endif %}
 
 <ol class="breadcrumb">
   <li><a href="/{{ current_controller.controller }}/{{ current_controller.current_view }}">Storages</a></li>
-  <li class="active">{{ data.data[1] }}</li>
+  <li class="active">{{ subtitle }}</li>
 </ol>
 
 <div class="col-lg-4 col-md-6 col-sm-8 col-xs-12 col-lg-offset-4 col-md-offset-3 col-sm-offset-2">
@@ -18,15 +23,17 @@
     </div>
     <div class="form-group">
         <label for="login">Login</label>
-        <input type="text" class="form-control" id="login" placeholder="Enter login" value="{{ data.data[4] }}">
+        <input type="text" class="form-control" id="l" placeholder="Login" value="{{ data.data[4] }}">
     </div>
     <div class="form-group">
         <label for="password">Password</label>
-        <input type="text" class="form-control" id="password" placeholder="Password" value="{{ data.data[5] }}">
+        <input type="text" class="form-control" id="p" placeholder="Password" value="{{ data.data[5] }}">
     </div>
     <div class="form-group">
-        <button class="btn btn-primary btn-save">Save</button>
-        <button class="btn btn-success btn-save-and-close">Save and close</button>
+        <button class="btn btn-primary btn-save"><span class="glyphicon glyphicon-ok"></span> Save</button>
+        {% if current_controller.current_item > 0 %}
+            <button class="btn btn-success btn-save-and-close"><span class="glyphicon glyphicon-saved"></span> Save and close</button>
+        {% endif %}
     </div>
 </form>
 
@@ -40,7 +47,7 @@
                 <th>Title</th>
                 <th class="hidden-xs">Path</th>
                 <th style='width:90px;'>
-                    
+                    <button class="btn btn-default btn-sm btn-edit btn-success" data-id-obj="0" data-action="edit"><span class="glyphicon glyphicon-plus"></span> New</button> 
                 </th>
             </tr>
         </thead>

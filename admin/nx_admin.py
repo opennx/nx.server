@@ -155,10 +155,10 @@ def job_action(id_job, action, id_user=0):
 		db.query("UPDATE nx_jobs set id_service=0, progress=%s, retries=0, ctime=%s, stime=0, etime=0, message='Pending', id_user=%s WHERE id_job=%s", (action, time.time(), id_user, id_job))
 		db.commit()
 
-	except:
+	except Exception, e:
 
 		result['status'] = False
-		result['reason'] = 'Users not loaded, database error'
+		result['reason'] = 'Users not loaded, database error' + format(e)
 
 	return result
 
@@ -180,10 +180,10 @@ def view_users():
 			user = User(id_object, db=db)
 			result['users'].append(user)
 
-	except:
+	except Exception, e:
 
 		result['status'] = False
-		result['reason'] = 'Users not loaded, database error'
+		result['reason'] = 'Users not loaded, database error: '  + format(e)
 
 	return result
 
@@ -192,36 +192,49 @@ def get_user_data(id_user):
 
 	db = DB()
 
-	user = {}
-	_user = User(id_user, db=db)
-	user["meta"] = _user.meta
-
 	format='%Y-%m-%d %H:%M:%S'
 
-	try:
-		db.query("SELECT key, id_user, host, ctime, mtime FROM nx_sessions WHERE id_user = %s ORDER BY mtime", [id_user])
+	user = {'status': False, 'meta':{'no_meta':True}, 'reason': 'User not found'}
+	_user = User(id_user, db=db)
+	
+	if len(_user)>0:
+		user["meta"] = _user.meta
+		user["acl"] = {}
 
-		user["sessions"] = []
+		try:
+			db.query("SELECT key, id_user, host, ctime, mtime FROM nx_sessions WHERE id_user = %s ORDER BY mtime", [id_user])
 
-		for s in db.fetchall():
+			user["sessions"] = []
 
-			session = {}
+			for s in db.fetchall():
 
-			session["key"] = s[0]
-			session["id_user"] = s[1]
-			session["host"] = s[2]
-			session["ctime_human"] = str(time.strftime(format, time.localtime(s[3])))
-			session["mtime_human"] = str(time.strftime(format, time.localtime(s[4])))
+				session = {}
 
-			user["sessions"].append(session)
+				session["key"] = s[0]
+				session["id_user"] = s[1]
+				session["host"] = s[2]
+				session["ctime_human"] = str(time.strftime(format, time.localtime(s[3])))
+				session["mtime_human"] = str(time.strftime(format, time.localtime(s[4])))
+				session["ctime"] = s[3]
+				session["mtime"] = s[4]
 
-		user['status'] = True
-		user['reason'] = 'User loaded'
+				user["sessions"].append(session)
 
-	except:
+			
+			for m in permission_helper(): 	
+				
+				user["acl"][m] = ''
 
-		user['status'] = False
-		user['reason'] = 'User not found'
+				if m in user['meta']:
+					user["acl"][m] = json.dumps(user['meta'][m])
+
+			user['status'] = True
+			user['reason'] = 'User loaded'
+
+		except Exception, e:
+
+			user['status'] = False
+			user['reason'] = 'User not loaded, database error: ' + format(e)
 
 	return user
 
@@ -236,23 +249,93 @@ def destroy_session(id_user, key, host):
 	try:
 		db.query("DELETE FROM nx_sessions WHERE id_user = %s AND key LIKE %s AND host LIKE %s ", [id_user, key, host])
 		db.commit()
-	except:
+	except Exception, e:
 		result["status"] = False
-		result["reason"] = "Session destroy, query failed"
+		result["reason"] = "Session destroy, query failed: " + format(e)
 
 	return result
 
 
-
-def save_user(user_data):
+def save_user_data(id_user, query_data):
 
 	result = {'status': True, 'reason': 'User saved'}
 
-	user = User(user_data['id_user'])
-	user['login'] = user_data['login']
-	user.set_password(user_data['password'])
+	try:
 
-	user.save()
+		sql = json.loads(query_data)
+		user_test = user_exists(sql['login'], int(id_user))
+
+		result['user_test'] = user_test
+
+		if( user_test['status'] == False ):
+
+			user = User(int(id_user))
+			
+			for key in sql:
+				if key != 'password':
+					user[str(key)] = str(sql[key])
+				else:
+					user.set_password(sql['password'])
+
+			user.save()
+
+		else:
+			
+			result['status'] = False
+			result['reason'] = 'User '+sql['login']+' already exists'
+
+	except Exception, e:
+
+	 	result['status'] = False
+	 	result['reason'] = 'User not saved, database error: ' + format(e)
+
+	return result
+
+
+def save_user_state(id_user, is_disabled):
+
+	result = {'status': True, 'reason': 'User state saved'}
+
+	try:
+
+		user = User(int(id_user))
+		
+		user['is_disabled'] = is_disabled
+		user.save()
+
+	except Exception, e:
+
+	 	result['status'] = False
+	 	result['reason'] = 'User state not saved, database error: ' + format(e)
+
+	return result
+
+
+def user_exists(login, id_user):
+
+	db = DB()
+
+	result = {'status': False, 'reason': 'User not found'}
+
+	try:
+		if int(id_user) > 0:
+			sql_query = "SELECT login FROM nx_users WHERE login LIKE '"+db.sanit(login)+"' AND id_object != "+str(id_user)
+		else: 
+			sql_query = "SELECT login FROM nx_users WHERE login LIKE '"+db.sanit(login)+"'"
+
+		db.query(sql_query)
+		
+		us = db.fetchall()
+			
+		if len(us)>0:	
+			result['status'] = True
+			result['reason'] = 'User found'
+			
+	except Exception, e:
+
+		result['status'] = False
+		result['reason'] = 'User not found, database error: ' + format(e)
+
 	return result
 
 
@@ -260,11 +343,10 @@ def save_user(user_data):
 ## Config tools, loaders, savers, hackers and horses
 
 def save_config_data(query_table, query_key, query_val, query_data):
+	
 	db = DB()
 
-	result = {'data': {}, 'status': True, 'reason': 'Data loaded'}
-
-	result['data']['query_data'] = query_data
+	result = {'data': {}, 'status': True, 'reason': 'Data saved', 'origin': query_data, 'qr':False}
 
 	try:
 
@@ -272,25 +354,51 @@ def save_config_data(query_table, query_key, query_val, query_data):
 		vals = []
 		update = []
 
-		for key, val in json.loads(query_data).iteritems():
+		sql = json.loads(query_data)
+
+		for key in sql:
 			keys.append(str(key))
-			vals.append(str(val))
-			update.append( str(key)+" =  '"+str(val)+"'"  )
+			vals.append( db.sanit(str(sql[key])) )
+			update.append( str(key)+"='"+db.sanit(str(sql[key]))+"'"  )
 
-		if query_val == 0:
-			sql_query = "INSERT INTO ("+str(','.join(keys))+") VALUES ('"+str("','".join(vals))+"')"
+		if int(query_val) == 0:
+			sql_query = """INSERT INTO """+str(query_table)+""" ("""+str(','.join(keys))+""") VALUES ('"""+str("','".join(vals))+"""')"""
 		else:
-			sql_query = "UPDATE "+str(query_table)+" SET "+str(','.join(update))+" WHERE "+str(query_key)+" = '"+str(query_val)+"'"
-
-		# db.query(sql_query)
-		result['data']['query'] = sql_query
+			sql_query = """UPDATE """+str(query_table)+""" SET """+str(','.join(update))+""" WHERE """+str(query_key)+""" = """+str(query_val)+""" """
+		
+		db.query(sql_query)
+		db.commit()
+		
 	except Exception, e:
 
 		result['status'] = False
-		result['reason'] = 'Data not loaded, database error ' + format(e)
+		result['reason'] = 'Data not saved, error: ' + format(e)
 
 	return result
 
+
+def remove_config_data(query_table, query_key, query_val):
+	
+	db = DB()
+
+	result = {'status': False, 'reason': 'Data not removed, '+str(query_key)+' is invalid'}
+
+	try:
+
+		if int(query_val) > 0:
+			sql_query = "DELETE FROM "+str(query_table)+" WHERE "+str(query_key)+" = "+str(query_val)+""
+
+			db.query("{}".format(sql_query))
+			db.commit()
+			
+			result = {'status': True, 'reason': 'Data removed'}
+
+	except Exception, e:
+
+		result['status'] = False
+		result['reason'] = 'Data not removed, error: ' + format(e)
+
+	return result
 
 
 def load_config_data(query_table, query_order):
@@ -305,10 +413,10 @@ def load_config_data(query_table, query_order):
 		for item in db.fetchall():
 			result['data'].append(item)
 
-	except:
+	except Exception, e:
 
 		result['status'] = False
-		result['reason'] = 'Data not loaded, database error'
+		result['reason'] = 'Data not loaded, database error: ' + format(e)
 
 	return result
 
@@ -327,13 +435,147 @@ def load_config_item_data(query_table, column, id):
 		if len(res) == 1:
 			result['data'] = res[0]
 
-	except:
+	except Exception, e:
 
 		result['status'] = False
-		result['reason'] = 'Data not loaded, database error'
+		result['reason'] = 'Data not loaded, database error: ' + format(e)
 
 	return result
 
+
+def nx_setting_exists(key):
+
+	db = DB()
+
+	result = False
+
+	try:
+		db.query("SELECT * FROM nx_settings WHERE key = '"+key+"'")
+
+		res = db.fetchall()
+
+		if len(res) == 1:
+			result = True
+
+	except:
+
+		result = False
+		
+	return result
+
+
+
+def save_nx_settins(nx_settinx):
+
+	db = DB()
+
+	result = {'data': [], 'status': True, 'reason': 'Data saved', 'batch': {}}
+
+	sql = json.loads(nx_settinx)
+
+	for key in sql:
+		key = db.sanit(str(key))
+		val = db.sanit(str(sql[key]))
+
+		if nx_setting_exists(key) == False:
+			sql_query = "INSERT INTO nx_settings (key, value) VALUES ('"+key+"', '"+val+"')"
+		else:
+			
+			if len(val) == 0:
+				sql_query = "DELETE FROM nx_settings WHERE key = '"+key+"' "
+			else:	
+				sql_query = "UPDATE nx_settings SET value = '"+val+"' WHERE key = '"+key+"' "
+
+		result['batch'][key] = sql_query	
+
+		try:
+			
+			db.query(sql_query)
+			db.commit()
+
+		except Exception, e:
+
+			result['status'] = False
+			result['reason'] = 'Data not saved for key '+key+', database error: ' + format(e)
+
+	return result
+
+
+def acl_can(token, current_user):
+
+	id = current_user.get_id()
+	ia = current_user.is_admin()
+	
+	is_admin = False
+	
+	if ia == 'true': 
+		is_admin = True;
+
+	db = DB()
+
+
+	#debug = ' DEBUG: is_admin: '+ia+' is_admin_STR: '+str(ia)+' id: '+id
+	debug = ''
+
+	result = {'status': False, 'reason': 'ACL: you have no permission to see this page '+debug, token: False, 'current_user': current_user}
+
+	sql_query = "SELECT * FROM nx_meta WHERE tag LIKE '"+db.sanit(token)+"' AND object_type=4 AND id_object ="+id
+
+	try:
+
+		if token == 'noop':
+			result['status'] = True
+			result['reason'] = 'ACL: operation permitted on NOOP rule basis '+debug
+			result[token] = True
+
+
+		elif is_admin == True:
+			result['status'] = True
+			result['reason'] = 'ACL: operation permitted on admin rule basis '+debug
+			result[token] = True
+
+		elif is_admin == False:
+
+			db.query(sql_query)
+			res = db.fetchall()
+
+			if len(res)>0 and token != 'is_admin' and token != 'noop':
+
+				result[token] = json.loads(res[0][3])
+				result['status'] = True
+				result['reason'] = 'ACL: operation permitted'
+
+	except Exception, e:
+
+		result['status'] = False
+		result['reason'] = 'ACL: database error: '+sql_query+' ' + format(e)
+
+	return result
+
+def permission_helper():
+
+	ACL = [
+		# ASSSETS
+		"can/asset_create",
+		"can/asset_edit",
+		# SCHEDULE
+		"can/scheduler_view",
+		"can/scheduler_edit",
+		# RUNDOWN
+		"can/rundown_view",
+		"can/rundown_edit",
+		# MCR
+		"can/mcr",
+		"can/cg",
+		# SERVICES
+		"can/service_control",
+		# JOBS
+		"can/job_control",
+		# MARKETING/DATA EXPORT	
+		"can/export"
+	]
+
+	return ACL
 
 
 #########################################################################

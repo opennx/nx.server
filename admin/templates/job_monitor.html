@@ -1,5 +1,11 @@
 {% extends "base.html" %}
 {% block body %}
+
+
+
+{% set job_control = 'can/job_control'|ACL %}
+
+
 <div class="view_switcher">
     
 	<div class="col-lg-12">
@@ -33,28 +39,6 @@
 		  </li>	
 		</ul>
 
-<!--
-	<div class="col-md-offset-4 col-sm-offset-2 col-sm-8 col-xs-12 col-md-4">
-
-	    <div class="btn-group job_state pull-left">
-	      <button data-controller="/jobs/active{{ "/search/"+current_controller.search if current_controller.search|length>1 }}" class="btn {{ "active" if current_controller.current_view=="active" }} btn-default">Active</button>
-	      <button data-controller="/jobs/completed{{ "/search/"+current_controller.search if current_controller.search|length>1 }}" class="btn {{ "active" if current_controller.current_view=="completed" }} btn-default">Completed</button>
-	      <button data-controller="/jobs/failed{{ "/search/"+current_controller.search if current_controller.search|length>1 }}" class="btn {{ "active" if current_controller.current_view=="failed" }} btn-default">Failed</button>
-	    </div>
-		<form class="job_search form-inline" role="form" method="GET" action="/jobs/{{ current_controller.current_view }}/search">
-			<div class="form-group">
-				<div class="input-group">
-					<label class="sr-only" for="fulltext">Search job</label>
-					<input type="text" class="form-control input-md job-fulltext" placeholder="Search term" name="job-search" value="{{ current_controller.search }}">
-					<div class="input-group-addon">
-						<button class="btn-job-search btn btn-xs"><span class="glyphicon glyphicon-search"></span></button>
-					</div>
-				</div>
-			</div>
-		</form>
--->
-
-
 	</div>	
 
 	<div class="clearfix"></div>
@@ -77,6 +61,19 @@
 	        </thead>
 	        <tbody id='jobs_body'>
 	            {% for job in jobs%}
+	            	
+
+	            	{% set action_permit = False %}
+	            	
+	            	{% if job_control['can/job_control'] == True %} 
+	            		{% set action_permit = True %}
+	            	{% endif %}
+
+
+	            	{% if action_permit == False and job_control['can/job_control'] != False and job_control['can/job_control'] != True and job.id_action in job_control['can/job_control'] %}
+	            		{% set action_permit = True %}
+	            	{% endif %}	
+
 	                <tr>                
 	                    <td>{{ job.id_job }}</td>
 	                    <td class='oneliner'>{{ job.asset_title }}</td>
@@ -100,11 +97,13 @@
 	                    <td id='job_msg_{{job.id_job}}'>{{job.message}}</td>
 	                    
 	                    <td class="action-box">
+	                    {% if action_permit == True %}
 	                        {% if job.progress < -1 %}
 	                            <button class="btn btn-default btn-xs btn-primary job-action" data-action="-1" data-id-job="{{job.id_job}}"><span class="glyphicon glyphicon-repeat"></span></button>
 	                        {% else %}
 	                            <button class="btn btn-default btn-xs btn-danger job-action" data-action="-4" data-id-job="{{job.id_job}}"><span class="glyphicon glyphicon-remove"></span></button>
 	                        {% endif %}
+	                    {% endif %}    
 	                    </td>
 	                </tr>
 	            {% endfor %}

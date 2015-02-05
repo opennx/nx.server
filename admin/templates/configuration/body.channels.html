@@ -1,8 +1,14 @@
+{% if current_controller.current_item > -1 %}
+
+{% set subtitle = 'New' %}
 {% if current_controller.current_item > 0 %}
+    {% set subtitle = data.data[2] %}
+{% endif %}
+
 
 <ol class="breadcrumb">
   <li><a href="/{{ current_controller.controller }}/{{ current_controller.current_view }}">Channels</a></li>
-  <li class="active">{{ data.data[2] }}</li>
+  <li class="active">{{ subtitle }}</li>
 </ol>
 
 <form>
@@ -13,12 +19,23 @@
         <input type="text" class="form-control" id="title" placeholder="Enter title" value="{{ data.data[2] }}" required>
     </div>
     <div class="form-group">
-        <label for="type">Type</label>
-        <input type="text" class="form-control" id="type" placeholder="Enter position" value="{{ data.data[1] }}" required>
+        <label for="channel_type">Type</label>
+        <select class="select form-control" id="channel_type">
+        {% set types = {0:'Playout', 1:'Ingest'} %}
+        {% for i in types %}
+            {% set selected = ''  %}
+            {% if data.data[1] == i %}
+                {% set selected = ' selected' %}
+            {% endif %}    
+            <option value="{{i}}" {{ selected }}>{{types[i]}}</option>
+        {% endfor %}
+        </select> 
     </div>
     <div class="form-group">
         <button class="btn btn-primary btn-save"><span class="glyphicon glyphicon-ok"></span> Save</button>
-        <button class="btn btn-success btn-save-and-close"><span class="glyphicon glyphicon-saved"></span> Save and close</button>
+        {% if current_controller.current_item > 0 %}
+            <button class="btn btn-success btn-save-and-close"><span class="glyphicon glyphicon-saved"></span> Save and close</button>
+        {% endif %}
     </div>
 </div>
 <div class="col-lg-9">
@@ -40,8 +57,8 @@
             <tr>
                 <th style='width:50px;'>#</th>
                 <th>Title</th>
-                <th style='width:90px;'>
-                    
+                <th style='width:170px;'>
+                   <button class="btn btn-default btn-sm btn-edit btn-success" data-id-obj="0" data-action="edit"><span class="glyphicon glyphicon-plus"></span> New</button>  
                 </th>
             </tr>
         </thead>
@@ -52,7 +69,7 @@
                 <td>{{ s[0] }}</td>
                 <td>{{ s[2] }}</td>
                 <td>
-                    <button class="btn btn-default btn-sm btn-edit btn-primary" data-id-obj="{{ s[0] }}" data-action="edit"><span class="glyphicon glyphicon-edit"></span> Edit</button>    
+                    <button class="btn btn-default btn-sm btn-edit btn-primary" data-id-obj="{{ s[0] }}" data-action="edit"><span class="glyphicon glyphicon-edit"></span> Edit</button>
                 </td>
 
             </tr>

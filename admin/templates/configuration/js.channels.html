@@ -1,4 +1,4 @@
-{% if current_controller.current_item > 0 %}
+{% if current_controller.current_item > -1 %}
 
 <script src="/static/tools/codemirror/lib/codemirror.js"></script>
 <script src="/static/tools/codemirror/addon/edit/matchbrackets.js"></script>
@@ -13,65 +13,74 @@
 <script src="/static/tools/codemirror/mode/javascript/javascript.js"></script>
 
 <script type="text/javascript">
+$( function(){
 
-var load_send_callback = function(r,d)
-{
-	console.log(r);
-}
+{% if current_controller.current_item == 0 %}
+	var config_value = {"type":"your JSON configuration here"};
+{% else %}
+	var config_value = {{ data.data[3]|safe }};
+{% endif %}
 
-var send_data = function()
-{
-        var config = JSON.parse(code_editor.getValue());
+	// INIT CONFIG
+	$('#config').val(JSON.stringify(config_value, null, 4));
 
-        var data = {
-             configuration : "channels",
-             id_channel : {{ data.data[0] }},
-             query_data : JSON.stringify({
+	var code_editor = CodeMirror.fromTextArea(document.getElementById("config"), {
+		mode: "application/ld+json",
+		styleActiveLine: true,
+		matchBrackets: true,
+		lineNumbers: true,
+		lineWrapping: true,
+		extraKeys: {"Ctrl-Q": function(cm){ cm.foldCode(cm.getCursor()); }},
+		foldGutter: true,
+		viewportMargin: Infinity,
+		scrollbarStyle: "simple",
+		gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+		theme: 'base16-dark'
+	});
+
+
+	// SAVE REDIRECT
+	var postSave = function(r,d){
+		nx.utils.logDev(r,d);
+		if(d.close === true){
+			document.location.href = '/{{ current_controller.controller }}/{{ current_controller.current_view }}';
+		}
+	}
+
+	// SAVE REQUEST
+	$('.btn-save, .btn-save-and-close').on('click', function(e){
+		e.preventDefault();
+		
+		var config = JSON.parse(code_editor.getValue());
+
+	    var data = {
+			query_table: 'nx_channels', 
+			query_key: 'id_channel', 
+			query_val: {{ current_controller.current_item }}, 
+			close: $(this).hasClass('btn-save-and-close') ? true: false,
+	        query_data : JSON.stringify({
 	             title : $('#title').val(),
-	             type : $('type').val(),
+	             channel_type : $('#channel_type').val(),
 	             config : JSON.stringify(config)
-	         })
-        }
+	        })
+	    }
 
-        //console.log(data);
+	    //console.log(data);
 
-        nx.com.post({
-            url: nx.settings.controller+'/api',
-            data: data,
-            element: $('#nx-messages'),
-            notifyDone: false,
-            notifyFail: true,
-            notifyError: true,
-            postDone: load_send_callback,
-            postFail : load_send_callback
-        });
+	    nx.com.post({
+	        url: '/{{ current_controller.controller }}/api',
+	        data: data,
+	        element: $('#nx-messages'),
+	        notifyDone: true,
+	        notifyFail: true,
+	        notifyError: true,
+			postDone: postSave,
+			postFail: nx.utils.logDev,
+			postError: nx.utils.logError,
+	    });
+	});
 
-}
-
-
-
-$('#config').val(JSON.stringify({{ data.data[3]|safe }}, null, 4));
-
-var code_editor = CodeMirror.fromTextArea(document.getElementById("config"), {
-	mode: "application/ld+json",
-	styleActiveLine: true,
-	matchBrackets: true,
-	lineNumbers: true,
-	lineWrapping: true,
-	extraKeys: {"Ctrl-Q": function(cm){ cm.foldCode(cm.getCursor()); }},
-	foldGutter: true,
-	viewportMargin: Infinity,
-	scrollbarStyle: "simple",
-	gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
-	theme: 'base16-dark'
 });
-
-$('.btn-save, .btn-save-and-close').on('click', function(e){
-	e.preventDefault();
-	send_data();
-});
-
-
 </script>
 
 {% else %}
