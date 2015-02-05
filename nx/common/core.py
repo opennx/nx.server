@@ -96,8 +96,11 @@ class Messaging():
     def send(self, method, **data):
         """
         message = [timestamp, site_name, host, method, DATA] 
-        """        
-        self.sock.sendto(json.dumps([time.time(), config["site_name"], config["host"], method, data]), (self.MCAST_ADDR,self.MCAST_PORT) )
+        """
+        try:
+            self.sock.sendto(json.dumps([time.time(), config["site_name"], config["host"], method, data]), (self.MCAST_ADDR,self.MCAST_PORT) )
+        except:
+            print ("Unable to send message")
 
 messaging = Messaging()
 
