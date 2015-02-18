@@ -19,7 +19,7 @@ class CaptureTask():
     def state(self):
         if self.ingest_mode == "PRIMARY":
             return ACTION_PRIMARY_INGEST
-        else: 
+        else:
             return ACTION_BACKUP_INGEST
 
     def __repr__(self):
@@ -37,9 +37,9 @@ class Capture():
         self.proc = None
 
     def __call__(self, task):
+        assert type(task) == CaptureTask
         if self.capturing:
             if task and self.task.id == task.id:
-                self.task = 
                 self.update_status()
             else:
                self.stop()
@@ -53,13 +53,12 @@ class Capture():
         if not self.proc:
             return False
         return self.proc.poll() == None
-   
+
 
     def update_status(self):
-
-            pz = stop - start
-            pc = now - start
-            progress = int((float(pc)/float(pz))*100)
+        pz = stop - start
+        pc = now - start
+        progress = int((float(pc)/float(pz))*100)
 
 
 
@@ -73,30 +72,30 @@ class Capture():
         else:
             backup_fname = strftime("%Y_%m_%d_%H%M%S",localtime(time())) + os.path.splitext(self.current_asset["PATH"])[1]
             fname = os.path.join(self.cache_dir,backup_fname)
-   
+
         cmd = "../bmdcapture -C %s -m %s -I %s -c 8 -F nut -f pipe:1 | " % (self.bmddevice,self.bmdmode,self.bmdinput)
         cmd+= "ffmpeg -y -i - "
         fmt = self.service.config.find("format")
         for param in fmt.findall("param"):
          cmd+= "-%s %s " % (param.attrib["name"],param.text)
         cmd+= "'%s'" % fname
-   
+
         self.proxy_name = False
         if self.current_event.ingest_mode == "PRIMARY":
          try:  fmt = self.service.config.find("proxy")
          except: pass # proxy nechcem
          else:
-     
+
           try: os.makedirs(ProxyPath(self.current_event.id_asset))
           except: pass
-     
+
           if os.path.exists(ProxyPath(self.current_event.id_asset)):
            cmd += " "
            for param in fmt.findall("param"):
             cmd+= "-%s %s " % (param.attrib["name"],param.text)
            self.proxy_name = ProxyFile(self.current_event.id_asset)
            cmd += "'%s'" % self.proxy_name
-   
+
       osvcdr = os.getcwd()
       os.chdir(self.service.svcdir)
       self.proc = subprocess.Popen(cmd, shell=True)#,stderr=subprocess.PIPE)
@@ -132,7 +131,7 @@ class Service(ServicePrototype):
             )
 
 
-                                     
+
 
     def on_main(self):
         now = int(time.time())
@@ -141,17 +140,15 @@ class Service(ServicePrototype):
         db.query("SELECT id_object, start, stop, id_magic FROM nx_events WHERE id_channel = %s AND start < %s AND stop > %s ORDER BY start LIMIT 1", (self.id_channel, now, now ))
         for id_event, start, stop, id_asset in db.fetchall():
 
-            if not current_task:
+            if not self.current_task:
 
+                break
 
-            elif current_task.id_event != id_event: 
-                # Pokud ingest bezi a ma bezet jinej, tak to nejdriv stopnem
+            elif current_task.id_event != id_event:
+                logging.warning("Another event should be ingested right now....")
                 continue
 
-
-
             break
-
         else:
             self.current_task = None
 
