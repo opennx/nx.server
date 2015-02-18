@@ -79,8 +79,8 @@ class Sessions():
 
 class HiveHandler(BaseHTTPRequestHandler):
     def log_request(self, code='-', size='-'): 
-        pass 
-       
+        pass
+
     def _do_headers(self,mime="application/json",response=200,headers=[]):
         self.send_response(response)
         self.send_header("Access-Control-Allow-Origin", "*")
@@ -89,7 +89,7 @@ class HiveHandler(BaseHTTPRequestHandler):
             handler.send_header(h[0],h[1])
         self.send_header('Content-type', mime)
         self.end_headers()
-         
+
     def _echo(self,istring):
         self.wfile.write(istring)
 
@@ -118,7 +118,7 @@ class HiveHandler(BaseHTTPRequestHandler):
             logging.error("No post data")
             self.result(ERROR_BAD_REQUEST)
             return
-                
+
         try:
             method   = postvars["method"][0]
             auth_key = postvars["auth_key"][0]
@@ -126,28 +126,28 @@ class HiveHandler(BaseHTTPRequestHandler):
             logging.error("No method/auth")
             self.result(ERROR_BAD_REQUEST)
             return
-     
-        try:   
+
+        try:
             params = json.loads(postvars["params"][0])
-        except: 
+        except:
             params = {}
-     
+
         methods = self.server.service.methods
-        
+
 
         if method in ["auth", "login"]: # AUTH is deprecated
             self._do_headers("application/octet-stream", 200)
             response, data = self.sessions.login(auth_key, params)
             self.push_response(response, data)
 
-            
+
         elif method == "logout":
-            self._do_headers("application/octet-stream", 200)                
+            self._do_headers("application/octet-stream", 200)
             response, data = self.sessions.logout(auth_key)
             self.push_response(response, data)
 
 
-        elif method in methods:            
+        elif method in methods:
 
             user = self.sessions[auth_key]
             if not user:
@@ -164,7 +164,7 @@ class HiveHandler(BaseHTTPRequestHandler):
                 msg = traceback.format_exc()
                 logging.error("{} failed to {}: {}".format(user, method, msg))
                 self.push_response(400, "\n{}\n".format(msg))
-        else:                    
+        else:
             logging.error("%s not implemented" % method)
             self.result(ERROR_NOT_IMPLEMENTED,False)
             return
