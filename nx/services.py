@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import traceback
+
 from nx.common import *
 from nx.connection import *
 
@@ -13,7 +15,7 @@ class ServicePrototype(object):
         try:
             self.on_init()
         except:
-            logging.error("Unable to initialize service. %s" % str(sys.exc_info()))
+            logging.error("Unable to initialize service: {}".format(traceback.format_exc()))
             self.shutdown()
         else:
             db = DB()
@@ -25,7 +27,7 @@ class ServicePrototype(object):
         pass
 
     def on_main(self):
-        pass        
+        pass
 
     def soft_stop(self):
         logging.info("Soft stop requested")
