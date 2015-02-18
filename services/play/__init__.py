@@ -128,19 +128,12 @@ class ControlHandler(BaseHTTPRequestHandler):
 
 class Service(ServicePrototype):
     def on_init(self):
-        if not config["playout_channels"]:
-            logging.error("No playout channel configured")
-            self.shutdown(no_restart=True)
-
         allowed_channels = []
-        try:
-            chlist = self.settings.find("channels")
-        except:
-            pass
-        else:
+        chlist = self.settings.find("channels")
+        if chlist is not None:
             for ch in chlist.findall("channel"):
-                if ch.text.isdigit():
-                    allowed_channels.append(int(ch.text))
+                allowed_channels.append(int(ch.text))
+
 
         self.caspar = Caspar()
         for id_channel in config["playout_channels"]:
@@ -171,7 +164,14 @@ class Service(ServicePrototype):
             channel.enabled_plugins = channel_cfg.get("plugins", [])
             channel.plugins         = PlayoutPlugins(channel)
 
-        port = 42100
+        if not config["playout_channels"]:
+            logging.error("No playout channel configured")
+            self.shutdown(no_restart=True)
+
+        try:
+            port = int(self.settings.find("port").text)
+        except:
+            port = 42100
 
         self.server = HTTPServer(('',port), ControlHandler)
         self.server.service = self
