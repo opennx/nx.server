@@ -23,7 +23,7 @@ class PlayoutPlugins():
         bpath = os.path.join(plugin_path, "playout")
         if not os.path.exists(bpath):
             logging.warning("Playout plugins directory does not exist")
-            return 
+            return
 
         for fname in os.listdir(bpath):
             mod_name, file_ext = os.path.splitext(fname)
@@ -41,20 +41,20 @@ class PlayoutPlugins():
 
             if not "Plugin" in dir(py_mod):
                 logging.warning("No plugin class found in {}".format(fname))
-            
+
             logging.info("Initializing plugin {} on channel {}".format(py_mod.__manifest__["name"], channel.ident ))
-            self.plugins.append(py_mod.Plugin(channel))    
+            self.plugins.append(py_mod.Plugin(channel))
             self.plugins[-1].title = py_mod.__manifest__["name"]
-        
+
     def __getitem__(self, key):
         return self.plugins[key]
 
 
 
 class ControlHandler(BaseHTTPRequestHandler):
-    def log_request(self, code='-', size='-'): 
-        pass 
-       
+    def log_request(self, code='-', size='-'):
+        pass
+
     def _do_headers(self,mime="application/json",response=200,headers=[]):
         self.send_response(response)
         self.send_header("Access-Control-Allow-Origin", "*")
@@ -63,7 +63,7 @@ class ControlHandler(BaseHTTPRequestHandler):
             handler.send_header(h[0],h[1])
         self.send_header('Content-type', mime)
         self.end_headers()
-         
+
     def _echo(self,istring):
         self.wfile.write(istring.encode("utf-8"))
 
@@ -94,7 +94,7 @@ class ControlHandler(BaseHTTPRequestHandler):
             logging.debug("No post data")
             self.error(400)
             return
-        
+
         try:
             method = postvars["method"][0]
             params = json.loads(postvars["params"][0])
@@ -103,7 +103,7 @@ class ControlHandler(BaseHTTPRequestHandler):
             self.error(400)
             return
 
-        #logging.debug("Requested {} /w params {}".format(method, params))        
+        #logging.debug("Requested {} /w params {}".format(method, params))
 
         methods = {
             "take" : service.take,
@@ -122,7 +122,7 @@ class ControlHandler(BaseHTTPRequestHandler):
             return
 
         self.result(methods[method](**params))
-        
+
 
 
 
@@ -132,16 +132,28 @@ class Service(ServicePrototype):
             logging.error("No playout channel configured")
             self.shutdown(no_restart=True)
 
+        allowed_channels = []
+        try:
+            chlist = self.settings.find("channels")
+        except:
+            pass
+        else:
+            for ch in chlist.findall("channel"):
+                if ch.text.isdigit():
+                    allowed_channels.append(int(ch.text))
+
         self.caspar = Caspar()
         for id_channel in config["playout_channels"]:
-            channel_cfg = config["playout_channels"][id_channel]
+            if allowed_channels and id_channel not in allowed_channels:
+                continue
 
+            channel_cfg = config["playout_channels"][id_channel]
             logging.debug("Initializing playout channel {}: {}".format(id_channel, channel_cfg["title"]))
 
-            channel = self.caspar.add_channel(channel_cfg["caspar_host"], 
-                                              channel_cfg["caspar_port"], 
-                                              channel_cfg["caspar_channel"], 
-                                              channel_cfg["feed_layer"], 
+            channel = self.caspar.add_channel(channel_cfg["caspar_host"],
+                                              channel_cfg["caspar_port"],
+                                              channel_cfg["caspar_channel"],
+                                              channel_cfg["feed_layer"],
                                               id_channel
                                              )
 
@@ -156,7 +168,7 @@ class Service(ServicePrototype):
             channel.current_event = False
             channel._changed      = False
             channel._last_run     = False
-            channel.enabled_plugins = channel_cfg.get("plugins", []) 
+            channel.enabled_plugins = channel_cfg.get("plugins", [])
             channel.plugins         = PlayoutPlugins(channel)
 
         port = 42100
@@ -187,13 +199,13 @@ class Service(ServicePrototype):
             return 400, "Cannot cue virtual item"
 
         channel = self.caspar[id_channel]
-        
+
         id_playout = item.asset[channel.playout_spec]
         playout_asset = Asset(id_playout, db=db, cache=lcache)
 
         if not os.path.exists(playout_asset.file_path):
             return 404, "Playout asset is offline"
-        
+
         kwargs["mark_in"] = item["mark_in"]
         kwargs["mark_out"] = item["mark_out"]
 
@@ -255,7 +267,7 @@ class Service(ServicePrototype):
 
             p = {
                 "id" : j,
-                "title" : plugin.title, 
+                "title" : plugin.title,
                 "slots":[]
                 }
 
@@ -295,7 +307,7 @@ class Service(ServicePrototype):
 
         if slot.slot_type in ["select", "text"]:
             slot["value"] = kwargs["value"]
-        
+
         return 200, "OK"
 
 
@@ -329,7 +341,7 @@ class Service(ServicePrototype):
 
     def channel_change(self, channel):
         if not channel.current_item:
-            return 
+            return
         db = DB()
         item = Item(channel.current_item, db=db)
         channel.current_asset = item.asset
@@ -338,20 +350,20 @@ class Service(ServicePrototype):
 
         logging.info ("Advanced to {}".format(item))
 
-        if channel._last_run:           
+        if channel._last_run:
             db.query("UPDATE nx_asrun SET stop = %s WHERE id_run = %s",  [int(time.time()) , channel._last_run])
         db.query("INSERT INTO nx_asrun (id_channel, start, stop, title, id_item, id_asset) VALUES (%s,%s,%s,%s,%s,%s) ",
             [
             channel.ident,
             int(time.time()),
             0,
-            db.sanit(channel.current_asset["title"]), 
-            channel.current_item, 
+            db.sanit(channel.current_asset["title"]),
+            channel.current_item,
             channel.current_asset.id
-            ]) 
+            ])
         channel._last_run = db.lastid()
         db.commit()
-        
+
         for plugin in channel.plugins:
             try:
                 plugin.on_change()
@@ -368,7 +380,7 @@ class Service(ServicePrototype):
             time.sleep(1)
         logging.debug("Connection estabilished. recovering playback")
         time.sleep(5)
-        
+
         db = DB()
         db.query("SELECT id_item, start FROM nx_asrun WHERE id_channel = %s ORDER BY id_run DESC LIMIT 1", (channel.ident,))
         try:
@@ -396,7 +408,7 @@ class Service(ServicePrototype):
 
         self.channel_change(channel)
 
-    
+
     def cue_next(self, channel, id_item=False, db=False, level = 0, play=False):
         channel._cueing = True
         db = db or DB()
@@ -432,7 +444,7 @@ class Service(ServicePrototype):
             id_item = self.caspar.channels[id_channel].current_item # YES. CURRENT
             if not id_item:
                 continue
-                
+
             # TODO: use channel.current_event
             current_event = get_item_event(id_item, db=db, cache=local_cache)
 
