@@ -161,6 +161,8 @@ class Service(ServicePrototype):
             channel.current_event = False
             channel._changed      = False
             channel._last_run     = False
+            channel._next_studio  = False
+            channel._now_studio   = False
             channel.enabled_plugins = channel_cfg.get("plugins", [])
             channel.plugins         = PlayoutPlugins(channel)
 
@@ -191,14 +193,22 @@ class Service(ServicePrototype):
         if not id_channel in self.caspar.channels:
             return 400, "Requested channel is not operated by this service"
 
+        channel = self.caspar[id_channel]
+
+
         item  = Item(id_item, db=db, cache=lcache)
         if not item:
             return 404, "No such item"
 
+        if item["item_role"] == "studio":
+            logging.info("Next is studio item")
+            fname = "BLANK"
+            kwargs["auto"] = False
+            channel._next_studio = item.id
+            return channel.cue(fname, **kwargs)
+
         if not item["id_asset"]:
             return 400, "Cannot cue virtual item"
-
-        channel = self.caspar[id_channel]
 
         id_playout = item.asset[channel.playout_spec]
         playout_asset = Asset(id_playout, db=db, cache=lcache)
@@ -214,10 +224,9 @@ class Service(ServicePrototype):
         else:
             kwargs["auto"] = True
 
+        channel._next_studio = False
         fname = os.path.splitext(os.path.basename(playout_asset["path"]))[0].encode("utf-8")
         return channel.cue(fname, **kwargs)
-
-
 
 
     def take(self, **kwargs):
@@ -228,6 +237,7 @@ class Service(ServicePrototype):
         res = channel.take()
         return res
 
+
     def freeze(self, **kwargs):
         id_channel = kwargs.get("id_channel", False)
         if not id_channel in self.caspar.channels:
@@ -235,12 +245,14 @@ class Service(ServicePrototype):
         channel = self.caspar[id_channel]
         return channel.freeze()
 
+
     def retake(self, **kwargs):
         id_channel = kwargs.get("id_channel", False)
         if not id_channel in self.caspar.channels:
             return 400, "Requested channel is not operated by this service"
         channel = self.caspar[id_channel]
         return channel.retake()
+
 
     def abort(self, **kwargs):
         id_channel = kwargs.get("id_channel", False)
@@ -252,6 +264,7 @@ class Service(ServicePrototype):
 
     def stat(self, **kwargs):
         return "200", "stat"
+
 
     def cg_list(self, **kwargs):
         id_channel = kwargs.get("id_channel", False)
@@ -291,8 +304,6 @@ class Service(ServicePrototype):
         return 200, result
 
 
-
-
     def cg_exec(self, **kwargs):
         id_channel = kwargs.get("id_channel", False)
         if not id_channel in self.caspar.channels:
@@ -314,6 +325,7 @@ class Service(ServicePrototype):
     def channel_main(self, channel):
         if not channel.cued_asset and channel.cued_item:
             channel.cued_asset = Item(channel.cued_item).asset
+
         data = {}
         data["id_channel"]    = channel.ident
         data["current_item"]  = channel.current_item
@@ -324,6 +336,11 @@ class Service(ServicePrototype):
         data["cued_title"]    = channel.cued_asset["title"]    if channel.cued_asset    else "(no clip)"
         data["request_time"]  = channel.request_time
         data["paused"]        = channel.paused
+        data["stopped"]       = channel.stopped
+        data["id_event"]      = channel.current_event.id if channel.current_event else False
+
+        data["current_fname"] = channel.current_fname
+        data["cued_fname"]    = channel.cued_fname
 
         messaging.send("playout_status", **data)
 
@@ -333,18 +350,23 @@ class Service(ServicePrototype):
             except:
                 logging.error("Plugin error {}".format(str(sys.exc_info())))
 
-        if channel.current_item and not channel.cued_item and not channel._cueing:
+        if channel.current_item and not channel.cued_item and not channel._cueing:  # and not channel._next_studio and not channel._now_studio:
             self.cue_next(channel)
 
-
+        if channel.stopped and channel._next_studio and channel._next_studio == channel.cued_item:
+            self.on_studio_enter(channel)
 
 
     def channel_change(self, channel):
         if not channel.current_item:
             return
+
         db = DB()
         item = Item(channel.current_item, db=db)
-        channel.current_asset = item.asset
+        if item["item_role"] == "studio":
+            channel.current_asset = Asset(from_data=item.meta)
+        else:
+            channel.current_asset = item.asset
         channel.current_event = item.event
         channel.cued_asset = False
 
@@ -352,23 +374,30 @@ class Service(ServicePrototype):
 
         if channel._last_run:
             db.query("UPDATE nx_asrun SET stop = %s WHERE id_run = %s",  [int(time.time()) , channel._last_run])
-        db.query("INSERT INTO nx_asrun (id_channel, start, stop, title, id_item, id_asset) VALUES (%s,%s,%s,%s,%s,%s) ",
-            [
-            channel.ident,
-            int(time.time()),
-            0,
-            db.sanit(channel.current_asset["title"]),
-            channel.current_item,
-            channel.current_asset.id
-            ])
-        channel._last_run = db.lastid()
-        db.commit()
+
+        if channel.current_asset:
+            db.query("INSERT INTO nx_asrun (id_channel, start, stop, title, id_item, id_asset) VALUES (%s,%s,%s,%s,%s,%s) ",
+                [
+                channel.ident,
+                int(time.time()),
+                0,
+                db.sanit(channel.current_asset["title"]),
+                channel.current_item,
+                channel.current_asset.id
+                ])
+            channel._last_run = db.lastid()
+            db.commit()
+            
+        else:
+            channel._last_run = False
+
 
         for plugin in channel.plugins:
             try:
                 plugin.on_change()
             except:
                 logging.error("Plugin OnChange error {}".format(str(sys.exc_info())))
+
 
 
     def channel_recovery(self, channel):
@@ -409,18 +438,24 @@ class Service(ServicePrototype):
         self.channel_change(channel)
 
 
-    def cue_next(self, channel, id_item=False, db=False, level = 0, play=False):
+    def cue_next(self, channel, id_item=False, db=False, level=0, play=False):
         channel._cueing = True
         db = db or DB()
         lcache = Cache()
         id_item = id_item or channel.current_item
         item_next = get_next_item(id_item, db=db, cache=lcache)
+        
+
         if item_next["run_mode"] == 1:
             auto = False
         else:
             auto = True
+
+
         logging.info("Auto-cueing {}".format(item_next))
         stat, res = self.cue(id_item=item_next.id, id_channel=channel.ident, play=play, cache=lcache, auto=auto)
+
+
         if failed(stat):
             if level > 5:
                 logging.error("Cue it yourself....")
@@ -428,6 +463,18 @@ class Service(ServicePrototype):
             logging.warning("Unable to cue {} ({}). Trying next one.".format(item_next, res))
             item_next = self.cue_next(channel, id_item=item_next.id, db=db, level=level+1, play=play)
         return item_next
+
+
+    def on_studio_enter(self, channel):
+        logging.goodnews("STUDIO ENTER")
+        channel._now_studio = channel._next_studio
+        channel._next_studio = False
+
+
+    def on_studio_leave(self, channel):
+        logging.goodnews("STUDIO LEAVE")
+        channel._next_studio = False
+        channel._now_studio = False
 
 
     def on_main(self):

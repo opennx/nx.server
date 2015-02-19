@@ -5,6 +5,7 @@ from nx import *
 
 import thread
 import telnetlib
+import traceback
 
 def basefname(fname):
     """Platform dependent path splitter (caspar is always on win)"""
@@ -17,16 +18,17 @@ class CasparChannel():
         self.channel = channel # Caspar channel (that "X" integer in PLAY x-y command)
         self.fps = 25.0        # default
 
-        self.xstat  = "<channel>init</channel>"  
+        self.xstat  = "<channel>init</channel>"
         self.chdata = {}
         self.plugins = []
-        
+
         self.current_item   = False
         self.current_fname  = False
         self.cued_item      = False
         self.cued_fname     = False
         self.paused         = False
-        
+        self.stopped        = False
+
         self._cueing        = False
         self._changing      = False
         self.request_time = self.recovery_time = time.time()
@@ -44,10 +46,10 @@ class CasparChannel():
     def on_recovery(self, channel=False):
         pass
 
-    def get_position(self): 
+    def get_position(self):
         return int(self.fpos - (self.current_in * self.fps))
-     
-    def get_duration(self): 
+
+    def get_duration(self):
         dur = self.fdur
         if self.current_out > 0: dur -= dur - (self.current_out*self.fps)
         if self.current_in  > 0: dur -= (self.current_in*self.fps)
@@ -60,21 +62,24 @@ class CasparChannel():
         id_item    = kwargs.get("id_item", fname)
         auto       = kwargs.get("auto", True)
         play       = kwargs.get("play", False)
-        mark_in    = kwargs.get("mark_in",0)    
+        mark_in    = kwargs.get("mark_in",0)
         mark_out   = kwargs.get("mark_out",0)
         layer      = kwargs.get("layer", self.feed_layer)
-    
+
         marks = ""
         if mark_in:  marks += " SEEK %d"   % (float(mark_in)*self.fps)
         if mark_out: marks += " LENGTH %d" % (float(mark_out)*self.fps)
-        
-        if play:     q = "PLAY %s-%d %s %s"     % (self.channel,layer,fname,marks)
-        else:        q = "LOADBG %s-%d %s %s %s" % (self.channel,layer,fname,["","AUTO"][auto],marks)
-        
+
+        if play:# or self.stopped:
+            q = "PLAY %s-%d %s %s"     % (self.channel,layer,fname,marks)
+        else:
+            q = "LOADBG %s-%d %s %s %s" % (self.channel,layer,fname,["","AUTO"][auto],marks)
+
         stat, res = self.server.query(q)
-        
-        if failed(stat): 
+
+        if failed(stat):
             res = "Unable to cue \"{}\" {} - args: {}".format(fname, res, str(kwargs))
+            logging.error(res)
             self.cued_item  = False
             self.cued_fname = False
             self._cueing    = False
@@ -84,22 +89,25 @@ class CasparChannel():
             self.cued_in    = mark_in
             self.cued_out   = mark_out
             self._cueing    = True
-            res = "Cueing item {} ({})".format(self.cued_item, fname)
+            res = "Cued item {} ({})".format(self.cued_item, fname)
+            logging.debug(res)
 
         return (stat, res)
-     
-     
+
+
     def clear(self,layer=False):
         layer = layer or self.feed_layer
         return self.server.query("CLEAR {}-{}".format(self.channel, layer))
 
+
     def take(self,layer=False):
         layer = layer or self.feed_layer
-        if not self.cued_item: 
+        if not self.cued_item:
             return 400, "Unable to take. No item is cued."
         self.paused = False
         return self.server.query("PLAY {}-{}".format(self.channel, layer))
-    
+
+
     def retake(self,layer=False):
         layer = layer or self.feed_layer
         seekparam = "%s" % (int(self.current_in*self.fps))
@@ -107,7 +115,7 @@ class CasparChannel():
         q = "PLAY %d-%d %s SEEK %s"%(self.channel, layer, self.current_fname,  seekparam)
         self.paused = False
         return self.server.query(q)
-     
+
 
     def freeze(self,layer=False):
         layer = layer or self.feed_layer
@@ -116,14 +124,14 @@ class CasparChannel():
             q = "PAUSE %d-%d"%(self.channel,layer)
             msg = "Playback paused"
         else:
-            if self.current_out: 
+            if self.current_out:
                 LEN = "LENGTH %s" %int(self.current_out*self.fps)
             else:
                 LEN = ""
 
             q = "PLAY %d-%d %s SEEK %s %s"%(self.channel, layer, self.current_fname, self.fpos, LEN)
             msg = "Playback resumed"
-       
+
         stat, res = self.server.query(q)
         if success(stat):
             self.paused = not self.paused
@@ -131,35 +139,35 @@ class CasparChannel():
         return stat, msg
 
 
-    def abort(self,layer=False):
+    def abort(self, layer=False):
         layer = layer or self.feed_layer
-        if not self.cued_item: 
+        if not self.cued_item:
             return 400, "Unable to abort. No item is cued."
         self.take()
-        time.sleep(.1)
+        time.sleep(.01)
         self.freeze()
         return 200, "Playback aborted"
 
 
-
-
     def update_stat(self):
-        stat, res = self.server.query("INFO %d" % self.channel)
-        if failed(stat): 
+        stat, res = self.server.query("INFO {}".format(self.channel))
+        if failed(stat):
             return False
-        try:    
+        try:
             xstat = ET.XML(res)
-        except: 
+        except:
             return False
-        else:   
+        else:
             self.request_time = time.time()
             self.xstat = xstat
             return True
 
 
-    def main(self):   
-        # Which layer is for video fill?
-        try: 
+    def main(self):
+        #######################################
+        ## Get main video_layer
+
+        try:
            for layer in self.xstat.find("stage").find("layers").findall("layer"):
               if int(layer.find("index").text) != self.feed_layer:
                   continue
@@ -170,44 +178,71 @@ class CasparChannel():
              raise Exception
         except:
             self.on_main(self) # cg channels need this
-            return # Unable to find video feed layer # TODO: perform recovery???
-         
+            return # Unable to find video feed layer
 
-        # What are we playing right now?
+        ## Get video_layer
+        #######################################
+        ## Get cued_fname
+
         try:
             if video_layer.find("status").text == "paused":
                 self.paused = True
-            elif video_layer.find("status").text == "playig":
+                self.stopped = False
+            elif video_layer.find("status").text == "stopped" or int(video_layer.find("frames-left").text) <= 0:
+                self.stopped = True
                 self.paused = False
+            elif video_layer.find("status").text == "playing":
+                self.paused = False
+                self.stopped = False
 
             fg_prod = video_layer.find("foreground").find("producer")
             if fg_prod.find("type").text == "image-producer":
                 self.fpos = self.fdur = self.pos = self.dur = 0
                 current_fname = basefname(fg_prod.find("location").text)
             elif fg_prod.find("type").text == "empty-producer":
-                current_fname = -1 # No video is playing right now
+                current_fname = False # No video is playing right now
             else:
                 self.fpos = int(fg_prod.find("file-frame-number").text)
                 self.fdur = int(fg_prod.find("file-nb-frames").text)
                 self.pos  = int(fg_prod.find("frame-number").text)
                 self.dur  = int(fg_prod.find("nb-frames").text)
                 current_fname = basefname(fg_prod.find("filename").text)
-        except: 
-            current_fname = -1
-         
-          
-        # And which one's next?
-        try:     
-            cued_fname = basefname(video_layer.find("background").find("producer").find("destination").find("producer").find("filename").text)
-        except:  
+        except:
+            logging.error(traceback.format_exc())
+            current_fname = False
+            
+
+        ## Get current_fname
+        #######################################
+        ## Get cued_fname
+
+        try:
+            bg_prod = video_layer.find("background").find("producer").find("destination").find("producer")
+            if bg_prod.find("type").text == "image-producer":
+                cued_fname = basefname(bg_prod.find("location").text)
+            elif bg_prod.find("type").text == "empty-producer":
+                cued_fname = False # No video is cued
+            else:
+                cued_fname = basefname(bg_prod.find("filename").text)
+        except:
             cued_fname = False
 
-        if current_fname == -1 and time.time() - self.recovery_time > 10:
+        ## Get cued_fname
+        #######################################
+        ## Auto recovery
+
+        if not current_fname and time.time() - self.recovery_time > 10:
             self.on_recovery(self)
-            return        
+            return
         self.recovery_time = time.time()
+
+        ## Auto recovery
+        #######################################
+        ## Playlist advancing
         
+
         if not cued_fname and current_fname:
+            print (current_fname, self.cued_fname)
             self._changing = True
             changed = False
             if current_fname == self.cued_fname:
@@ -221,15 +256,17 @@ class CasparChannel():
             self.cued_fname = False
             self.cued_item  = False
 
-            self.on_change(self)
+            if changed:
+                self.on_change(self)
+
             self._changing = False
 
         elif self.cued_item and cued_fname and cued_fname != self.cued_fname and not self._cueing:
             logging.warning ("Cue mismatch: This is not the file which should be cued. IS: %s vs. SHOULDBE: %s" % (cued_file,self.cued_fname))
             self.cued_item = False # AutoCue in on_main should handle it next iteration
 
-        self.on_main(self) 
 
+        self.on_main(self)
         self.current_fname = current_fname
         self._cueing = False
 
@@ -251,19 +288,19 @@ class CasparServer():
         self.cmd_conn = self.inf_conn = False
         self.connect()
 
-    def __repr__(self): 
+    def __repr__(self):
         return self.ident
 
     def connect(self):
         logging.debug("Connecting to CasparCG server at {}:{}".format(self.host, self.port))
-        try:    
+        try:
             self.cmd_conn = telnetlib.Telnet(self.host, self.port)
             self.inf_conn = telnetlib.Telnet(self.host, self.port)
         except:
             return 503, "Connection failed"
         else:
             return 200, "OK"
-     
+
     def query(self, q):
         if not (self.inf_conn and self.cmd_conn):
             return 500, "CasparCG server is offline"
@@ -273,16 +310,16 @@ class CasparServer():
         else:
             logging.debug("Executing AMCP: {}".format(q))
             conn = self.cmd_conn
-        
+
         try:
             conn.write("%s\r\n"%q)
-            result = conn.read_until("\r\n").strip() 
+            result = conn.read_until("\r\n").strip()
         except:
             return 500, "Query execution failed"
-        
-        if not result: 
+
+        if not result:
             return 500, "No result"
-        
+
         try:
             if result[0:3] == "202":
                 return (202, result)
@@ -302,8 +339,8 @@ class CasparServer():
 class Caspar():
     def __init__(self):
       self.servers  = {}
-      self.channels = {} 
-      self.bad_requests  = 0 
+      self.channels = {}
+      self.bad_requests  = 0
       thread.start_new_thread(self._start,())
 
     def add_channel(self, host, port, channel, feed_layer, ident):
@@ -320,7 +357,7 @@ class Caspar():
       self.channels[ident].ident = ident
       self.channels[ident].feed_layer = feed_layer
       return self.channels[ident]
-    
+
     def _add_server(self, host, port):
         server = server_ident(host,port)
         if not server in self.servers:
@@ -330,17 +367,18 @@ class Caspar():
     def _start(self):
         while True:
             self._main()
-            time.sleep(.2) 
+            time.sleep(.2)
 
     def _main(self):
         idents = self.channels.keys()
         for ident in idents:
             channel = self.channels[ident]
             if not channel.update_stat():
+                logging.warning("Update stat failed")
                 self.bad_requests += 1
                 if self.bad_requests > 10:
-                    logging.warning("Connection lost. Reconnecting...")
-                    if success(channel.server.connect()[0]): 
+                    logging.error("Connection lost. Reconnecting...")
+                    if success(channel.server.connect()[0]):
                         logging.goodnews("Connection estabilished")
                     else:
                         logging.error("Connection call failed")
@@ -349,9 +387,9 @@ class Caspar():
                 continue
             else:
                 self.bad_requests = 0
-                channel.main() 
+                channel.main()
 
-        
+
 
 
     def __getitem__(self, id_channel):
