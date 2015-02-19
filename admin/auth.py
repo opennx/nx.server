@@ -31,6 +31,9 @@ class FlaskUser(UserMixin):
     def is_admin(self):
         return self._data["is_admin"]
 
+    def is_disabled(self):
+        return self._data["is_disabled"]
+
     def has_right(self, key, value=True):
         return self._data.has_right(key, value)
 
@@ -40,7 +43,13 @@ class FlaskUser(UserMixin):
 class Anonymous(UserMixin):
     name = u"Anonymous"
     id = 0
- 
+    
+    def is_admin(self):
+        return 'false'
+
+    def is_disabled(self):    
+        return 'true'
+
     def is_authenticated(self):
         return False
 
