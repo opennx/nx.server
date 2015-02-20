@@ -194,6 +194,7 @@ class Service(ServicePrototype):
             return 400, "Requested channel is not operated by this service"
 
         channel = self.caspar[id_channel]
+        channel.cued_asset = False
 
 
         item  = Item(id_item, db=db, cache=lcache)
