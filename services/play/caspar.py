@@ -143,8 +143,15 @@ class CasparChannel():
         layer = layer or self.feed_layer
         if not self.cued_item:
             return 400, "Unable to abort. No item is cued."
+        # TODO: 
+        # q = "LOAD {}-{}".format(self.channel, layer, self.cued_fname)
+        # if self.cued_in:
+        #     q += "SEEK {}".format(self.cued_in)
+        # q += seek, len
+        # return self.server.query(q)
+
         self.take()
-        time.sleep(.01)
+        time.sleep(.1)
         self.freeze()
         return 200, "Playback aborted"
 
@@ -242,7 +249,6 @@ class CasparChannel():
         
 
         if not cued_fname and current_fname:
-            print (current_fname, self.cued_fname)
             self._changing = True
             changed = False
             if current_fname == self.cued_fname:
