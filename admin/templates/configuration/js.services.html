@@ -56,7 +56,7 @@ $( function(){
 			query_val: {{ current_controller.current_item }}, 
 			close: $(this).hasClass('btn-save-and-close') ? true: false,
 			query_data: JSON.stringify({
-				agent: $('#title').val(),
+				agent: $('#agent').val(),
 				title: $('#title').val(),
 				host: $('#host').val(), 
 				autostart: $('#autostart').prop('checked')===true?1:0,
