@@ -143,17 +143,12 @@ class CasparChannel():
         layer = layer or self.feed_layer
         if not self.cued_item:
             return 400, "Unable to abort. No item is cued."
-        # TODO: 
-        # q = "LOAD {}-{}".format(self.channel, layer, self.cued_fname)
-        # if self.cued_in:
-        #     q += "SEEK {}".format(self.cued_in)
-        # q += seek, len
-        # return self.server.query(q)
-
-        self.take()
-        time.sleep(.1)
-        self.freeze()
-        return 200, "Playback aborted"
+        q = "LOAD {}-{} {}".format(self.channel, layer, self.cued_fname)
+        if self.cued_in:
+            q += " SEEK {}".format(int(self.cued_in * self.fps))
+        if self.cued_out:
+            q += " LENGTH {}".format(int(self.cued_out * self.fps))
+        return self.server.query(q)
 
 
     def update_stat(self):
@@ -248,7 +243,7 @@ class CasparChannel():
         ## Playlist advancing
         
 
-        if not cued_fname and current_fname:
+        if not cued_fname and current_fname and not self._cueing:
             self._changing = True
             changed = False
             if current_fname == self.cued_fname:
