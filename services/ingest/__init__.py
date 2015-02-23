@@ -16,20 +16,20 @@ class CaptureTask():
         self.ingest_mode = "BACKUP"
 
     @property
-    def state(self):
-        if self.ingest_mode == "PRIMARY":
-            return ACTION_PRIMARY_INGEST
+    def id_event(self):
+        if self.event:
+            return self.event.id
         else:
-            return ACTION_BACKUP_INGEST
+            return 0
 
     def __repr__(self):
-        return str(self.id_event)
-
+        return ""
 
 
 
 class Capture():
-    def __init__(self, **kwargs):
+    def __init__(self, parent, **kwargs):
+        self.parent = parent
         self.settings = kwargs
         self.id_job = False
 
@@ -37,7 +37,6 @@ class Capture():
         self.proc = None
 
     def __call__(self, task):
-        assert type(task) == CaptureTask
         if self.capturing:
             if task and self.task.id == task.id:
                 self.update_status()
@@ -47,6 +46,15 @@ class Capture():
             self.task = task
             self.start()
 
+        print "Ingest status: ", self.capturing
+
+
+    @property
+    def state(self):
+        if self.settings["ingest_mode"] == "PRIMARY":
+            return ACTION_PRIMARY_INGEST
+        else:
+            return ACTION_BACKUP_INGEST
 
     @property
     def capturing(self):
@@ -56,6 +64,8 @@ class Capture():
 
 
     def update_status(self):
+        print ("Ingesting", self.task)
+        return
         pz = stop - start
         pc = now - start
         progress = int((float(pc)/float(pz))*100)
@@ -63,6 +73,8 @@ class Capture():
 
 
     def start(self):
+        logging.info("Starting ingest {}".format(self.task))
+        return
         db = DB()
 
         # TODO: Create job record
@@ -96,12 +108,10 @@ class Capture():
            self.proxy_name = ProxyFile(self.current_event.id_asset)
            cmd += "'%s'" % self.proxy_name
 
-      osvcdr = os.getcwd()
-      os.chdir(self.service.svcdir)
-      self.proc = subprocess.Popen(cmd, shell=True)#,stderr=subprocess.PIPE)
-      os.chdir(osvcdr)
-
-
+         osvcdr = os.getcwd()
+         os.chdir(self.service.svcdir)
+         self.proc = subprocess.Popen(cmd, shell=True)#,stderr=subprocess.PIPE)
+         os.chdir(osvcdr)
 
 
     def stop(self):
@@ -118,19 +128,27 @@ class Capture():
 
 class Service(ServicePrototype):
     def on_init(self):
-        self.id_channel = int(self.config.find("channel").text)
+        self.id_channel = int(self.settings.find("channel").text)
         self.current_task = None
 
-        self.capture = Capture(
+        self.capture = Capture(self)
+        """
                 self,
-                ingest_mode = self.config.find("ingest_mode").text, # PRIMARY - Nahrava se do assetu, BACKUP - Nahrava se lokalne
-                cache_dir   = self.config.find("cache_dir").text,
-                bmd_device  = self.config.find("device").text,
-                bmd_mode    = self.config.find("mode").text,
-                bmd_input   = self.config.find("input").text
+                ingest_mode = self.settings.find("ingest_mode").text, # PRIMARY - Nahrava se do assetu, BACKUP - Nahrava se lokalne
+                cache_dir   = self.settings.find("cache_dir").text,
+                bmd_device  = self.settings.find("device").text,
+                bmd_mode    = self.settings.find("mode").text,
+                bmd_input   = self.settings.find("input").text
             )
+        """
 
 
+        # DEMO EVENT
+        db = DB()
+        e = Event(5529, db=db)
+        e["start"] = time.time() + 3
+        e["stop"] = time.time() + 30
+        e.save()
 
 
     def on_main(self):
@@ -139,19 +157,19 @@ class Service(ServicePrototype):
         db = DB()
         db.query("SELECT id_object, start, stop, id_magic FROM nx_events WHERE id_channel = %s AND start < %s AND stop > %s ORDER BY start LIMIT 1", (self.id_channel, now, now ))
         for id_event, start, stop, id_asset in db.fetchall():
+            event = Event(id_event, db=db)
 
             if not self.current_task:
-
+                task = CaptureTask(event)
+                self.current_task = task
                 break
 
-            elif current_task.id_event != id_event:
+            elif self.current_task.id_event != id_event:
                 logging.warning("Another event should be ingested right now....")
                 continue
-
             break
         else:
             self.current_task = None
-
 
         self.capture(self.current_task)
 
