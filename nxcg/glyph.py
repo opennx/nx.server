@@ -1,9 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import time
 from nxcg.common import *
 
 __all__ = ["glyph"]
+
+
+
+
 
 class Glyph():
     def __init__(self):
@@ -13,7 +18,7 @@ class Glyph():
         return self[key]
 
     def __getitem__(self, key):
-        assert type(key) == str
+        assert type(key) == str, "Glyph key must be string"
 
         if key in self.data:
             g, mtime = self.data[key]
@@ -22,9 +27,10 @@ class Glyph():
 
         if os.path.splitext(key)[1].lower() == ".png":
             g = cairo.ImageSurface.create_from_png(glyph)
-
+        elif has_pil:
+            im = Image.open(key)
+            g = pil2cairo(im)
         else:
-            logging.error("Glyph format \"{}\" is not implemented".format(os.path.splitext(key)[1][1:]))
             return None
 
         self.data[key] = g, time.time()

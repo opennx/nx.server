@@ -6,9 +6,9 @@ __all__ = ["COLOR_PRESETS", "FALLBACK_COLOR", "colors"]
 FALLBACK_COLOR = (.7, .7, .7, 1)
 
 COLOR_PRESETS = {
-    "iron sky"        : "#807C8B",
+    "iron"            : "#807C8B",
     "graphite"        : "#454343",
-    "steel blue"      : "#536B77",
+    "steel"           : "#536B77",
     "gold"            : "#FBB829",
     "cyan"            : "#00B4FF",
     "orange"          : "#FF6600",
@@ -19,8 +19,8 @@ COLOR_PRESETS = {
 
     # TV broadcast related color presets
 
-    "broadcast white" : "#EBEBEB",
-    "broadcast black" : "#101010",
+    "white" : "#EBEBEB",
+    "black" : "#101010",
 
     "black glass 70"  : "#000000B3",
     "black glass 80"  : "#000000CC",
@@ -31,17 +31,14 @@ COLOR_PRESETS = {
     # Pantone colors of past years
 
     "emerald"         : "#009B77",
-    "tangerine tango" : "#DD4124",
+    "tangerine"       : "#DD4124",
     "honeysuckle"     : "#D65076",
     "turquoise"       : "#45B8AC",
     "mimosa"          : "#EFC050",
     "blue izis"       : "#5B5EA6",
-    "chili pepper"    : "#9B2335",
-    "sand_dollar"     : "#DFCFBE",
+    "pepper"          : "#9B2335",
+    "sand"            : "#DFCFBE",
     }
-
-
-
 
 
 def hex_color(hex_string):
@@ -86,5 +83,8 @@ class Colors():
 
         return self.data[key]
 
+    def update(self, data):
+        for key in data:
+            self[key] = data[key]
 
 colors = Colors()

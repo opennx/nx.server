@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import imp
+
 from nxcg.common import *
 from nxcg.colors import *
 from nxcg.glyph import *
@@ -36,6 +38,40 @@ class CG():
         self.width  = width
         self.height = height
         self.pango = False
+        self.plugins = []
+
+        if os.path.exists(plugin_path):
+            for fname in os.listdir(plugin_path):
+                self.load_plugin(fname)
+
+    def load_plugin(self, fname):
+        mod_name, file_ext = os.path.splitext(fname)
+        if file_ext != ".py":
+            return
+
+        py_mod = imp.load_source(mod_name, os.path.join(plugin_path, fname))
+
+        if not "Plugin" in dir(py_mod):
+            logging.warning("No plugin class found in {}".format(fname))
+
+        self.plugins.append(py_mod.Plugin(self))
+        if hasattr(self.plugins[-1], "on_init"):
+            self.plugins[-1].on_init()
+
+
+    def __getattr__(self, attr):
+        for plugin in self.plugins:
+            if hasattr(plugin, attr):
+                return getattr(plugin, attr)
+
+    @property
+    def colors(self):
+        return colors
+
+    @property
+    def fonts(self):
+        return fonts
+
 
     def save(self, file_name):
         with open(file_name, "wb") as image_file:
@@ -47,6 +83,11 @@ class CG():
     def rect(self, x, y, w, h):
         self.context.rectangle(x, y, w, h)
         self.context.fill()
+
+    def filter(self, f):
+        im = cairo2pil(self.surface)
+        im = im.filter(f)
+        self.glyph(pil2cairo(im))
 
     def polygon(self, *args, **kwargs):
         for x, y in args:
@@ -87,12 +128,11 @@ class CG():
         if "align" in kwargs:
             self.pango.layout.set_alignment(
                     {
-                    "c" : pango.ALIGN_CENTER,
-                    "l" : pango.ALIGN_LEFT,
-                    "r" : pango.ALIGN_RIGHT
-                    }[kwargs["align"]]
+                    7 : pango.ALIGN_LEFT,
+                    8 : pango.ALIGN_CENTER,
+                    9 : pango.ALIGN_RIGHT
+                    }[int(kwargs["align"])]
                 )
-
 
         self.pango.set_font(kwargs.get("font", "Sans 36"))
         self.pango.set_color(kwargs.get("color", FALLBACK_COLOR))
