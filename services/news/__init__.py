@@ -10,6 +10,34 @@ from nx import *
 from nx.objects import *
 
 
+from urllib2 import urlopen
+from xml.etree import ElementTree as ET
+
+
+class NewsItem(dict):
+    pass
+
+
+class RSS():
+    def __init__(self, feed_url):
+        self.feed_url = feed_url
+        
+        data = urllib2.urlopen(self.feed_url).read()
+        self.feed = ET.XML(data)
+        
+    @property
+    def items(self):
+        for item_data in xfeed.findall("item"):
+            item = NewsItem()
+            item["guid"]  = item_data.find("guid").text.strip()
+            item["title"] = item_data.find("title").text.strip()
+            item["description"] = item_data.find("description"].text.strip()
+            yield item
+
+
+
+
+
 class ControlHandler(BaseHTTPRequestHandler):
     def log_request(self, code='-', size='-'): 
         pass 
@@ -45,6 +73,10 @@ class Service(ServicePrototype):
     def on_init(self):
         port = 42200
         self.max_articles = 100
+
+        self.sources = [
+                ["rfe", "rss", "http://www.rferl.org/api/epiqq"]
+            ]
 
         self.history = {}
         self.server = HTTPServer(('',port), ControlHandler)
@@ -89,24 +121,31 @@ class Service(ServicePrototype):
 
 
 
+    def push_item(self, item, db=False):
+        db = db or DB()
+        db.query("SELECT id_object FROM nx_meta WHERE tag='identifier/guid' AND value = %s AND id_object IN (SELECT id_object FROM nx_meta WHERE tag='news_group' AND value=%s )", 
+                [article["identifier/guid"], article["news_group"] ]
+            )
+
+        if db.fetchall():
+            continue
+
+        asset = self.get_free_asset(db=db)
+        asset["id_folder"] = 6
+        asset["origin"] = "News"
+        asset["status"] = ONLINE
+        asset["ctime"] = time.time()
+        asset["qc/state"] = 4
+        asset.meta.update(article)
+        asset.save()
+
+
     def on_main(self):
-        from mod_google_headlines import google_headlines
-
         db = DB()
-        for article in google_headlines():
-            db.query("SELECT id_object FROM nx_meta WHERE tag='identifier/guid' AND value = %s AND id_object IN (SELECT id_object FROM nx_meta WHERE tag='news_group' AND value=%s )", [article["identifier/guid"], article["news_group"] ])
-            if db.fetchall():
-                continue
+        for group, mod, source in self.sources:
+            if mod == "rss":
+                feed = RSS(source)
+                for item in feed.items:
+                    item["news_group"] = group
+                    self.push_item(item, db=db)
 
-            db.query("SELECT id_object FROM nx_meta WHERE tag='title' AND value = %s AND id_object IN (SELECT id_object FROM nx_meta WHERE tag='news_group' AND value=%s )", [article["title"], article["news_group"] ])
-            if db.fetchall():
-                continue
-
-            asset = self.get_free_asset(db=db)
-            asset["id_folder"] = 6
-            asset["origin"] = "News"
-            asset["status"] = ONLINE
-            asset["ctime"] = time.time()
-            asset["qc/state"] = 4
-            asset.meta.update(article)
-            asset.save()
