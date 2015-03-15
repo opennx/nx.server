@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+
+import urllib2
 import thread
 import uuid
 
@@ -10,7 +12,6 @@ from nx import *
 from nx.objects import *
 
 
-from urllib2 import urlopen
 from xml.etree import ElementTree as ET
 
 
@@ -21,17 +22,26 @@ class NewsItem(dict):
 class RSS():
     def __init__(self, feed_url):
         self.feed_url = feed_url
-        
         data = urllib2.urlopen(self.feed_url).read()
-        self.feed = ET.XML(data)
-        
+        self.feed = ET.XML(data).find("channel")
+
     @property
     def items(self):
-        for item_data in xfeed.findall("item"):
+        for item_data in self.feed.findall("item"):
             item = NewsItem()
-            item["guid"]  = item_data.find("guid").text.strip()
-            item["title"] = item_data.find("title").text.strip()
-            item["description"] = item_data.find("description"].text.strip()
+
+            try:
+                guid = item_data.find("guid").text.strip()
+                title = item_data.find("title").text.strip()
+            except:
+                continue
+
+            description =  item_data.find("description").text
+            description = description.strip() if description else ""
+
+            item["identifier/guid"] = guid
+            item["title"] = title
+            item["description"] = description
             yield item
 
 
@@ -40,8 +50,8 @@ class RSS():
 
 class ControlHandler(BaseHTTPRequestHandler):
     def log_request(self, code='-', size='-'): 
-        pass 
-       
+        pass
+
     def _do_headers(self,mime="application/json", response=200, headers=[]):
         self.send_response(response)
         self.send_header("Access-Control-Allow-Origin", "*")
@@ -50,7 +60,7 @@ class ControlHandler(BaseHTTPRequestHandler):
             handler.send_header(h[0],h[1])
         self.send_header('Content-type', mime)
         self.end_headers()
-         
+
     def _echo(self,istring):
         self.wfile.write(istring.encode("utf-8"))
 
@@ -58,13 +68,15 @@ class ControlHandler(BaseHTTPRequestHandler):
         self._do_headers()
         self._echo(json.dumps(data))
 
-
     def error(self,response):
         self._do_headers(response=response)
 
     def do_GET(self):
         service = self.server.service
-        article = service.get_article(1, ["google_domov", "google_svet"])
+        article = service.get_article(1, ["rfe"])
+        if not article:
+           self.result(False)
+           return
         self.result(article.meta)
 
 
@@ -72,7 +84,7 @@ class ControlHandler(BaseHTTPRequestHandler):
 class Service(ServicePrototype):
     def on_init(self):
         port = 42200
-        self.max_articles = 100
+        self.max_articles = 20
 
         self.sources = [
                 ["rfe", "rss", "http://www.rferl.org/api/epiqq"]
@@ -90,8 +102,10 @@ class Service(ServicePrototype):
             AND id_object IN (SELECT id_object FROM nx_meta WHERE tag='news_group' AND value IN ({}))
             AND id_object IN (SELECT id_object FROM nx_meta WHERE tag='qc/state' AND value='4')
             """.format(time.time() - 86400,   ", ".join(["'{}'".format(group) for group in groups])))
-        
+
         articles = [r[0] for r in db.fetchall()]
+        if not articles:
+            return False
 
         if channel not in self.history:
             self.history[channel] = {}
@@ -124,19 +138,21 @@ class Service(ServicePrototype):
     def push_item(self, item, db=False):
         db = db or DB()
         db.query("SELECT id_object FROM nx_meta WHERE tag='identifier/guid' AND value = %s AND id_object IN (SELECT id_object FROM nx_meta WHERE tag='news_group' AND value=%s )", 
-                [article["identifier/guid"], article["news_group"] ]
+                [item["identifier/guid"], item["news_group"] ]
             )
 
         if db.fetchall():
-            continue
+            return
 
+        logging.debug("Saving news item {}".format(item["title"]))
+        
         asset = self.get_free_asset(db=db)
         asset["id_folder"] = 6
         asset["origin"] = "News"
         asset["status"] = ONLINE
         asset["ctime"] = time.time()
         asset["qc/state"] = 4
-        asset.meta.update(article)
+        asset.meta.update(item)
         asset.save()
 
 
