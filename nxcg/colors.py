@@ -23,7 +23,7 @@ COLOR_PRESETS = {
     "black" : "#101010",
 
     "black glass 70"  : "#000000B3",
-    "black glass 80"  : "#000000CC",
+    "black glass 75"  : "#000000CC",
     "black glass 80"  : "#000000E6",
 
     "logo gray"       : "#F5F5F5B3",

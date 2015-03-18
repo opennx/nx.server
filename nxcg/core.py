@@ -53,7 +53,7 @@ class CG():
 
         if not "Plugin" in dir(py_mod):
             logging.warning("No plugin class found in {}".format(fname))
-
+        logging.debug("Loading plugin {}".format(mod_name))
         self.plugins.append(py_mod.Plugin(self))
         if hasattr(self.plugins[-1], "on_init"):
             self.plugins[-1].on_init()
@@ -72,7 +72,6 @@ class CG():
     def fonts(self):
         return fonts
 
-
     def save(self, file_name):
         with open(file_name, "wb") as image_file:
             self.surface.write_to_png(image_file)
@@ -90,8 +89,18 @@ class CG():
         self.glyph(pil2cairo(im))
 
     def polygon(self, *args, **kwargs):
+        first = True
         for x, y in args:
-            pass #TODO
+            if first:
+                self.context.move_to(x, y)
+                first = False
+                continue
+            self.context.line_to(x, y)
+
+        #TODO: fill, draw... whatever options you can get from kwargs
+        self.context.fill()
+       
+
 
     def glyph(self, g, x=0, y=0, alignment=7):
         if type(g) == str:
@@ -133,6 +142,9 @@ class CG():
                     9 : pango.ALIGN_RIGHT
                     }[int(kwargs["align"])]
                 )
+
+        if pango.find_base_dir(text, len(text)) == pango.DIRECTION_RTL:
+            text = "<span gravity=\"west\">{}</span>".format(text) 
 
         self.pango.set_font(kwargs.get("font", "Sans 36"))
         self.pango.set_color(kwargs.get("color", FALLBACK_COLOR))
