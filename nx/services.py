@@ -14,6 +14,8 @@ class ServicePrototype(object):
 
         try:
             self.on_init()
+        except SystemExit:
+            pass
         except:
             logging.error("Unable to initialize service: {}".format(traceback.format_exc()))
             self.shutdown()
