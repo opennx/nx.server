@@ -271,7 +271,7 @@ def hive_rundown(user, params):
             elif item.asset["status"] != ONLINE:
                 i_meta["rundown_status"] = 0 # Master asset is not online: Rundown status = OFFLINE
             else:
-                id_playout = item["id_playout/{}".format(id_channel)]
+                id_playout = item[config["playout_channels"][id_channel]["playout_spec"]]
                 if not id_playout or Asset(id_playout, db=db)["status"] not in [ONLINE, CREATING]: # Master asset exists, but playout asset is not online.... (not scheduled / pending)
                     i_meta["rundown_status"] = 1
                 else:
