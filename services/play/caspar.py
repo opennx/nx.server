@@ -341,7 +341,7 @@ class Caspar():
     def __init__(self):
       self.servers  = {}
       self.channels = {}
-      self.bad_requests  = 0
+      self.bad_requests  = {}
       thread.start_new_thread(self._start,())
 
     def add_channel(self, host, port, channel, feed_layer, ident):
@@ -375,9 +375,11 @@ class Caspar():
         for ident in idents:
             channel = self.channels[ident]
             if not channel.update_stat():
-                logging.warning("Update stat failed")
-                self.bad_requests += 1
-                if self.bad_requests > 10:
+                logging.warning("Channel {} update stat failed".format(ident))
+                if not ident in self.bad_requests:
+                    self.bad_requests[ident] = 0
+                self.bad_requests[ident] += 1
+                if self.bad_requests.get(ident, 0) > 10:
                     logging.error("Connection lost. Reconnecting...")
                     if success(channel.server.connect()[0]):
                         logging.goodnews("Connection estabilished")
@@ -387,7 +389,7 @@ class Caspar():
                 time.sleep(.1)
                 continue
             else:
-                self.bad_requests = 0
+                self.bad_requests[ident] = 0
                 channel.main()
 
 
