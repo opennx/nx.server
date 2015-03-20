@@ -204,7 +204,7 @@ class Service(ServicePrototype):
         if item["item_role"] == "studio":
             logging.info("Next is studio item")
             fname = "BLANK"
-            kwargs["auto"] = False
+            kwargs["auto"] = True #False
             channel._next_studio = item.id
             return channel.cue(fname, **kwargs)
 

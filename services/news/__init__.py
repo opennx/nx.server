@@ -87,7 +87,7 @@ class Service(ServicePrototype):
         self.max_articles = 20
 
         self.sources = [
-                ["rfe", "rss", "http://www.rferl.org/api/epiqq"]
+                ["rfe", "rss", "http://origin.rferl.org/rss/"]
             ]
 
         self.history = {}
@@ -152,6 +152,8 @@ class Service(ServicePrototype):
         asset["status"] = ONLINE
         asset["ctime"] = time.time()
         asset["qc/state"] = 4
+        asset["media_type"] = VIRTUAL
+        asset["content_type"] = TEXT
         asset.meta.update(item)
         asset.save()
 

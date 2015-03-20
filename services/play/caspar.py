@@ -68,7 +68,7 @@ class CasparChannel():
 
         marks = ""
         if mark_in:  marks += " SEEK %d"   % (float(mark_in)*self.fps)
-        if mark_out: marks += " LENGTH %d" % (float(mark_out)*self.fps)
+        if mark_out: marks += " LENGTH %d" % ((float(mark_out) - float(mark_in))*self.fps)
 
         if play:# or self.stopped:
             q = "PLAY %s-%d %s %s"     % (self.channel,layer,fname,marks)
@@ -111,7 +111,7 @@ class CasparChannel():
     def retake(self,layer=False):
         layer = layer or self.feed_layer
         seekparam = "%s" % (int(self.current_in*self.fps))
-        if self.current_out: seekparam += " LENGTH %s" % (int(self.current_out*self.fps))
+        if self.current_out: seekparam += " LENGTH %s" % (int((self.current_out-self.current_in)*self.fps))
         q = "PLAY %d-%d %s SEEK %s"%(self.channel, layer, self.current_fname,  seekparam)
         self.paused = False
         return self.server.query(q)
@@ -125,7 +125,7 @@ class CasparChannel():
             msg = "Playback paused"
         else:
             if self.current_out:
-                LEN = "LENGTH %s" %int(self.current_out*self.fps)
+                LEN = "LENGTH %s" %int((self.current_out-self.current_in)*self.fps)
             else:
                 LEN = ""
 
@@ -147,7 +147,7 @@ class CasparChannel():
         if self.cued_in:
             q += " SEEK {}".format(int(self.cued_in * self.fps))
         if self.cued_out:
-            q += " LENGTH {}".format(int(self.cued_out * self.fps))
+            q += " LENGTH {}".format(int((self.cued_out-self.cued_in) * self.fps))
         return self.server.query(q)
 
 
@@ -211,6 +211,7 @@ class CasparChannel():
                 current_fname = basefname(fg_prod.find("filename").text)
         except:
             logging.error(traceback.format_exc())
+            print (fg_prod.text)
             current_fname = False
             
 
