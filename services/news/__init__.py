@@ -87,7 +87,7 @@ class Service(ServicePrototype):
         self.max_articles = 20
 
         self.sources = [
-                ["rfe", "rss", "http://origin.rferl.org/rss/"]
+                ["rfe", "rss", "http://www.rferl.org/api/c$tmnpuqdvki!ktqeo_qo"]
             ]
 
         self.history = {}
@@ -98,7 +98,7 @@ class Service(ServicePrototype):
 
     def get_article(self, channel, groups):
         db = DB()
-        db.query("""SELECT id_object FROM nx_assets WHERE id_folder = 6 AND mtime > {}
+        db.query("""SELECT id_object FROM nx_assets WHERE id_folder = 6 AND origin='News' AND mtime > {}
             AND id_object IN (SELECT id_object FROM nx_meta WHERE tag='news_group' AND value IN ({}))
             AND id_object IN (SELECT id_object FROM nx_meta WHERE tag='qc/state' AND value='4')
             """.format(time.time() - 86400,   ", ".join(["'{}'".format(group) for group in groups])))
@@ -125,12 +125,12 @@ class Service(ServicePrototype):
         if not db:
             db=DB()
 
-        db.query("SELECT COUNT(id_object) from nx_assets WHERE id_folder=6")
+        db.query("SELECT COUNT(id_object) from nx_assets WHERE id_folder=6 AND origin='News'")
         count = db.fetchall()[0][0]
         if count < self.max_articles:
             return Asset(db=db)
 
-        db.query("SELECT id_object FROM nx_assets WHERE id_folder = 6 ORDER BY mtime ASC LIMIT 1")
+        db.query("SELECT id_object FROM nx_assets WHERE id_folder=6 and origin='News' ORDER BY mtime ASC LIMIT 1")
         return Asset(db.fetchall()[0][0], db=db)
 
 
