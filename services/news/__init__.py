@@ -20,31 +20,36 @@ class NewsItem(dict):
 
 
 class RSS():
-    def __init__(self, feed_url):
+    def __init__(self, feed_url, parser=False):
         self.feed_url = feed_url
+        self.parser = parser
         data = urllib2.urlopen(self.feed_url).read()
         self.feed = ET.XML(data).find("channel")
+
+    def default_parser(self, item_data):
+        item = NewsItem()
+        try:
+            guid = item_data.find("guid").text.strip()
+            title = item_data.find("title").text.strip()
+        except:
+            return False
+
+        description =  item_data.find("description").text
+        description = description.strip() if description else ""
+
+        item["identifier/guid"] = guid
+        item["title"] = title
+        item["description"] = description
+        return item
 
     @property
     def items(self):
         for item_data in self.feed.findall("item"):
-            item = NewsItem()
-
-            try:
-                guid = item_data.find("guid").text.strip()
-                title = item_data.find("title").text.strip()
-            except:
-                continue
-
-            description =  item_data.find("description").text
-            description = description.strip() if description else ""
-
-            item["identifier/guid"] = guid
-            item["title"] = title
-            item["description"] = description
-            yield item
-
-
+            if not self.parser:
+                item = self.default_parser(item_data)
+                if item:
+                    yield item
+            # TODO: Custom parsers
 
 
 
@@ -85,10 +90,29 @@ class Service(ServicePrototype):
     def on_init(self):
         port = 42200
         self.max_articles = 20
+        self.sources = []
 
-        self.sources = [
-                ["rfe", "rss", "http://www.rferl.org/api/c$tmnpuqdvki!ktqeo_qo"]
-            ]
+        for source in self.settings.findall("source"):
+            try:
+                title = source.find("title").text
+                mod = source.find("module").text
+                url = source.find("url").text
+            except:
+                continue
+
+            try:
+                parser = source.find("parser").text
+            except:
+                parser = False
+
+            self.sources.append([title, mod, url, parser])
+
+
+        if not self.sources:
+            # DEFAULT RFE/RL ARTICLES SOURCE
+            self.sources = [
+                    ["rfe", "rss", "http://www.rferl.org/api/c$tmnpuqdvki!ktqeo_qo", False]
+                ]
 
         self.history = {}
         self.server = HTTPServer(('',port), ControlHandler)
@@ -145,7 +169,7 @@ class Service(ServicePrototype):
             return
 
         logging.debug("Saving news item {}".format(item["title"]))
-        
+
         asset = self.get_free_asset(db=db)
         asset["id_folder"] = 6
         asset["origin"] = "News"
@@ -160,9 +184,9 @@ class Service(ServicePrototype):
 
     def on_main(self):
         db = DB()
-        for group, mod, source in self.sources:
+        for group, mod, source, parser in self.sources:
             if mod == "rss":
-                feed = RSS(source)
+                feed = RSS(source, parser=parser)
                 for item in feed.items:
                     item["news_group"] = group
                     self.push_item(item, db=db)
