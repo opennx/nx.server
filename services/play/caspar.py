@@ -264,7 +264,7 @@ class CasparChannel():
             self._changing = False
 
         elif self.cued_item and cued_fname and cued_fname != self.cued_fname and not self._cueing:
-            logging.warning ("Cue mismatch: This is not the file which should be cued. IS: %s vs. SHOULDBE: %s" % (cued_file,self.cued_fname))
+            logging.warning ("Cue mismatch: This is not the file which should be cued. IS: %s vs. SHOULDBE: %s" % (cued_fname, self.cued_fname))
             self.cued_item = False # AutoCue in on_main should handle it next iteration
 
 
