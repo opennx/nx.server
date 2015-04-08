@@ -26,7 +26,7 @@ class Glyph():
                 return g
 
         if os.path.splitext(key)[1].lower() == ".png":
-            g = cairo.ImageSurface.create_from_png(glyph)
+            g = cairo.ImageSurface.create_from_png(key)
         elif has_pil:
             im = Image.open(key)
             g = pil2cairo(im)
