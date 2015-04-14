@@ -52,32 +52,48 @@ $( function(){
 		e.preventDefault();
 		
 		var config = JSON.parse(code_editor.getValue());
+		var id_channel = {{ current_controller.current_item }};
 
-	    var data = {
-			query_table: 'nx_channels', 
-			query_key: 'id_channel', 
-			query_val: {{ current_controller.current_item }}, 
-			close: $(this).hasClass('btn-save-and-close') ? true: false,
-	        query_data : JSON.stringify({
-	             title : $('#title').val(),
-	             channel_type : $('#channel_type').val(),
-	             config : JSON.stringify(config)
-	        })
+		if( $('#title').val().length>0 )
+		{	
+
+		    var data = {
+				query_table: 'nx_channels', 
+				query_key: 'id_channel', 
+				query_val: id_channel, 
+				close: $(this).hasClass('btn-save-and-close') || id_channel == 0 ? true: false,
+		        query_data : JSON.stringify({
+		             title : $('#title').val(),
+		             channel_type : $('#channel_type').val(),
+		             config : JSON.stringify(config)
+		        })
+		    }
+
+		    //console.log(data);
+
+		    nx.com.post({
+		        url: '/{{ current_controller.controller }}/api',
+		        data: data,
+		        element: $('.nx-messages'),
+		        notifyDone: true,
+		        notifyFail: true,
+		        notifyError: true,
+				postDone: postSave,
+				postFail: nx.utils.logDev,
+				postError: nx.utils.logError,
+		    });
+
+	    }else{
+
+	    	nx.utils.alert({
+	    		type: 'warning',
+	    		message: 'Title is required, can\'t save',
+	    		clear: true,
+	    		close: true
+	    	});	    	
 	    }
 
-	    //console.log(data);
 
-	    nx.com.post({
-	        url: '/{{ current_controller.controller }}/api',
-	        data: data,
-	        element: $('#nx-messages'),
-	        notifyDone: true,
-	        notifyFail: true,
-	        notifyError: true,
-			postDone: postSave,
-			postFail: nx.utils.logDev,
-			postError: nx.utils.logError,
-	    });
 	});
 
 });

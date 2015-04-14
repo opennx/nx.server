@@ -159,7 +159,7 @@ def services(view="default"):
 
 	acl = acl_can('can/service_control', current_user)
 	template = 'access.denied.html'
-	services = []
+	services = {'now': int(time.time()), 'data': []}
 
 	if acl['status'] == True:
 
@@ -175,11 +175,12 @@ def services(view="default"):
 			autostart = int(request.form.get("autostart"))
 			service_autostart(id_service, autostart)
 
-		services = view_services(view)
+		services['data'] = view_services(view)
+		services['now'] = int(time.time())
 
 		if view=="json":
-			return services
-			
+			return json.dumps(services)
+	
 	current_controller = set_current_controller({'title': 'Services', 'controller': 'services', 'current_user': current_user, 'acl': acl })
 	return render_template(template, services=services, current_controller=current_controller)
 
@@ -226,7 +227,7 @@ def settings(view="nx-settings", citem=-1):
 				data = remove_config_data(request.form.get("query_table"), request.form.get("query_key"), request.form.get("query_val"))
 
 			if request.method == "POST" and "query_table" in request.form and request.form.get('query_table') == 'nx_settings' and "query_data" in request.form:
-				data = save_nx_settins(request.form.get('query_data'))
+				data = save_nx_settings(request.form.get('query_data'))
 
 			if request.method == "POST" and "query_table" in request.form and "query_key" in request.form and "query_val" in request.form and "query_data" in request.form:
 				data = save_config_data(request.form.get("query_table"), request.form.get("query_key"), request.form.get("query_val"), request.form.get('query_data'))
@@ -240,17 +241,13 @@ def settings(view="nx-settings", citem=-1):
 			current_controller = set_current_controller({'title': 'Configuration', 'controller': 'configuration', 'current_view': current_view, 'current_item': item, 'current_user': current_user })
 
 			if current_view == "nx-settings":
-				
-
-
+			
 				if request.method == "POST" and "firefly_kill" in request.form:
 					res = firefly_kill()
 					return json.dumps(res)
 				else:
-					
 					flash("Double check input, settings validity is critical and this action can not be undone.", "warning")
-
-					
+		
 				data = load_config_data('nx_settings', 'key')
 
 			elif current_view == "system-tools":

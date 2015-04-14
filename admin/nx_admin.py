@@ -68,7 +68,7 @@ def view_services(view=""):
 		services={}
 		for sdata in db.fetchall():
 			services[str(sdata[0])] = sdata
-		return json.dumps(services)
+		return services
 	services = []
 	for service_data in db.fetchall():
 		service = {}
@@ -363,6 +363,7 @@ def save_config_data(query_table, query_key, query_val, query_data):
 
 		if int(query_val) == 0:
 			sql_query = """INSERT INTO """+str(query_table)+""" ("""+str(','.join(keys))+""") VALUES ('"""+str("','".join(vals))+"""')"""
+			result['data']['close'] = True
 		else:
 			sql_query = """UPDATE """+str(query_table)+""" SET """+str(','.join(update))+""" WHERE """+str(query_key)+""" = """+str(query_val)+""" """
 		
@@ -465,13 +466,13 @@ def nx_setting_exists(key):
 
 
 
-def save_nx_settins(nx_settinx):
+def save_nx_settings(nx_settings):
 
 	db = DB()
 
 	result = {'data': [], 'status': True, 'reason': 'Data saved', 'batch': {}}
 
-	sql = json.loads(nx_settinx)
+	sql = json.loads(nx_settings)
 
 	for key in sql:
 		key = db.sanit(str(key))

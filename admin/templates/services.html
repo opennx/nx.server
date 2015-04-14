@@ -13,12 +13,13 @@
                     <th>Title</th>
                     <th>Agent</th>
                     <th>Host</th>
+                    <th style='width:110px;'>Last seen</th>
                     <th style='width:100px;'>Autostart</th>
                     <th style='width:80px;'>&nbsp;</th>
                 </tr>
             </thead>
             <tbody>
-                {% for service in services %}
+                {% for service in services.data %}
                 
 
                 {% set action_permit = False %}
@@ -37,6 +38,7 @@
                     <td>{{service.title}}</td>
                     <td>{{service.agent}}</td>
                     <td>{{service.host}}</td>
+                    <td><span data-svc-status-id="{{service.id_service}}"></span></td>
                     <td>
                         {% if action_permit == True %}
                         <input type="checkbox" data-id-service="{{service.id_service}}" data-label="" name="service-autostart"{%if service.autostart == 1 %} checked{% endif %} value="1">
@@ -87,11 +89,10 @@
 
             if (data)
             {
-                $.each( data, function( id_service, dataset ) 
+                var settings = data;
+                $.each( settings.data, function( id_service, dataset ) 
                 {
-                    if(once === true && id_service == 9){
-                        //console.log(dataset);
-                    }
+                    set_service_warning(id_service, dataset[9], settings.now)
                     set_service_btn( id_service, dataset[7], dataset[4] );
                 });
                 
@@ -104,6 +105,22 @@
         });
     }
    
+    var set_service_warning = function(id_service, last_seen, now)
+    {
+        diff = now - last_seen;
+        min = parseInt(diff/60);
+        sec = diff - (min*60);
+
+        if( (now-30)>last_seen ){
+            w = $('<i class="glyphicon glyphicon-alert"></i>');
+            $("span[data-svc-status-id='"+id_service+"']").removeClass('text-success').addClass('text-danger').html(w).append(' '+min+':'+sec);
+        }else{
+            //w = $('<i class="glyphicon glyphicon-ok"></i>');
+            w = '';
+            $("span[data-svc-status-id='"+id_service+"']").removeClass('text-danger').addClass('svc-grey').html(w).append(' '+min+':'+sec);
+        }
+    }
+
     var set_service_btn = function( id_service, state, autostart ){
         
         // Set autostart checkbox
@@ -155,7 +172,8 @@
             .addClass(btn_classes)
             .prop('disabled', btn_disabled)
             .off('click')
-            .on('click', function(e){
+            .on('click', function(e)
+            {
                 e.preventDefault();
                 if(btn_set_state !== false)
                 {
@@ -167,11 +185,13 @@
 
     }
 
-    var set_service_state = function( id_service, action ){
+    var set_service_state = function( id_service, action )
+    {
         $.post( nx.settings.controller+"/json", { action: action, id_service: id_service } );   
     }
 
-    $(document).ready(function(){
+    $(document).ready(function()
+    {
         update_services( false );
     });
 

@@ -24,7 +24,7 @@ $( function(){
 	        nx.com.post({
 	            url: '/{{ current_controller.controller }}/api',
 	            data: session_data,
-	            element: $('#nx-messages'),
+	            element: $('.nx-messages'),
 	            notifyDone: true,
 	            notifyFail: true,
 	            notifyError: true,
@@ -46,7 +46,7 @@ $( function(){
 
 	// SAVE REDIRECT
 	var postSave = function(r,d){
-		if(d.close === true){
+		if(r.data.close === true){
 			document.location.href = '/{{ current_controller.controller }}/{{ current_controller.current_view }}';
 		}
 	}
@@ -97,10 +97,12 @@ $( function(){
 
 		if(allowUserSave === true)
 		{	
+			var id_user = {{ current_controller.current_item }};
+
 			var data = {
 				query_table: 'nx_users', 
-				query_val: {{ current_controller.current_item }}, 
-				close: $(this).hasClass('btn-save-and-close') ? true: false,
+				query_val: id_user, 
+				close: $(this).hasClass('btn-save-and-close') || id_user == 0 ? true: false,
 				query_data: JSON.stringify(user_data)
 			}
 
@@ -108,7 +110,7 @@ $( function(){
 	        nx.com.post({
 	            url: '/{{ current_controller.controller }}/api',
 	            data: data,
-	            element: $('#nx-messages'),
+	            element: $('.nx-messages'),
 	            notifyDone: true,
 	            notifyFail: true,
 	            notifyError: true,
@@ -165,7 +167,7 @@ $( function(){
 	        nx.com.post({
 	            url: '/{{ current_controller.controller }}/api',
 	            data: data,
-	            element: $('#nx-messages'),
+	            element: $('.nx-messages'),
 	            notifyDone: true,
 	            notifyFail: true,
 	            notifyError: true,

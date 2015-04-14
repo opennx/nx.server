@@ -50,30 +50,43 @@ $( function(){
 		e.preventDefault();
 
 		var config = code_editor.getValue();
+		var id_action = {{ current_controller.current_item }}; 
 
-		var data = {
-			query_table: 'nx_actions', 
-			query_key: 'id_action', 
-			query_val: {{ current_controller.current_item }}, 
-			close: $(this).hasClass('btn-save-and-close') ? true: false,
-			query_data: JSON.stringify({
-				title: $('#title').val(),
-				config: config
-			})
-		}
+		if( $('#title').val().length>0 )
+		{
 
-		//console.log(data);
-        nx.com.post({
-            url: '/{{ current_controller.controller }}/api',
-            data: data,
-            element: $('#nx-messages'),
-            notifyDone: true,
-            notifyFail: true,
-            notifyError: true,
-            postDone: postSave,
-            postFail: nx.utils.logDev,
-            postError: nx.utils.logError,
-        });
+			var data = {
+				query_table: 'nx_actions', 
+				query_key: 'id_action', 
+				query_val: id_action, 
+				close: $(this).hasClass('btn-save-and-close') || id_action == 0 ? true: false,
+				query_data: JSON.stringify({
+					title: $('#title').val(),
+					config: config
+				})
+			}
+
+			//console.log(data);
+	        nx.com.post({
+	            url: '/{{ current_controller.controller }}/api',
+	            data: data,
+	            element: $('.nx-messages'),
+	            notifyDone: true,
+	            notifyFail: true,
+	            notifyError: true,
+	            postDone: postSave,
+	            postFail: nx.utils.logDev,
+	            postError: nx.utils.logError,
+	        });
+	    }else{
+
+	    	nx.utils.alert({
+	    		type: 'warning',
+	    		message: 'Title is required, can\'t save',
+	    		clear: true,
+	    		close: true
+	    	});		    	
+	    }
 
 	});
 
@@ -122,7 +135,7 @@ $( function(){
 	        nx.com.post({
 	            url: '/{{ current_controller.controller }}/api',
 	            data: data,
-	            element: $('#nx-messages'),
+	            element: $('.nx-messages'),
 	            notifyDone: true,
 	            notifyFail: true,
 	            notifyError: true,

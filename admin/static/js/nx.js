@@ -5,7 +5,7 @@ nx.com = {
 		var settings = {
 			url: '',
 			data: {},
-			element: $('#nx-messages'),
+			element: $('.nx-messages'),
 			status: false,
 			notifyDone: true,
 			notifyFail: true,
@@ -135,7 +135,7 @@ nx.utils = {
 		settings = {
 			type: 'success',
 			close: true,
-			element: $('#nx-messages'),
+			element: $('.nx-messages'),
 			message: 'Message not set!',
 			clear: false
 		};
