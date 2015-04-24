@@ -37,7 +37,7 @@ class Service(ServicePrototype):
         self.backup_dir = "backup.dir"
         self.identifier = "identifier/main"
         self.condition = "asset['origin'] == 'Production'"
-        self.containers = [".mov", ".mpeg"]
+        self.containers = [".mov", ".mpeg", ".mp4"]
         self.versioning = True
         self.profile = {
             "name" : "DNxHD 1080p25 36Mbps",
