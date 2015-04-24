@@ -167,8 +167,10 @@ class Service(ServicePrototype):
 
         if db.fetchall():
             return
-
-        logging.debug("Saving news item {}".format(item["title"]))
+        try:
+            logging.debug("Saving news item {}".format(item["title"]))
+        except:
+            logging.debug("Saving news item")
 
         asset = self.get_free_asset(db=db)
         asset["id_folder"] = 6
