@@ -5,7 +5,9 @@
 import urllib2
 import thread
 import uuid
+import email
 
+from datetime import datetime
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
 from nx import *
@@ -13,6 +15,11 @@ from nx.objects import *
 
 
 from xml.etree import ElementTree as ET
+
+
+
+def rfc822(timestamp):
+    return  email.Utils.mktime_tz(email.Utils.parsedate_tz(timestamp))
 
 
 class NewsItem(dict):
@@ -37,10 +44,19 @@ class RSS():
         description =  item_data.find("description").text
         description = description.strip() if description else ""
 
+        pub_date = item_data.find("pubDate").text
+        pub_date = rfc822(pub_date.strip()) if pub_date else time.time()
+
+
+
         item["identifier/guid"] = guid
         item["title"] = title
         item["description"] = description
+        item["source"] = "" #TODO: Domain/RSS name here
+
+
         return item
+
 
     @property
     def items(self):
@@ -167,8 +183,10 @@ class Service(ServicePrototype):
 
         if db.fetchall():
             return
-
-        logging.debug("Saving news item {}".format(item["title"]))
+        try:
+            logging.debug("Saving news item {}".format(item["title"]))
+        except:
+            logging.debug("Saving news item")
 
         asset = self.get_free_asset(db=db)
         asset["id_folder"] = 6

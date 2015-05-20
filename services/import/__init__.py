@@ -5,6 +5,7 @@ import uuid
 
 from nx import *
 from nx.objects import *
+from nx.common.filetypes import file_types
 
 from themis import Themis
 
@@ -37,7 +38,7 @@ class Service(ServicePrototype):
         self.backup_dir = "backup.dir"
         self.identifier = "identifier/main"
         self.condition = "asset['origin'] == 'Production'"
-        self.containers = [".mov", ".mpeg"]
+        self.containers = ["."+f for f in file_types.keys() if file_types[f] == VIDEO]
         self.versioning = True
         self.profile = {
             "name" : "DNxHD 1080p25 36Mbps",
