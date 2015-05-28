@@ -17,18 +17,42 @@ else:
     decode_if_py3 = lambda x: x
 
 
+if sys.platform == "win32":
+    PLATFORM   = "windows"
+else:
+    PLATFORM   = "linux"
+
+
+
+
 class Log():
-    def debug(self, *args):
-        print ("DEBUG", *args)
+    def __init__(self, user="Unknown"):
+        self.user = user
+        self.formats = {
+            "DEBUG"     : "DEBUG      \033[34m{0:<15} {1}\033[0m",
+            "INFO"      : "INFO       {0:<15} {1}",
+            "WARNING"   : "\033[33mWARNING\033[0m    {0:<15} {1}",
+            "ERROR"     : "\033[31mERROR\033[0m      {0:<15} {1}",
+            "GOOD NEWS" : "\033[32mGOOD NEWS\033[0m  {0:<15} {1}"
+            }
 
-    def info(self, *args):
-        print ("INFO", *args)
+    def _send(self, msgtype, message):
+        if PLATFORM == "linux":
+            try:
+                print (self.formats[msgtype].format(self.user, message))
+            except:
+                print (message.encode("utf-8"))
+        else:
+            try:
+                print ("{0:<10} {1:<15} {2}".format(msgtype, self.user, message))
+            except:
+                print (message.encode("utf-8"))
 
-    def warning(self, *args):
-        print ("WARNING", *args)
-
-    def error(self, *args):
-        print ("ERROR", *args)  
+    def debug   (self,msg): self._send("DEBUG", msg) 
+    def info    (self,msg): self._send("INFO", msg) 
+    def warning (self,msg): self._send("WARNING", msg) 
+    def error   (self,msg): self._send("ERROR", msg) 
+    def goodnews(self,msg): self._send("GOOD NEWS", msg) 
 
 
 ####################################
@@ -66,21 +90,26 @@ def filter_arc(w, h, aspect):
 class BaseProcessor():
     default_args = []
 
-    def __init__(self, *args):
+    def __init__(self, *args, **kwargs):
+        self.kwargs = kwargs
         self.args = []
         for arg in self.default_args:
             self.args.append(str(arg))
         for arg in args:
             self.args.append(str(arg))
-        self.proc = None    
-        self.err = ""    
-        self.buff = ""    
+        self.proc = None
+        self.err = ""
+        self.buff = ""
 
     def start(self, **kwargs):
-        print (" ".join(self.args))
+        message = "Executing: " + " ".join(self.args)
+        if "logging" in self.kwargs:
+            self.kwargs["logging"].debug(message)
+        else:
+            print (message)
         self.proc = subprocess.Popen(
-            self.args, 
-            stdin=kwargs.get("stdin", None), 
+            self.args,
+            stdin=kwargs.get("stdin", None),
             stdout=kwargs.get("stdout", subprocess.PIPE),
             stderr=kwargs.get("stderr", subprocess.PIPE)
             )
@@ -136,7 +165,9 @@ class Sox(BaseProcessor):
 
 class Themis():
     def __init__(self, fname, **kwargs):
-        self.logging = kwargs.get("logging", Log())
+        self.logging = kwargs.get("logging", Log("Themis"))
+        if not hasattr(self.logging, "goodnews"):
+            self.logging.goodnews  = self.logging.info
 
         self.fname = fname
         self.kwargs = kwargs
@@ -162,10 +193,11 @@ class Themis():
             self.logging.debug("Cleaning-up temporary files")
             for f in self.tempfiles:
                 if os.path.exists(f):
-                    #try:
+                    try:
+                        self.logging.warning("Unable to remove temporary file {}".format(f))
                         os.remove(f)
-                    #except:
-                    #    pass
+                    except:
+                        pass
 
     def __del__(self):
         self.clean_temp()
@@ -231,14 +263,15 @@ class Themis():
 
 
     def analyze(self):
-        self.logging.debug("FFProbing")
+        self.logging.debug("FFProbing file {}".format(self.fname))
         self.probe()
-        self.logging.debug("Loudness metering")
+        self.logging.debug("R128 mettering file {}".format(self.fname))
         self.r128()
         self.logging.debug("Source loudness: {} LUFS".format(self.loudness))
 
 
     def process(self, output, profile):
+        self.logging.info("Transcoding {} to {}".format(self.fname, profile["name"]))
         if not self.probe_result:
             self.set_status("Unable to open source file metadata", "error")
             return False
@@ -327,7 +360,6 @@ class Themis():
 
 
 
-        
         if encode_video:
 
             filters = []
@@ -380,8 +412,8 @@ class Themis():
                 cmd.append(output)
 
                 self.set_status("Encoding video (straight from {} to {})".format(source_fps, profile_fps), "info")
-                ffmpeg = FFMpeg(*cmd)
-                result = ffmpeg.start(handler=lambda x: sys.stdout.write("\r{} of {}".format(x, int(duration*source_fps))))
+                ffmpeg = FFMpeg(*cmd, logging=self.logging)
+                result = ffmpeg.start()
 
                 if result:
                     logging.error("Encoding failed: {}".format(ffmpeg.error))
@@ -405,7 +437,7 @@ class Themis():
                             audio_temp_name
                         ]
 
-                    ffmpeg = FFMpeg(*cmd)
+                    ffmpeg = FFMpeg(*cmd, logging=self.logging)
                     result = ffmpeg.start()
                     if result:
                         logging.error("Audio extraction failed: {}".format(ffmpeg.error))
@@ -429,7 +461,7 @@ class Themis():
                         cmd.append(gain)
 
                     self.logging.debug("Processing audio")
-                    sox = Sox(*cmd)
+                    sox = Sox(*cmd, logging=self.logging)
                     result = sox.start()
 
                     if result:
@@ -489,12 +521,10 @@ class Themis():
 
 
 
-                handler=lambda x: sys.stdout.write("\r{} of {}".format(x, int(duration*profile_fps)))
-
-                p1 = FFMpeg(*cmd1)
+                p1 = FFMpeg(*cmd1, logging=self.logging)
                 p1.start(check_output=False)
 
-                p2 = FFMpeg(*cmd2)
+                p2 = FFMpeg(*cmd2, logging=self.logging)
                 p2.start(check_output=False, stdin=p1.proc.stdout)
 
                 p1.proc.stdout.close()
@@ -502,19 +532,18 @@ class Themis():
 
                 while True:
                     if p1.proc.poll() != None:
-                        print ("Proc 1 ended")
+                        logging.debug("Proc 1 ended")
                     elif p2.proc.poll() != None:
-                        print ("Proc 2 ended")
+                        logging.debug("Proc 2 ended")
                     else:
                         time.sleep(.001)
                         continue
                     break
 
 
-
         # Just change audio gain
         elif gain:
-            self.logging.info("Adjusting gain by {} dB".format(gain))
+            self.logging.debug("Adjusting gain by {} dB".format(gain))
             cmd = [
                     "-i", self.fname,
 
@@ -540,11 +569,13 @@ class Themis():
 
             cmd.append(output)
 
-            ffmpeg = FFMpeg(*cmd)
+            ffmpeg = FFMpeg(*cmd, logging=self.logging)
             ffmpeg.start()
 
         else:
             self.logging.info("Moving file".format(gain))
             os.rename(self.fname, output)
 
+
+        self.logging.goodnews("Encoding completed")
         return True
