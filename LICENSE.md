@@ -1,4 +1,4 @@
-OpenNX media asset management & broadcast automation system.
+Nebula media asset management & broadcast automation system.
 Copyright (C) 2013 imm studios
 
 This program is free software: you can redistribute it and/or modify
