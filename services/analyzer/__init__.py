@@ -7,10 +7,14 @@ from nx.shell import shell
 
 
 class BaseAnalyzer():
+    condition = False
+    proc_name = "base"
+    version   = 1.0
+
     def __init__(self, asset):
         self.asset = asset
         self.result = {}
-        self.proc()
+        self.status = self.proc()
 
     def update(self, key, value):
         self.result[key] = value
@@ -21,6 +25,10 @@ class BaseAnalyzer():
 
 
 class Analyzer_AV(BaseAnalyzer):
+    condition = "not 'audio/r128/i' in asset.meta"
+    proc_name = "av"
+    version   = 1.0
+    
     def proc(self):
         fname = self.asset.file_path
         r128tags = [
@@ -42,17 +50,23 @@ class Analyzer_AV(BaseAnalyzer):
                     exp_r128tag = r128tags.pop(0)
                 except:
                     break
+        return True
+
 
 class Analyzer_BPM(BaseAnalyzer):
+    condition = "asset['origin'] == 'Production' and asset['id_folder'] == 5  and not 'audio/bpm' in asset.meta"
+    proc_name = "bpm"
+    version   = 1.0
+
     def proc(self):
         fname = self.asset.file_path
-        s = shell("ffmpeg -i \"{}\" -vn -ar 44100 -f f32le - 2> /dev/null | ./bpm".format(fname))
+        s = shell("ffmpeg -i \"{}\" -vn -ar 44100 -f f32le - 2> /dev/null | bpm".format(fname))
         try:
             bpm = float(s.stdout().read())
         except:
-            bpm = 0
+            return False 
         self.update("audio/bpm", bpm)
-
+        return True
 
 
 
@@ -61,8 +75,8 @@ class Service(ServicePrototype):
     def on_init(self):
       self.max_mtime = 0
       self.analyzers = [
-        ("not 'audio/r128/i' in asset.meta", Analyzer_AV),
-        ("asset['origin'] == 'Production' and asset['id_folder'] == 5  and not 'audio/bpm' in asset.meta", Analyzer_BPM)
+        Analyzer_AV,
+        Analyzer_BPM
         ]
 
     def on_main(self):
@@ -74,13 +88,33 @@ class Service(ServicePrototype):
 
     def _proc(self, id_asset, db):
         asset = Asset(id_asset, db = db)
-        for condition, analyzer in self.analyzers:
-            if eval(condition):
+        for analyzer in self.analyzers:
+
+            qinfo = asset["qc/analyses"] or {}
+            if type(qinfo) == str:
+                qinfo = json.loads(qinfo)
+
+            if analyzer.procname in qinfo and (qinfo[analyzer.procname] == -1 or qinfo[analyzer.procname] >= analyzer.version ):
+                continue
+
+            if eval(analyzer.condition):
                 a = analyzer(asset)
+
+                ## Reload asset (it may be changed by someone during analysis
+                del(asset)
+                asset = Asset(id_asset, db=db)
+                result = -1 if not a.status else analyzer.version
+
+                qinfo = asset["qc/analyses"] or {}
+                if type(qinfo) == str:
+                    qinfo = json.loads(qinfo)
+                qinfo[analyzer.procname] = result
+                asset["qc/analyses"] = qinfo 
+
+                ## Save result
                 for key in a.result:
                     value = a.result[key]
                     if value:
                         logging.debug("Set {} {} to {}".format(asset, key, value))
                         asset[key] = value
-                if a.result:
-                    asset.save()
+                asset.save()
