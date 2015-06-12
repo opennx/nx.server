@@ -25,7 +25,7 @@ class BaseAnalyzer():
 
 
 class Analyzer_AV(BaseAnalyzer):
-    condition = "not 'audio/r128/i' in asset.meta"
+    condition = "asset['content_type'] in [AUDIO, VIDEO]"
     proc_name = "av"
     version   = 1.0
     
@@ -54,7 +54,7 @@ class Analyzer_AV(BaseAnalyzer):
 
 
 class Analyzer_BPM(BaseAnalyzer):
-    condition = "asset['origin'] == 'Production' and asset['id_folder'] == 5  and not 'audio/bpm' in asset.meta"
+    condition = "asset['id_folder'] == 5"
     proc_name = "bpm"
     version   = 1.0
 
@@ -93,11 +93,12 @@ class Service(ServicePrototype):
             qinfo = asset["qc/analyses"] or {}
             if type(qinfo) == str:
                 qinfo = json.loads(qinfo)
-
-            if analyzer.procname in qinfo and (qinfo[analyzer.procname] == -1 or qinfo[analyzer.procname] >= analyzer.version ):
+                  
+            if analyzer.proc_name in qinfo and (qinfo[analyzer.proc_name] == -1 or qinfo[analyzer.proc_name] >= analyzer.version ):
                 continue
 
             if eval(analyzer.condition):
+                logging.info("Analyzing {} using '{}'".format(asset, analyzer.proc_name))
                 a = analyzer(asset)
 
                 ## Reload asset (it may be changed by someone during analysis
@@ -108,7 +109,7 @@ class Service(ServicePrototype):
                 qinfo = asset["qc/analyses"] or {}
                 if type(qinfo) == str:
                     qinfo = json.loads(qinfo)
-                qinfo[analyzer.procname] = result
+                qinfo[analyzer.proc_name] = result
                 asset["qc/analyses"] = qinfo 
 
                 ## Save result
@@ -118,3 +119,4 @@ class Service(ServicePrototype):
                         logging.debug("Set {} {} to {}".format(asset, key, value))
                         asset[key] = value
                 asset.save()
+                self.heartbeat()
