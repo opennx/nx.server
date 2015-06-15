@@ -53,3 +53,7 @@ if __name__ == "__main__":
                     break
         except (KeyboardInterrupt):
             sys.exit(0)
+        except:
+            logging.error("Unhandled exception:\n\n{}".format(traceback.format_exc()))
+            time.sleep
+            sys.exit(1)

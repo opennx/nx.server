@@ -17,7 +17,7 @@ class ServicePrototype(object):
         except SystemExit:
             pass
         except:
-            logging.error("Unable to initialize service: {}".format(traceback.format_exc()))
+            logging.error("Unable to initialize service. Unhandled exception:\n\n{}".format(traceback.format_exc()))
             self.shutdown()
         else:
             db = DB()
