@@ -31,25 +31,47 @@ class Analyzer_AV(BaseAnalyzer):
     
     def proc(self):
         fname = self.asset.file_path
-        r128tags = [
-                ("I:",         "audio/r128/i"),
-                ("Threshold:", "audio/r128/t"),
-                ("LRA:",       "audio/r128/lra"),
-                ("Threshold:", "audio/r128/lra/t"),
-                ("LRA low:",   "audio/r128/lra/l"),
-                ("LRA high:",  "audio/r128/lra/r"),
+        tags = [
+                ("mean_volume:", "audio/gain/mean"),
+                ("max_volume:",  "audio/gain/peak"),
+                ("I:",           "audio/r128/i"),
+                ("Threshold:",   "audio/r128/t"),
+                ("LRA:",         "audio/r128/lra"),
+                ("Threshold:",   "audio/r128/lra/t"),
+                ("LRA low:",     "audio/r128/lra/l"),
+                ("LRA high:",    "audio/r128/lra/r"),
             ]
-        exp_r128tag = r128tags.pop(0) 
-        s = shell("ffmpeg -i \"{}\" -vn -filter_complex ebur128 -f null -".format(fname))
+        exp_tag = tags.pop(0) 
+        s = shell("ffmpeg -i \"{}\" -vn -filter_complex silencedetect=n=-20dB:d=5,ebur128,volumedetect -f null -".format(fname))
+        silences = []
         for line in s.stderr().readlines():
             line = line.strip()
-            if line.startswith(exp_r128tag[0]):
-                value = float(line.split()[-2])
-                self.update(exp_r128tag[1], value)
+
+            if line.find("silence_end") > -1:
+                e, d = line.split("|")
+                e = e.split(":")[1].strip()
+                d = d.split(":")[1].strip()
+
                 try:
-                    exp_r128tag = r128tags.pop(0)
+                    e = float(e)
+                    s = max(0, e - float(d))
+                except:
+                    pass
+                else:
+                    silences.append([s, e])
+
+
+            if line.find(exp_tag[0]) > -1:
+                value = float(line.split()[-2])
+                self.update(exp_tag[1], value)
+                try:
+                    exp_tag = tags.pop(0)
                 except:
                     break
+
+        if silences:
+            self.update("qc/silence", silences)
+
         return True
 
 
