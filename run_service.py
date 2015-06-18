@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import traceback
 from nx import *
 
 # Shared python libraries
@@ -53,7 +54,9 @@ if __name__ == "__main__":
                     break
         except (KeyboardInterrupt):
             sys.exit(0)
+        except (SystemExit):
+            break 
         except:
             logging.error("Unhandled exception:\n\n{}".format(traceback.format_exc()))
-            time.sleep
+            time.sleep(2)
             sys.exit(1)
