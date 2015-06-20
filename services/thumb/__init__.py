@@ -17,7 +17,6 @@ def create_video_thumbnail(source, tbase, resolution=(512,288)):
     w, h = resolution
     target = tbase + "0.jpg"
     cmd = "ffmpeg -y -i \"{source}\" -vf \"thumbnail,scale={w}:{h}\" -frames:v 1 \"{target}\" ".format(source=source, target=target, w=w, h=h)
-    print cmd
     proc = shell(cmd)
     if proc.retcode > 0:
         return False
@@ -40,7 +39,7 @@ class Service(ServicePrototype):
             return 
 
         db = DB()
-        db.query("SELECT id_object FROM nx_assets WHERE media_type=0 AND id_object NOT IN (SELECT id_object FROM nx_meta WHERE object_type=0 AND tag='has_thumbnail') ORDER BY mtime DESC")
+        db.query("SELECT id_object FROM nx_assets WHERE status=1 AND media_type=0 AND id_object NOT IN (SELECT id_object FROM nx_meta WHERE object_type=0 AND tag='has_thumbnail') ORDER BY mtime DESC")
         for id_asset, in db.fetchall():
             asset = Asset(id_asset, db=db)
             spath = asset.file_path
