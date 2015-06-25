@@ -113,7 +113,7 @@ class Service(ServicePrototype):
         for analyzer in self.analyzers:
 
             qinfo = asset["qc/analyses"] or {}
-            if type(qinfo) == str:
+            if type(qinfo) in [str, unicode]:
                 qinfo = json.loads(qinfo)
                   
             if analyzer.proc_name in qinfo and (qinfo[analyzer.proc_name] == -1 or qinfo[analyzer.proc_name] >= analyzer.version ):
