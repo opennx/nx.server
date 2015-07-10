@@ -305,6 +305,7 @@ class Themis():
                     source_vdur = False
 
                 source_vcodec = stream["codec_name"]
+                source_pix_fmt = stream["pix_fmt"]
                 source_width = stream["width"]
                 source_height = stream["height"]
                 video_index = stream["index"]
@@ -332,6 +333,7 @@ class Themis():
             ["container", os.path.splitext(self.fname)[1][1:]],
             ["fps", source_fps],
             ["video_codec",  source_vcodec],
+            ["pixel_format", source_pix_fmt],
             ["width",  source_width],
             ["height", source_height]
             ]
