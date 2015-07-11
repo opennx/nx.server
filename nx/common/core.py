@@ -8,9 +8,10 @@ import json
 import time
 import hashlib
 
-import fuckit
 
 from xml.etree import ElementTree as ET
+
+from nx.common import fuckit
 from nx.common.constants import *
 
 if __name__ == "__main__":
