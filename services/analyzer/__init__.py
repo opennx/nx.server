@@ -104,9 +104,13 @@ class Service(ServicePrototype):
     def on_main(self):
         db = DB()
         db.query("SELECT id_object, mtime FROM nx_assets WHERE status = '{}' and mtime > {} ORDER BY mtime DESC".format(ONLINE, self.max_mtime))
-        for id_asset, mtime in db.fetchall():
-            self.max_mtime = max(self.max_mtime, mtime)
-            self._proc(id_asset, db)
+        res = db.fetchall()
+        if res:
+            logging.debug("{} assets will be analyzed".format(len(res)))
+
+            for id_asset, mtime in res:
+                self.max_mtime = max(self.max_mtime, mtime)
+                self._proc(id_asset, db)
 
     def _proc(self, id_asset, db):
         asset = Asset(id_asset, db = db)
