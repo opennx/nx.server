@@ -4,12 +4,12 @@ __all__ = ["plugin_path","PlayoutPlugin"]
 
 
 try:
-    plugin_path = os.path.join(storages[int(config["plugin_storage"])].get_path(), config["plugin_root"])
+    plugin_path = os.path.join(storages[int(config["plugin_storage"])].local_path, config["plugin_root"])
 except:
     logging.error("Unable to load plugin path")
     plugin_path = False
 else:
-    if not os.path.exists(plugin_path) and ismount(storages[int(config["plugin_storage"])].get_path()):
+    if not os.path.exists(plugin_path) and ismount(storages[int(config["plugin_storage"])].local_path):
         os.makedirs(plugin_path)
 
 
@@ -64,9 +64,9 @@ class PlayoutPlugin(object):
         pass
 
     def on_main(self):
-        if not self.tasks: 
+        if not self.tasks:
             return
-        if self.tasks[0](): 
+        if self.tasks[0]():
             del self.tasks[0]
             return
 

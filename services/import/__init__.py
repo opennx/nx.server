@@ -1,9 +1,7 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 import uuid
 
 from nx import *
+from nx.services import BaseService
 from nx.objects import *
 from nx.common.filetypes import file_types
 
@@ -12,14 +10,14 @@ from themis import Themis
 
 def temp_file(id_storage, ext):
     if id_storage:
-        temp_path = os.path.join(storages[id_storage].get_path(),".nx", "creating")
+        temp_path = os.path.join(storages[id_storage].local_path,".nx", "creating")
     else:
         temp_path = "/tmp/nx"
 
     if not os.path.exists(temp_path):
         try:
             os.makedirs(temp_path)
-        except: 
+        except:
             return False
 
     temp_name = str(uuid.uuid1()) + ext
@@ -28,9 +26,9 @@ def temp_file(id_storage, ext):
 
 
 
-class Service(ServicePrototype):
+class Service(BaseService):
     def on_init(self):
-        
+
 
         ## TODO: Load this from service settings
         self.import_storage = 1
@@ -85,7 +83,7 @@ class Service(ServicePrototype):
 
             fpath = os.path.join(self.import_path, fname)
 
-            try:    
+            try:
                 f = open(fpath,"rb")
             except:
                 logging.debug("File creation in progress. {}".format(fname))
@@ -123,7 +121,7 @@ class Service(ServicePrototype):
             idec = fname.replace(".error.txt", "")
             if not idec in [os.path.splitext(f)[0] for f in os.listdir(self.import_path)]:
                 os.remove(os.path.join(self.import_path, fname))
-    
+
 
 
 
@@ -147,14 +145,14 @@ class Service(ServicePrototype):
     def version_backup(self, asset):
         target_path = os.path.join(
             storages[asset["id_storage"]].local_path,
-            ".nx", 
-            "versions", 
-            "{:04d}".format(int(asset.id/1000)), 
+            ".nx",
+            "versions",
+            "{:04d}".format(int(asset.id/1000)),
             "{:d}".format(asset.id)
             )
 
         target_fname = "{:d}{}".format(
-            int(asset["mtime"]), 
+            int(asset["mtime"]),
             os.path.splitext(asset.file_path)[1]
             )
 
@@ -228,14 +226,14 @@ class Service(ServicePrototype):
         ## Process file
         #############################################################
         ## Backup original source file
-        
+
         if os.path.exists(os.path.join(self.import_path, fname)):
             logging.debug("Creating import file backup")
             try:
                 os.remove(os.path.join(self.backup_path, fname))
             except:
                 pass
-            
+
             os.rename(os.path.join(self.import_path, fname), os.path.join(self.backup_path, fname) )
 
         try:

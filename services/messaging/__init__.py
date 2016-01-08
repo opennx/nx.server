@@ -1,14 +1,12 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 import socket
 import thread
 
 from urllib2 import urlopen
 
 from nx import *
+from nx.services import BaseService
 
-class Service(ServicePrototype):
+class Service(BaseService):
     def on_init(self):
 
         self.site_name = config["site_name"]
@@ -38,14 +36,14 @@ class Service(ServicePrototype):
             ssl = 0
 
         self.url = "{protocol}://{host}:{port}/msg_publish?id={site_name}".format(protocol=["http","https"][ssl], host=host, port=port, site_name=config["site_name"])
-        
+
         # Logging
 
         try:
             self.log_path = self.settings.find("log_path").text
         except:
             self.log_path = False
-        
+
         if self.log_path and not os.path.exists(self.log_path):
             try:
                 os.makedirs(self.log_path)
@@ -99,8 +97,8 @@ class Service(ServicePrototype):
                         f.write(log)
                         f.close()
 
-    
+
     def send_message(self, message):
         post_data = message
         result = urlopen(self.url, post_data.encode("ascii"), timeout=1)
-        
+

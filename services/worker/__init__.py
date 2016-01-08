@@ -1,10 +1,8 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 import os
 import imp
 
 from nx import *
+from nx.services import BaseService
 from nx.plugins import plugin_path
 
 def file_exists(rname):
@@ -20,9 +18,9 @@ def is_installed(rname):
     return True
 
 
-class Service(ServicePrototype):
+class Service(BaseService):
     def on_init(self):
-        
+
         self.exec_require = False
         self.exec_init = False
         self.exec_main = False
@@ -60,17 +58,17 @@ class Service(ServicePrototype):
 
 
     def load_from_settings(self):
-        try:     
+        try:
             self.exec_require = self.settings.find("require").text
-        except:  
+        except:
             pass
-        try:     
+        try:
             self.exec_init = self.settings.find("init").text
-        except:  
+        except:
             pass
         try:
             self.exec_main = self.settings.find("main").text
-        except:  
+        except:
             pass
 
         if self.exec_require:
@@ -89,4 +87,4 @@ class Service(ServicePrototype):
 
         elif self.exec_main:
             exec (self.exec_main)
-        
+

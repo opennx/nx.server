@@ -1,26 +1,24 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 try:
     import yaml
 except:
     yaml = False
 
-from nx.common import *
-from nx.common.metadata import meta_types
-from nx.connection import *
+from .core import *
+from .core.metadata import meta_types
+from .connection import *
 
-from nx.common.base_objects import BaseObject,  BaseAsset, BaseItem, BaseBin, BaseEvent
+from .core.base_objects import BaseObject, BaseAsset, BaseItem, BaseBin, BaseEvent
 
 
 class ServerObject(object):
-    @property 
+    @property
     def db(self):
         if not self._db:
             logging.info("{} is opening DB connection".format(self))
             self._db = DB()
         return self._db
 
-    @property 
+    @property
     def cache(self):
         return self._cache or cache
 
@@ -72,9 +70,9 @@ class ServerObject(object):
         else:
             self["ctime"] = self["ctime"] or time.time()
             created = True
-            q = "INSERT INTO nx_{0}s ({1}) VALUES ({2})".format( self.object_type,  
+            q = "INSERT INTO nx_{0}s ({1}) VALUES ({2})".format( self.object_type,
                                                           ", ".join(tag for tag in self.ns_tags if tag != 'id_object'),
-                                                          ", ".join(["%s"]*(len(self.ns_tags)-1)) 
+                                                          ", ".join(["%s"]*(len(self.ns_tags)-1))
                                                         )
             v = [self[tag] for tag in self.ns_tags if tag != "id_object"]
             self.db.query(q, v)
@@ -154,7 +152,7 @@ class Asset(ServerObject, BaseAsset):
 
 
 
-class Item(ServerObject, BaseItem): 
+class Item(ServerObject, BaseItem):
     @property
     def asset(self):
         if not self._asset:
@@ -287,7 +285,7 @@ class User(ServerObject, BaseObject):
             iid = "new {}".format(self.object_type)
         try:
             title = self["login"] or ""
-            if title: 
+            if title:
                 title = " ({})".format(title)
             return "{}{}".format(iid, title)
         except:
@@ -299,7 +297,7 @@ class User(ServerObject, BaseObject):
 
 def get_user(login, password, db=False):
     #TODO: sanitize inputs
-    if not db: 
+    if not db:
         db = DB()
     db.query("SELECT id_object FROM nx_users WHERE login=%s and password=%s", [login, get_hash(password)])
     res = db.fetchall()
@@ -312,10 +310,10 @@ def get_user(login, password, db=False):
 def asset_by_path(id_storage, path, db=False):
     if not db:
         db = DB()
-    db.query("""SELECT id_object FROM nx_meta 
-                WHERE object_type = 0 
-                AND tag='id_storage' 
-                AND value='%s' 
+    db.query("""SELECT id_object FROM nx_meta
+                WHERE object_type = 0
+                AND tag='id_storage'
+                AND value='%s'
                 AND id_object IN (SELECT id_object FROM nx_meta WHERE object_type = 0 AND tag='path' AND value='%s')
                 """ % (id_storage, db.sanit(path.replace("\\","/"))))
     try:
@@ -328,19 +326,19 @@ def asset_by_full_path(path, db=False):
     if not db:
         db = DB()
     for s in storages:
-        if path.startswith(storages[s].get_path()):
+        if path.startswith(storages[s].local_path):
             return asset_by_path(s,path.lstrip(s.path),db=db)
     return False
 
 
 def meta_exists(tag, value, db=False):
-    if not db: 
+    if not db:
         db = DB()
-    db.query("""SELECT a.id_asset FROM nx_meta as m, nx_assets as a 
-                WHERE a.status <> 'TRASHED' 
+    db.query("""SELECT a.id_asset FROM nx_meta as m, nx_assets as a
+                WHERE a.status <> 'TRASHED'
                 AND a.id_asset = m.id_object
                 AND m.object_type = 0
-                AND m.tag='%s' 
+                AND m.tag='%s'
                 AND m.value='%s'
                 """ % (tag, value))
     try:
@@ -396,7 +394,7 @@ def get_item_event(id_item, **kwargs):
 
     db.query("""SELECT e.id_object, e.start, e.id_channel from nx_items as i, nx_events as e where e.id_magic = i.id_bin and i.id_object = {} and e.id_channel in ({})""".format(
         id_item,
-        ", ".join([str(f) for f in config["playout_channels"].keys()]) 
+        ", ".join([str(f) for f in config["playout_channels"].keys()])
         ))
     try:
         id_object, start, id_channel = db.fetchall()[0]

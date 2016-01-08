@@ -1,11 +1,7 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 from nx import *
+from nx.services import BaseService
 from nx.jobs import Job
 from nx.objects import Asset
-from nx.common.metadata import meta_types
-from nx.common.filetypes import file_types
 
 from encoders import Ffmpeg, Ftp
 
@@ -18,7 +14,7 @@ encoders = {
 
 
 
-class Service(ServicePrototype):
+class Service(BaseService):
     def on_init(self):
         agent_type = "conv"
         id_service = self.id_service
@@ -43,7 +39,7 @@ class Service(ServicePrototype):
                     continue
 
                 match = False
-                if eval(svc_cond): 
+                if eval(svc_cond):
                     match = True
 
             if not match:

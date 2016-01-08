@@ -1,7 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-
 import urllib2
 import thread
 import uuid
@@ -11,11 +7,10 @@ from datetime import datetime
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
 from nx import *
+from nx.services import BaseService
 from nx.objects import *
 
-
 from xml.etree import ElementTree as ET
-
 
 
 def rfc822(timestamp):
@@ -70,7 +65,7 @@ class RSS():
 
 
 class ControlHandler(BaseHTTPRequestHandler):
-    def log_request(self, code='-', size='-'): 
+    def log_request(self, code='-', size='-'):
         pass
 
     def _do_headers(self,mime="application/json", response=200, headers=[]):
@@ -102,7 +97,7 @@ class ControlHandler(BaseHTTPRequestHandler):
 
 
 
-class Service(ServicePrototype):
+class Service(BaseService):
     def on_init(self):
         port = 42200
         self.max_articles = 20
@@ -177,7 +172,7 @@ class Service(ServicePrototype):
 
     def push_item(self, item, db=False):
         db = db or DB()
-        db.query("SELECT id_object FROM nx_meta WHERE tag='identifier/guid' AND value = %s AND id_object IN (SELECT id_object FROM nx_meta WHERE tag='news_group' AND value=%s )", 
+        db.query("SELECT id_object FROM nx_meta WHERE tag='identifier/guid' AND value = %s AND id_object IN (SELECT id_object FROM nx_meta WHERE tag='news_group' AND value=%s )",
                 [item["identifier/guid"], item["news_group"] ]
             )
 

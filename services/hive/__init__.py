@@ -1,7 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 from nx import *
+from nx.services import BaseService
 from nx.objects import *
 
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
@@ -78,7 +76,7 @@ class Sessions():
 
 
 class HiveHandler(BaseHTTPRequestHandler):
-    def log_request(self, code='-', size='-'): 
+    def log_request(self, code='-', size='-'):
         pass
 
     def _do_headers(self,mime="application/json",response=200,headers=[]):
@@ -159,7 +157,7 @@ class HiveHandler(BaseHTTPRequestHandler):
                 for response, data in methods[method](user, params):
                     self.push_response(response, data)
                     if response >= 300:
-                        logging.error("{} failed to {}: {}".format(user, method, data)) 
+                        logging.error("{} failed to {}: {}".format(user, method, data))
             except:
                 msg = traceback.format_exc()
                 logging.error("{} failed to {}: {}".format(user, method, msg))
@@ -186,7 +184,7 @@ class HiveHTTPServer(HTTPServer):
     pass
 
 
-class Service(ServicePrototype):
+class Service(BaseService):
     def on_init(self):
         self.methods = {}
 
@@ -195,10 +193,10 @@ class Service(ServicePrototype):
                 if not method.startswith("hive_"):
                     continue
                 method_title = method[5:]
-                module_name  = module.__name__.split(".")[-1] 
+                module_name  = module.__name__.split(".")[-1]
                 exec ("self.methods['{}'] = {}.{}".format(method_title, module_name, method ))
                 logging.debug("Enabling method '{}'".format(method_title))
-        
+
         try:
             port = int(self.config.find("port").text)
         except:
@@ -207,7 +205,7 @@ class Service(ServicePrototype):
         logging.debug("Starting hive at port {}".format(port))
 
         self.server = HiveHTTPServer(('',port), HiveHandler)
-        
+
         self.sessions = Sessions()
         self.server.service = self
         thread.start_new_thread(self.server.serve_forever,())

@@ -1,11 +1,9 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 from nx import *
+from nx.services import BaseService
 from nx.objects import Asset
 from nx.jobs import send_to
 
-class Service(ServicePrototype):
+class Service(BaseService):
     def on_init(self):
         self.conditions = {}
         db = DB()
@@ -48,9 +46,9 @@ class Service(ServicePrototype):
                     logging.info(msg)
                 else:
                     logging.error(msg)
-                
+
                 asset["broker/started/{}".format(id_action)] = 1
                 asset.save()
 
 
- 
+

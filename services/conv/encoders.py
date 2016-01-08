@@ -1,8 +1,6 @@
 from nx import *
 from nx.objects import Asset, asset_by_path
-
-from nx.common.metadata import meta_types
-from nx.common.filetypes import file_types
+from nx.core.metadata import meta_types
 
 import uuid
 import stat
@@ -25,7 +23,7 @@ class Encoder():
     def is_working(self):
         return False
 
-    def get_progress(self): 
+    def get_progress(self):
         """Should return float between 0.0 and 1.0"""
         return 0
 
@@ -36,14 +34,14 @@ class Encoder():
 
 def temp_file(id_storage, ext):
     if id_storage:
-        temp_path = os.path.join(storages[id_storage].get_path(),".nx", "creating")
+        temp_path = os.path.join(storages[id_storage].local_path,".nx", "creating")
     else:
         temp_path = "/tmp/nx"
 
     if not os.path.exists(temp_path):
         try:
             os.makedirs(temp_path)
-        except: 
+        except:
             return False
 
     temp_name = str(uuid.uuid1()) + ext
@@ -53,32 +51,6 @@ def temp_file(id_storage, ext):
 ## ENCODERS COMMON
 #########################################################################
 ## FFMPEG
-
-
-def join_filters(*filters):
-    """Joins multiple filters"""
-    return "[in]%s[out]" % "[out];[out]".join(i for i in filters if i)
-
-def filter_deinterlace():
-    """Yadif deinterlace"""
-    return "yadif=0:-1:0"
-
-def filter_arc(w,h,aspect):
-    """Aspect ratio convertor. you must specify output size and source aspect ratio (as float)"""
-    taspect = float(w)/h
-    if abs(taspect - aspect) < 0.01:
-        return "scale=%s:%s"%(w,h)
-    if taspect > aspect: # pillarbox
-        pt = 0  #ok
-        ph = h  #ok
-        pw = int (h*aspect)
-        pl = int((w - pw)/2.0)
-    else: # letterbox
-        pl = 0
-        pw = w
-        ph = int(w * (1/aspect))
-        pt = int((h - ph)/2.0)
-    return "scale=%s:%s[out];[out]pad=%s:%s:%s:%s:black" % (pw,ph,w,h,pl,pt)
 
 def interleave(fname):
     opath = os.getcwd()
@@ -90,8 +62,6 @@ def interleave(fname):
         time.sleep(.1)
     os.chdir(opath)
     return True
-
-
 
 class Ffmpeg(Encoder):
     def configure(self):
@@ -135,13 +105,13 @@ class Ffmpeg(Encoder):
         if not self.temp_file_path:
             return "Unable to create temp directory"
 
-        self.target_file_path = os.path.join(storages[id_storage].get_path(), self.target_rel_path)
+        self.target_file_path = os.path.join(storages[id_storage].local_path, self.target_rel_path)
         self.target_dir_path  = os.path.split(self.target_file_path)[0]
 
         if not (os.path.exists(self.target_dir_path) and stat.S_ISDIR(os.stat(self.target_dir_path)[stat.ST_MODE])):
-            try:    
+            try:
                 os.makedirs(self.target_dir_path)
-            except: 
+            except:
                 return "Unable to create output directory"
 
         ## Output path madness
@@ -173,9 +143,9 @@ class Ffmpeg(Encoder):
             print (self.proc.stderr.read())
             return FAILED, "Encoding failed"
         else:
-            try:    
+            try:
                 ln = self.proc.stderr.readline().split(" ")
-            except: 
+            except:
                 pass
             else:
                 for k in ln:
@@ -195,10 +165,10 @@ class Ffmpeg(Encoder):
         new = None
         asset = Asset(self.asset.id) # Reload asset (possibly changed during encoding)
 
-        if self.task.find("target").text == "new":    
+        if self.task.find("target").text == "new":
             id_storage = self.id_storage
             r = asset_by_path(id_storage, self.target_rel_path)
-            if r:     
+            if r:
                 new = Asset(r)
                 logging.info("Updating asset {!r}".format(new))
                 keys = new.meta.keys()
@@ -210,7 +180,7 @@ class Ffmpeg(Encoder):
                 new = Asset()
                 new["media_type"]   = FILE
                 new["content_type"] = VIDEO
-                
+
                 new["version_of"]   = asset.id
                 new["id_storage"]   = id_storage
                 new["path"]         = self.target_rel_path
@@ -220,7 +190,7 @@ class Ffmpeg(Encoder):
                 for key in asset.meta:
                     if key in meta_types and meta_types[key].namespace in ["AIEB", "m"]:
                         new[key] = asset[key]
-            
+
             new["status"] = CREATING
 
 
@@ -232,7 +202,7 @@ class Ffmpeg(Encoder):
             os.rename(self.temp_file_path, self.target_file_path)
         except:
             return "Unable to move output file to target destination"
-   
+
         if new is not None:
             new.save()
 
@@ -252,7 +222,7 @@ from ftplib import FTP
 class Ftp(Encoder):
     def configure(self):
         asset = self.asset
-        
+
         source_storage = int(self.task.find("source_storage").text)
         source_path = eval(self.task.find("source_path").text)
         self.target_path = eval(self.task.find("path").text)
@@ -261,7 +231,7 @@ class Ftp(Encoder):
         self.login = self.task.find("login").text
         self.password = self.task.find("password").text
 
-        self._fpath = os.path.join(storages[source_storage].get_path(), source_path)
+        self._fpath = os.path.join(storages[source_storage].local_path, source_path)
         self._fsize    = os.path.getsize(self._fpath)
         self._file     = open(self._fpath, 'rb')
         self._fwritten = 0
@@ -293,7 +263,7 @@ class Ftp(Encoder):
     def is_working(self):
         return self._is_working
 
-    def get_progress(self): 
+    def get_progress(self):
         progress = self._fwritten / float(self._fsize)
         return self.ret_code or progress, self.ret_msg or "Uploading"
 

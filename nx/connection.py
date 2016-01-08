@@ -1,4 +1,4 @@
-from nx.common import *
+from .core import *
 
 connection_type = "server"
 
@@ -26,25 +26,25 @@ class DBproto(object):
 
     def rollback(self):
         self.conn.rollback()
-     
+
     def close(self):
         self.conn.close()
 
     def __len__(self):
         return True
 
-if config['db_driver'] == 'postgres': 
+if config['db_driver'] == 'postgres':
     import psycopg2
     class DB(DBproto):
         def _connect(self):
             i = 0
             while i < 3:
                 try:
-                    self.conn = psycopg2.connect(database = self.kwargs.get('db_name', False) or config['db_name'], 
-                                                 host     = self.kwargs.get('db_host', False) or config['db_host'], 
+                    self.conn = psycopg2.connect(database = self.kwargs.get('db_name', False) or config['db_name'],
+                                                 host     = self.kwargs.get('db_host', False) or config['db_host'],
                                                  user     = self.kwargs.get('db_user', False) or config['db_user'],
                                                  password = self.kwargs.get('db_pass', False) or config['db_pass']
-                                                 ) 
+                                                 )
                 except psycopg2.OperationalError:
                     time.sleep(1)
                     i+=1
@@ -55,11 +55,11 @@ if config['db_driver'] == 'postgres':
             self.cur = self.conn.cursor()
 
         def sanit(self, instr):
-            try: 
+            try:
                 return str(instr).replace("''","'").replace("'","''").decode("utf-8")
-            except: 
+            except:
                 return instr.replace("''","'").replace("'","''")
-       
+
         def lastid (self):
             self.query("select lastval()")
             return self.fetchall()[0][0]
@@ -69,24 +69,24 @@ elif config['db_driver'] == 'sqlite':
     class DB(DBproto):
         def _connect(self):
             try:
-                self.conn = sqlite3.connect(config["db_host"]) 
+                self.conn = sqlite3.connect(config["db_host"])
                 self.cur = self.conn.cursor()
             except:
                 raise (Exception, "Unable to connect database.")
 
         def sanit(self, instr):
-            try: 
+            try:
                 return str(instr).replace("''","'").replace("'","''").decode("utf-8")
-            except: 
+            except:
                 return instr.replace("''","'").replace("'","''")
-          
+
         def lastid(self):
             r = self.cur.lastrowid
             return r
 
 else:
     critical_error("Unknown DB Driver. Exiting.")
- 
+
 ## Database
 #######################################################################################################
 ## Site settings
@@ -132,7 +132,7 @@ def load_site_settings():
 
 
 load_site_settings()
-messaging.init()
+messaging.configure()
 
 ## Site settings
 #######################################################################################################
@@ -152,7 +152,7 @@ class Cache():
     def connect(self):
         self.conn = pylibmc.Client([self.cstring])
         self.pool = False
-        
+
     def load(self, key):
         if config.get("mc_thread_safe", False):
             return self.tload(key)
@@ -174,7 +174,7 @@ class Cache():
             try:
                 self.conn.set(key, str(value))
                 break
-            except:  
+            except:
                 logging.error("Cache save failed ({}): {}".format(key, str(sys.exc_info())))
                 time.sleep(.3)
                 self.connect()
@@ -191,7 +191,7 @@ class Cache():
             try:
                 self.conn.delete(key)
                 break
-            except: 
+            except:
                 logging.error("Cache delete failed ({}): {}".format(key, str(sys.exc_info())))
                 time.sleep(.3)
                 self.connect()
@@ -224,7 +224,7 @@ class Cache():
                 try:
                     mc.set(key, str(value))
                     break
-                except:  
+                except:
                     logging.error("Cache save failed ({}): {}".format(key, str(sys.exc_info())))
                     time.sleep(.3)
                     self.connect()
@@ -243,7 +243,7 @@ class Cache():
                 try:
                     mc.delete(key)
                     break
-                except: 
+                except:
                     logging.error("Cache delete failed ({}): {}".format(key, str(sys.exc_info())))
                     time.sleep(.3)
                     self.connect()
@@ -263,21 +263,24 @@ cache = Cache()
 ## Storages
 
 class Storage():
-    def __init__(self): 
+    def __init__(self):
         pass
 
-    @property 
+    @property
     def local_path(self):
-        return self.get_path()
-
-    def get_path(self,rel=False):
         if self.protocol == LOCAL:
             return self.path
-        elif PLATFORM == "linux":
+        elif PLATFORM == "windows":
+            return ""
+        else:
             return os.path.join ("/mnt","nx%02d"%self.id_storage)
 
+    def get_path(self,rel=False):
+        logging.warning("get_path is deprecated")
+        return self.local_path
+
     def __len__(self):
-        return ismount(self.get_path()) and len(os.listdir(self.get_path())) != 0
+        return ismount(self.local_path) and len(os.listdir(self.local_path)) != 0
 
 def load_storages():
     try:
@@ -285,7 +288,7 @@ def load_storages():
         db.query("SELECT id_storage, title, protocol, path, login, password FROM nx_storages")
     except:
         return
-        
+
     for id_storage, title, protocol, path, login, password in db.fetchall():
         storage = Storage()
         storage.id_storage = id_storage

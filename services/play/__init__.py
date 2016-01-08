@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 import imp
 import cgi
 import thread
@@ -8,6 +5,7 @@ import thread
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
 from nx import *
+from nx.services import BaseService
 from nx.objects import *
 from nx.plugins import plugin_path
 
@@ -126,7 +124,7 @@ class ControlHandler(BaseHTTPRequestHandler):
 
 
 
-class Service(ServicePrototype):
+class Service(BaseService):
     def on_init(self):
         allowed_channels = []
         chlist = self.settings.find("channels")
@@ -388,7 +386,7 @@ class Service(ServicePrototype):
                 ])
             channel._last_run = db.lastid()
             db.commit()
-            
+
         else:
             channel._last_run = False
 
@@ -445,7 +443,7 @@ class Service(ServicePrototype):
         lcache = Cache()
         id_item = id_item or channel.current_item
         item_next = get_next_item(id_item, db=db, cache=lcache)
-        
+
 
         if item_next["run_mode"] == 1:
             auto = False

@@ -1,10 +1,6 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 from nx import *
 from nx.objects import Asset
-from nx.shell import shell
-
+from nx.services import BaseService
 
 class BaseAnalyzer():
     condition = False
@@ -28,7 +24,7 @@ class Analyzer_AV(BaseAnalyzer):
     condition = "asset['content_type'] in [AUDIO, VIDEO]"
     proc_name = "av"
     version   = 1.0
-    
+
     def proc(self):
         fname = self.asset.file_path
         tags = [
@@ -41,7 +37,7 @@ class Analyzer_AV(BaseAnalyzer):
                 ("LRA low:",     "audio/r128/lra/l"),
                 ("LRA high:",    "audio/r128/lra/r"),
             ]
-        exp_tag = tags.pop(0) 
+        exp_tag = tags.pop(0)
         s = shell("ffmpeg -i \"{}\" -vn -filter_complex silencedetect=n=-20dB:d=5,ebur128,volumedetect -f null -".format(fname))
         silences = []
         for line in s.stderr().readlines():
@@ -86,14 +82,14 @@ class Analyzer_BPM(BaseAnalyzer):
         try:
             bpm = float(s.stdout().read())
         except:
-            return False 
+            return False
         self.update("audio/bpm", bpm)
         return True
 
 
 
 
-class Service(ServicePrototype):
+class Service(BaseService):
     def on_init(self):
       self.max_mtime = 0
       self.analyzers = [
@@ -119,7 +115,7 @@ class Service(ServicePrototype):
             qinfo = asset["qc/analyses"] or {}
             if type(qinfo) in [str, unicode]:
                 qinfo = json.loads(qinfo)
-                  
+
             if analyzer.proc_name in qinfo and (qinfo[analyzer.proc_name] == -1 or qinfo[analyzer.proc_name] >= analyzer.version ):
                 continue
 
@@ -136,7 +132,7 @@ class Service(ServicePrototype):
                 if type(qinfo) == str:
                     qinfo = json.loads(qinfo)
                 qinfo[analyzer.proc_name] = result
-                asset["qc/analyses"] = qinfo 
+                asset["qc/analyses"] = qinfo
 
                 ## Save result
                 for key in a.result:
