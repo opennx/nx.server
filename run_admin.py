@@ -1,29 +1,55 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import sys, os.path
+from __future__ import print_function
+
+import os
+import sys
+
+##
+# Env setup
+##
+
+if sys.version_info[:2] < (3, 0):
+    reload(sys)
+    sys.setdefaultencoding('utf-8')
+
+nebula_root = os.path.abspath(os.path.split(sys.argv[0])[0])
+
+##
+# Vendor imports
+##
+
+vendor_dir = os.path.join(nebula_root, "vendor")
+if os.path.exists(vendor_dir):
+    for pname in os.listdir(vendor_dir):
+        pname = os.path.join(vendor_dir, pname)
+        pname = os.path.abspath(pname)
+        if not pname in sys.path:
+            sys.path.insert(0, pname)
+
+from nx import *
+
+config["nebula_root"] = nebula_root
+
+
 
 import jinja2
-
-reload(sys)
-sys.setdefaultencoding('utf-8')
-
 import thread
 import hashlib
 
 from flask import Flask, request, render_template, redirect, url_for, flash, jsonify, make_response
-from auth import *
-
-import logging
-log = logging.getLogger('werkzeug')
-log.setLevel(logging.INFO)
+from admin.auth import *
 
 
 SECRET_KEY = "yeah, not actually a secret"
 DEBUG = True
 
 
-app = Flask(__name__, )
+app = Flask(__name__,
+        static_folder=os.path.join(nebula_root, "admin", "static"),
+        template_folder=os.path.join(nebula_root, "admin", "templates")
+        )
 app.config.from_object(__name__)
 
 login_manager = LoginManager()
@@ -33,6 +59,10 @@ login_manager.login_message = u"Please log in to access this page."
 login_manager.refresh_view = "reauth"
 login_manager.setup_app(app)
 
+
+import logging as pylogging
+log = pylogging.getLogger('werkzeug')
+log.setLevel(pylogging.INFO)
 
 
 @login_manager.user_loader
@@ -53,7 +83,7 @@ def _jinja2_filter_date(date, format='%Y-%m-%d'):
 
 @app.template_filter('alert_icon')
 def _jinja2_filter_alert_icon(str):
-	
+
 	icon = '<span class="glyphicon glyphicon-ok-sign"></span>'
 	str = str.lower()
 
@@ -73,12 +103,12 @@ def _jinja2_filter_alert_icon(str):
 
 @app.template_filter('bool_icon')
 def _jinja2_filter_bool_icon(b):
-	
+
 	icon = '<span class="text-primary glyphicon glyphicon-ok-sign"></span><span class="sr-only">1</span>'
-	
+
 	if b == 'false':
 		icon = '<span class="text-warning glyphicon glyphicon-ban-circle"></span><span class="sr-only">0</span>'
-		
+
 	return icon
 
 @app.template_filter('starts_with')
@@ -180,7 +210,7 @@ def services(view="default"):
 
 		if view=="json":
 			return json.dumps(services)
-	
+
 	current_controller = set_current_controller({'title': 'Services', 'controller': 'services', 'current_user': current_user, 'acl': acl })
 	return render_template(template, services=services, current_controller=current_controller)
 
@@ -206,10 +236,10 @@ def settings(view="nx-settings", citem=-1):
 		template = 'configuration.html'
 
 		# API actions
-		if current_view == 'api': 
+		if current_view == 'api':
 
 			data = {'status':False,'reason':'Api request bad','post': request.form }
-	 		
+
 			if request.method == "POST" and "destroy_session" and "destroy_host" and "destroy_id_user" in request.form:
 				id_user = int(request.form.get("destroy_id_user"))
 				key = str(request.form.get("destroy_session"))
@@ -232,8 +262,8 @@ def settings(view="nx-settings", citem=-1):
 			if request.method == "POST" and "query_table" in request.form and "query_key" in request.form and "query_val" in request.form and "query_data" in request.form:
 				data = save_config_data(request.form.get("query_table"), request.form.get("query_key"), request.form.get("query_val"), request.form.get('query_data'))
 
-			
-			return json.dumps(data)	
+
+			return json.dumps(data)
 
 		# STD view
 		else:
@@ -241,13 +271,13 @@ def settings(view="nx-settings", citem=-1):
 			current_controller = set_current_controller({'title': 'Configuration', 'controller': 'configuration', 'current_view': current_view, 'current_item': item, 'current_user': current_user })
 
 			if current_view == "nx-settings":
-			
+
 				if request.method == "POST" and "firefly_kill" in request.form:
 					res = firefly_kill()
 					return json.dumps(res)
 				else:
 					flash("Double check input, settings validity is critical and this action can not be undone.", "warning")
-		
+
 				data = load_config_data('nx_settings', 'key')
 
 			elif current_view == "system-tools":
@@ -337,7 +367,7 @@ def reports(view=False):
 			template = "reports.html"
 			env = plugins.env
 		else:
-			
+
 			plugin = AdmPlugins('reports')
 			plugin.env['get'] = request.args
 			plugin.env['post'] = request.form

@@ -4,10 +4,6 @@ import imp
 reload(sys)
 sys.setdefaultencoding('utf-8')
 
-NX_ROOT = sys.argv[1]
-if not NX_ROOT in sys.path:
-	sys.path.append(NX_ROOT)
-
 from nx import *
 from nx.objects import *
 
@@ -196,7 +192,7 @@ def get_user_data(id_user):
 
 	user = {'status': False, 'meta':{'no_meta':True}, 'reason': 'User not found'}
 	_user = User(id_user, db=db)
-	
+
 	if len(_user)>0:
 		user["meta"] = _user.meta
 		user["acl"] = {}
@@ -220,9 +216,9 @@ def get_user_data(id_user):
 
 				user["sessions"].append(session)
 
-			
-			for m in permission_helper(): 	
-				
+
+			for m in permission_helper():
+
 				user["acl"][m] = ''
 
 				if m in user['meta']:
@@ -270,7 +266,7 @@ def save_user_data(id_user, query_data):
 		if( user_test['status'] == False ):
 
 			user = User(int(id_user))
-			
+
 			for key in sql:
 				if key != 'password':
 					user[str(key)] = str(sql[key])
@@ -280,7 +276,7 @@ def save_user_data(id_user, query_data):
 			user.save()
 
 		else:
-			
+
 			result['status'] = False
 			result['reason'] = 'User '+sql['login']+' already exists'
 
@@ -299,7 +295,7 @@ def save_user_state(id_user, is_disabled):
 	try:
 
 		user = User(int(id_user))
-		
+
 		user['is_disabled'] = is_disabled
 		user.save()
 
@@ -320,17 +316,17 @@ def user_exists(login, id_user):
 	try:
 		if int(id_user) > 0:
 			sql_query = "SELECT login FROM nx_users WHERE login LIKE '"+db.sanit(login)+"' AND id_object != "+str(id_user)
-		else: 
+		else:
 			sql_query = "SELECT login FROM nx_users WHERE login LIKE '"+db.sanit(login)+"'"
 
 		db.query(sql_query)
-		
+
 		us = db.fetchall()
-			
-		if len(us)>0:	
+
+		if len(us)>0:
 			result['status'] = True
 			result['reason'] = 'User found'
-			
+
 	except Exception, e:
 
 		result['status'] = False
@@ -343,7 +339,7 @@ def user_exists(login, id_user):
 ## Config tools, loaders, savers, hackers and horses
 
 def save_config_data(query_table, query_key, query_val, query_data):
-	
+
 	db = DB()
 
 	result = {'data': {}, 'status': True, 'reason': 'Data saved', 'origin': query_data, 'qr':False}
@@ -366,10 +362,10 @@ def save_config_data(query_table, query_key, query_val, query_data):
 			result['data']['close'] = True
 		else:
 			sql_query = """UPDATE """+str(query_table)+""" SET """+str(','.join(update))+""" WHERE """+str(query_key)+""" = """+str(query_val)+""" """
-		
+
 		db.query(sql_query)
 		db.commit()
-		
+
 	except Exception, e:
 
 		result['status'] = False
@@ -379,7 +375,7 @@ def save_config_data(query_table, query_key, query_val, query_data):
 
 
 def remove_config_data(query_table, query_key, query_val):
-	
+
 	db = DB()
 
 	result = {'status': False, 'reason': 'Data not removed, '+str(query_key)+' is invalid'}
@@ -391,7 +387,7 @@ def remove_config_data(query_table, query_key, query_val):
 
 			db.query("{}".format(sql_query))
 			db.commit()
-			
+
 			result = {'status': True, 'reason': 'Data removed'}
 
 	except Exception, e:
@@ -461,7 +457,7 @@ def nx_setting_exists(key):
 	except:
 
 		result = False
-		
+
 	return result
 
 
@@ -481,16 +477,16 @@ def save_nx_settings(nx_settings):
 		if nx_setting_exists(key) == False:
 			sql_query = "INSERT INTO nx_settings (key, value) VALUES ('"+key+"', '"+val+"')"
 		else:
-			
+
 			if len(val) == 0:
 				sql_query = "DELETE FROM nx_settings WHERE key = '"+key+"' "
-			else:	
+			else:
 				sql_query = "UPDATE nx_settings SET value = '"+val+"' WHERE key = '"+key+"' "
 
-		result['batch'][key] = sql_query	
+		result['batch'][key] = sql_query
 
 		try:
-			
+
 			db.query(sql_query)
 			db.commit()
 
@@ -506,10 +502,10 @@ def acl_can(token, current_user):
 
 	id = current_user.get_id()
 	ia = current_user.is_admin()
-	
+
 	is_admin = False
-	
-	if ia == 'true': 
+
+	if ia == 'true':
 		is_admin = True;
 
 	db = DB()
@@ -572,7 +568,7 @@ def permission_helper():
 		"can/service_control",
 		# JOBS
 		"can/job_control",
-		# MARKETING/DATA EXPORT	
+		# MARKETING/DATA EXPORT
 		"can/export"
 	]
 

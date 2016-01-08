@@ -1,7 +1,6 @@
 from nx import *
 from nx.services import BaseService
 from nx.objects import *
-from nx.shell import shell
 
 THUMBS = [
     [(32,18),   "xs"],

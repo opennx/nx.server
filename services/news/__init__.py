@@ -2,6 +2,7 @@ import urllib2
 import thread
 import uuid
 import email
+import re
 
 from datetime import datetime
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
@@ -16,9 +17,45 @@ from xml.etree import ElementTree as ET
 def rfc822(timestamp):
     return  email.Utils.mktime_tz(email.Utils.parsedate_tz(timestamp))
 
-
 class NewsItem(dict):
     pass
+
+def google_news_parser(item_data):
+    item = NewsItem()
+    try:
+        guid = item_data.find("guid").text.strip()
+        title = item_data.find("title").text.strip()
+    except:
+        return False
+
+    title_elms = title.strip().split("-")
+    title =  " ".join(title_elms[:-1]).strip()
+    source = title_elms[-1].strip()
+
+    if title.endswith("..."):
+       logging.warning("{} ends with tripple dot. skipping".format(title))
+       return False
+
+    pub_date = item_data.find("pubDate").text
+    pub_date = rfc822(pub_date.strip()) if pub_date else time.time()
+
+    #TODO: parse article
+#    desc1 = item_data.find("description").text.strip()
+#    matcher = r".*font\ size=\"\-1\"\&gt\;(?P<article>.*?)\&lt\;.*"
+#    m = re.match(matcher,desc1)
+#    desc2 = m.group("article")
+
+ #   if desc2.endswith("<b>...</b>"):
+ #       desc2 = ". ".join(desc2.split(". ")[:-1]).strip()+"."
+
+    item["title"]   = title
+    item["identifier/guid"] = guid
+    item["source"]  = source
+    #item["article"] = re.sub(r"(\| foto (.*))\.",".",strip_tags(desc2)).replace("|"," ")
+
+    return item
+
+
 
 
 class RSS():
@@ -42,25 +79,26 @@ class RSS():
         pub_date = item_data.find("pubDate").text
         pub_date = rfc822(pub_date.strip()) if pub_date else time.time()
 
-
-
         item["identifier/guid"] = guid
         item["title"] = title
-        item["description"] = description
+        item["article"] = description
+        item["description"] = ""
         item["source"] = "" #TODO: Domain/RSS name here
-
-
         return item
-
 
     @property
     def items(self):
         for item_data in self.feed.findall("item"):
-            if not self.parser:
+            if self.parser:
+                item = self.parser(item_data)
+            else:
                 item = self.default_parser(item_data)
-                if item:
-                    yield item
-            # TODO: Custom parsers
+            if item:
+                yield item
+
+
+
+
 
 
 
@@ -89,7 +127,7 @@ class ControlHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         service = self.server.service
-        article = service.get_article(1, ["rfe"])
+        article = service.get_article(1, ["google_news"])
         if not article:
            self.result(False)
            return
@@ -120,9 +158,10 @@ class Service(BaseService):
 
 
         if not self.sources:
-            # DEFAULT RFE/RL ARTICLES SOURCE
             self.sources = [
-                    ["rfe", "rss", "http://www.rferl.org/api/c$tmnpuqdvki!ktqeo_qo", False]
+                    ["google_news", "rss", "https://news.google.com/news?cf=all&hl=cs&pz=1&ned=cs_cz&topic=h&output=rss", google_news_parser]
+                    #["dailysquat", "rss", "http://www.dailysquat.com/feed/", False],
+                    #["rfe", "rss", "http://www.rferl.org/api/c$tmnpuqdvki!ktqeo_qo", False]
                 ]
 
         self.history = {}
@@ -184,6 +223,7 @@ class Service(BaseService):
             logging.debug("Saving news item")
 
         asset = self.get_free_asset(db=db)
+        asset.meta = {}
         asset["id_folder"] = 6
         asset["origin"] = "News"
         asset["status"] = ONLINE
@@ -203,4 +243,6 @@ class Service(BaseService):
                 for item in feed.items:
                     item["news_group"] = group
                     self.push_item(item, db=db)
+
+
 

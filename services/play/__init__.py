@@ -31,7 +31,11 @@ class PlayoutPlugins():
             if not mod_name in channel.enabled_plugins:
                 continue
 
-            py_mod = imp.load_source(mod_name, os.path.join(bpath, fname))
+            try:
+                py_mod = imp.load_source(mod_name, os.path.join(bpath, fname))
+            except:
+                log_traceback("Unable to load plugin {}".format(mod_name))
+                continue
 
             if not "__manifest__" in dir(py_mod):
                 logging.warning("No plugin manifest found in {}".format(fname))

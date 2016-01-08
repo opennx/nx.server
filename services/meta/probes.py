@@ -4,7 +4,6 @@
 import json
 
 from nx import *
-from nx.shell import shell
 
 class Probe(object):
     title = "Generic Probe"
@@ -22,13 +21,8 @@ class Probe(object):
 
 ###############################################################################################
 
-def ffprobe(fname):
-    cmd = "ffprobe -i \"%s\" -show_streams -show_format -print_format json" % fname 
-    proc = shell(cmd)
-    return json.loads(proc.stdout().read())
-
 def guess_aspect (w,h):
-    if 0 in [w,h]: 
+    if 0 in [w,h]:
         return 0
     valid_aspects = [(16, 9), (4, 3), (2.35, 1)]
     ratio = float(w) / float(h)
@@ -66,33 +60,33 @@ class FFProbe(Probe):
                 asset["video/fps"]          = stream.get("r_frame_rate","")
                 asset["video/codec"]        = stream.get("codec_name","")
                 asset["video/pixel_format"] = stream.get("pix_fmt", "")
-              
+
                 if not asset["duration"]:
                     dur = float(stream.get("duration",0))
                     if dur:
-                        asset["duration"] = dur 
+                        asset["duration"] = dur
                     else:
-                        if stream.get("nb_frames","FUCK").isnumeric(): 
+                        if stream.get("nb_frames","FUCK").isnumeric():
                             if asset["video/fps"]:
                                 asset["duration"] = int(stream["nb_frames"]) / asset[fps]
-    
+
                 ## Duration
                 ####################
                 ## Frame size
-                   
-                try: 
+
+                try:
                     w, h = int(stream["width"]), int(stream["height"])
-                except: 
+                except:
                     pass
-                else: 
+                else:
                     if w and h:
                         asset["video/width"]  = w
                         asset["video/height"] = h
-                    
+
                     if not (w and h):
                         pass
-                 #   elif old_meta.get("video/aspect_ratio", 0) and old_meta.get("video/width",0) == w: 
-                 #       pass # Pokud uz v meta aspect je a velikost se nezmenila, tak hodnotu neupdatujem. mohl ji zmenit uzivatel                     
+                 #   elif old_meta.get("video/aspect_ratio", 0) and old_meta.get("video/width",0) == w:
+                 #       pass # Pokud uz v meta aspect je a velikost se nezmenila, tak hodnotu neupdatujem. mohl ji zmenit uzivatel
                     else:
                         dar = stream.get("display_aspect_ratio", False)
                         if dar:
@@ -128,21 +122,21 @@ class FFProbe(Probe):
                     if not tag_mapping[tag] in asset.meta or tag == "title": # Only title should be overwriten if exists. There is a reason
                         asset[tag_mapping[tag]] = value
                 elif tag in ["track","disc"] and content_type == AUDIO:
-                    if not "album/%s"%tag in asset.meta: 
+                    if not "album/%s"%tag in asset.meta:
                         asset["album/%s"%tag] = value.split("/")[0]
                 elif tag == "genre" and content_type == AUDIO:
                     # Ultra mindfuck
                     NX_MUSIC_GENRES = [
-                                        "Alt Rock", 
+                                        "Alt Rock",
                                         "Electronic",
-                                        "Punk Rock", 
+                                        "Punk Rock",
                                         "Pop",
-                                        "Rock", 
+                                        "Rock",
                                         "Metal",
                                         "Hip Hop",
                                         "Demoscene",
                                         "Emo"
-                                        ] 
+                                        ]
 
                     for genre in NX_MUSIC_GENRES:
                         genre_parts = genre.lower().split()

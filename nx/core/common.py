@@ -11,8 +11,6 @@ from xml.etree import ElementTree as ET
 from nxtools import *
 from .constants import *
 
-logging.info("Initializing Nebula core")
-
 
 if PLATFORM == "windows":
     python_cmd = "c:\\python27\python.exe"
@@ -45,10 +43,9 @@ def xml(text):
 class Config(dict):
     def __init__(self):
         super(Config, self).__init__()
-        logging.debug("Loading local settings")
-        self["site"] = "Unnamed"
-        self["host"] = socket.gethostname()  # Machine hostname
+        self["site_name"] = "Unnamed"
         self["user"] = "Nebula"              # Service identifier. Should be overwritten by service/script.
+        self["host"] = socket.gethostname()  # Machine hostname
         try:
             local_settings = json.loads(open("local_settings.json").read())
         except:
@@ -76,16 +73,14 @@ class Messaging():
             self.sock.sendto(
                     json.dumps([
                         time.time(),
-                        config["site"],
+                        config["site_name"],
                         config["host"],
                         method,
                         data
                         ]),
                     (self.addr, self.port))
         except:
-            pass
-            #TODO: Uncomment in prod
-            #log_traceback(handlers=False)
+            log_traceback(handlers=False)
 
 messaging = Messaging()
 
