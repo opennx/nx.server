@@ -5,23 +5,8 @@ from nx import *
 from nx.services import BaseService
 from nx.plugins import plugin_path
 
-def file_exists(rname):
-    if not os.path.exists(rname):
-        raise Exception
-
-def dir_exists(rname):
-    #TODO
-    return True
-
-def is_installed(rname):
-    #TODO
-    return True
-
-
 class Service(BaseService):
     def on_init(self):
-
-        self.exec_require = False
         self.exec_init = False
         self.exec_main = False
         self.plugin = False
@@ -59,10 +44,6 @@ class Service(BaseService):
 
     def load_from_settings(self):
         try:
-            self.exec_require = self.settings.find("require").text
-        except:
-            pass
-        try:
             self.exec_init = self.settings.find("init").text
         except:
             pass
@@ -70,9 +51,6 @@ class Service(BaseService):
             self.exec_main = self.settings.find("main").text
         except:
             pass
-
-        if self.exec_require:
-            exec(self.exec_require)
 
         if self.exec_init:
             exec (self.exec_init)
