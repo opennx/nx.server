@@ -1,13 +1,13 @@
+import psycopg2
 from .core import *
 
-connection_type = "server"
+__all__ = ["DB", "cache", "Cache"]
 
-__all__ = ["connection_type", "DB", "cache", "Cache"]
+##
+# Database
+##
 
-#######################################################################################################
-## Database
-
-class DBproto(object):
+class BaseDB(object):
     def __init__(self, **kwargs):
         self.kwargs = kwargs
         self._connect()
@@ -33,108 +33,36 @@ class DBproto(object):
     def __len__(self):
         return True
 
-if config['db_driver'] == 'postgres':
-    import psycopg2
-    class DB(DBproto):
-        def _connect(self):
-            i = 0
-            while i < 3:
-                try:
-                    self.conn = psycopg2.connect(database = self.kwargs.get('db_name', False) or config['db_name'],
-                                                 host     = self.kwargs.get('db_host', False) or config['db_host'],
-                                                 user     = self.kwargs.get('db_user', False) or config['db_user'],
-                                                 password = self.kwargs.get('db_pass', False) or config['db_pass']
-                                                 )
-                except psycopg2.OperationalError:
-                    time.sleep(1)
-                    i+=1
-                    continue
-                else:
-                    break
-
-            self.cur = self.conn.cursor()
-
-        def sanit(self, instr):
+class DB(BaseDB):
+    def _connect(self):
+        i = 0
+        while i < 3:
             try:
-                return str(instr).replace("''","'").replace("'","''").decode("utf-8")
-            except:
-                return instr.replace("''","'").replace("'","''")
-
-        def lastid (self):
-            self.query("select lastval()")
-            return self.fetchall()[0][0]
-
-elif config['db_driver'] == 'sqlite':
-    import sqlite3
-    class DB(DBproto):
-        def _connect(self):
-            try:
-                self.conn = sqlite3.connect(config["db_host"])
-                self.cur = self.conn.cursor()
-            except:
-                raise (Exception, "Unable to connect database.")
-
-        def sanit(self, instr):
-            try:
-                return str(instr).replace("''","'").replace("'","''").decode("utf-8")
-            except:
-                return instr.replace("''","'").replace("'","''")
-
-        def lastid(self):
-            r = self.cur.lastrowid
-            return r
-
-else:
-    critical_error("Unknown DB Driver. Exiting.")
-
-## Database
-#######################################################################################################
-## Site settings
-
-def load_site_settings():
-    """Should be called after db initialisation"""
-    db = DB()
-    global config
-
-    config["playout_channels"] = {}
-    config["ingest_channels"] = {}
-    config["views"] = {}
-
-    db.query("SELECT key, value FROM nx_settings")
-    for key, value in db.fetchall():
-        config[key] = value
-
-    db.query("SELECT id_view, config FROM nx_views")
-    for id_view, view_config in db.fetchall():
-        view_config = ET.XML(view_config)
-        view = {}
-        for elm in ["query", "folders", "origins", "media_types", "content_types", "statuses"]:
-            try:
-                view[elm] = view_config.find(elm).text.strip()
-            except:
+                self.conn = psycopg2.connect(
+                    database = self.kwargs.get('db_name', False) or config['db_name'],
+                    host     = self.kwargs.get('db_host', False) or config['db_host'],
+                    user     = self.kwargs.get('db_user', False) or config['db_user'],
+                    password = self.kwargs.get('db_pass', False) or config['db_pass']
+                    )
+            except psycopg2.OperationalError:
+                time.sleep(1)
+                i+=1
                 continue
-        config["views"][id_view] = view
+            else:
+                break
 
-    db.query("SELECT id_channel, channel_type, title, config FROM nx_channels")
-    for id_channel, channel_type, title, ch_config in db.fetchall():
+        self.cur = self.conn.cursor()
+
+    def sanit(self, instr):
         try:
-            ch_config = json.loads(ch_config)
+            return str(instr).replace("''","'").replace("'","''").decode("utf-8")
         except:
-            print ("Unable to parse channel {}:{} config.".format(id_channel, title))
-            continue
-        ch_config.update({"title":title})
-        if channel_type == PLAYOUT:
-            config["playout_channels"][id_channel] = ch_config
-        elif channel_type == INGEST:
-            config["ingest_channels"][id_channel] = ch_config
+            return instr.replace("''","'").replace("'","''")
 
+    def lastid (self):
+        self.query("select lastval()")
+        return self.fetchall()[0][0]
 
-
-
-load_site_settings()
-messaging.configure()
-
-## Site settings
 #######################################################################################################
 ## Cache
 
@@ -142,6 +70,10 @@ import pylibmc
 
 class Cache():
     def __init__(self):
+        if "cache_host" in config:
+            self.configure()
+
+    def configure(self):
         self.site = config["site_name"]
         self.host = config["cache_host"]
         self.port = config["cache_port"]
@@ -175,7 +107,7 @@ class Cache():
                 self.conn.set(key, str(value))
                 break
             except:
-                logging.error("Cache save failed ({}): {}".format(key, str(sys.exc_info())))
+                log_traceback("Cache save failed ({})".format(key))
                 time.sleep(.3)
                 self.connect()
         else:
@@ -192,7 +124,7 @@ class Cache():
                 self.conn.delete(key)
                 break
             except:
-                logging.error("Cache delete failed ({}): {}".format(key, str(sys.exc_info())))
+                log_traceback("Cache delete failed ({})".format(key))
                 time.sleep(.3)
                 self.connect()
         else:
@@ -225,7 +157,7 @@ class Cache():
                     mc.set(key, str(value))
                     break
                 except:
-                    logging.error("Cache save failed ({}): {}".format(key, str(sys.exc_info())))
+                    log_traceback("Cache save failed ({})".format(key))
                     time.sleep(.3)
                     self.connect()
             else:
@@ -244,7 +176,7 @@ class Cache():
                     mc.delete(key)
                     break
                 except:
-                    logging.error("Cache delete failed ({}): {}".format(key, str(sys.exc_info())))
+                    log_traceback("Cache delete failed ({})".format(key))
                     time.sleep(.3)
                     self.connect()
             else:
@@ -254,49 +186,4 @@ class Cache():
         return True
 
 
-
-
 cache = Cache()
-
-## Cache
-########################################################################
-## Storages
-
-class Storage():
-    def __init__(self):
-        pass
-
-    @property
-    def local_path(self):
-        if self.protocol == LOCAL:
-            return self.path
-        elif PLATFORM == "windows":
-            return ""
-        else:
-            return os.path.join ("/mnt","nx%02d"%self.id_storage)
-
-    def get_path(self,rel=False):
-        logging.warning("get_path is deprecated")
-        return self.local_path
-
-    def __len__(self):
-        return ismount(self.local_path) and len(os.listdir(self.local_path)) != 0
-
-def load_storages():
-    try:
-        db = DB()
-        db.query("SELECT id_storage, title, protocol, path, login, password FROM nx_storages")
-    except:
-        return
-
-    for id_storage, title, protocol, path, login, password in db.fetchall():
-        storage = Storage()
-        storage.id_storage = id_storage
-        storage.title      = title
-        storage.protocol   = protocol
-        storage.path       = path
-        storage.login      = login
-        storage.password   = password
-        storages[id_storage] = storage
-
-load_storages()

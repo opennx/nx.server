@@ -86,8 +86,7 @@ class Service(BaseService):
                     try:
                         exec(post_script.text)
                     except:
-                        logging.error("Error executing post-script \"%s\" on %s" % (post_script.text, asset))
-                        logging.error(str(sys.exc_info()))
+                        log_traceback("Error executing post-script on {}".format(asset))
                         failed = True
 
                 if not failed:

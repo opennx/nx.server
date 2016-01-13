@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from nx import *
+from nebula import *
 from nx.objects import *
 
 def load_cache():

@@ -80,7 +80,6 @@ class ControlHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         service = self.server.service
-        #self.result(service.stat())
         self.result(service.cg_list(id_channel=1))
 
     def do_POST(self):
@@ -104,8 +103,6 @@ class ControlHandler(BaseHTTPRequestHandler):
             logging.debug("Malformed request")
             self.error(400)
             return
-
-        #logging.debug("Requested {} /w params {}".format(method, params))
 
         methods = {
             "take" : service.take,
@@ -135,7 +132,6 @@ class Service(BaseService):
         if chlist is not None:
             for ch in chlist.findall("channel"):
                 allowed_channels.append(int(ch.text))
-
 
         self.caspar = Caspar()
         for id_channel in config["playout_channels"]:
@@ -351,7 +347,7 @@ class Service(BaseService):
             try:
                 plugin.main()
             except:
-                logging.error("Plugin error {}".format(str(sys.exc_info())))
+                log_traceback("Playout plugin error:")
 
         if channel.current_item and not channel.cued_item and not channel._cueing:  # and not channel._next_studio and not channel._now_studio:
             self.cue_next(channel)
@@ -399,7 +395,7 @@ class Service(BaseService):
             try:
                 plugin.on_change()
             except:
-                logging.error("Plugin OnChange error {}".format(str(sys.exc_info())))
+                log_traceback("Plugin on_change error")
 
 
 

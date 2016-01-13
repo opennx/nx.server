@@ -29,7 +29,6 @@ if os.path.exists(vendor_dir):
             sys.path.insert(0, pname)
 
 from nx import *
-
 config["nebula_root"] = nebula_root
 
 ## ABOVE IS FROM FUTURE (v.5)
@@ -55,7 +54,7 @@ class StorageMonitor():
         for id_storage in storages:
             storage = storages[id_storage]
             if ismount(storage.local_path):
-                storage_string = "{}:{}".format(config["site_name"], storage.id_storage)
+                storage_string = "{}:{}".format(config["site_name"], storage.id)
                 storage_ident_path = os.path.join(storage.local_path,".nebula_root")
 
                 if not (os.path.exists(storage_ident_path) and storage_string in [line.strip() for line in open(storage_ident_path).readlines()]):
@@ -67,21 +66,21 @@ class StorageMonitor():
                         pass
                 continue
 
-            logging.info ("Storage %s (%s) is not mounted. Remounting."%(storage.id_storage,storage.title))
+            logging.info ("{} is not mounted. Remounting.".format(storage))
 
             if not os.path.exists(storage.local_path):
                 try:
                     os.mkdir(storage.local_path)
                 except:
-                    logging.error("Unable to create mountpoint for storage %s (%s)"%(storage.id_storage,storage.title))
+                    logging.error("Unable to create mountpoint for {}".format(storage))
                     continue
 
-            self.mount(storage.protocol, storage.path, storage.local_path, storage.login, storage.password)
+            self.mount(storage["protocol"], storage["path"], storage.local_path, storage["login"], storage["password"])
 
             if ismount(storage.local_path):
-                logging.goodnews("Storage %s (%s) remounted successfully"%(storage.id_storage,storage.title))
+                logging.goodnews("{} remounted successfully".format(storage))
             else:
-                logging.warning ("Storage %s (%s) remounting failed"%(storage.id_storage,storage.title))
+                logging.warning("{} remounting failed".format(storage))
 
 
     def mount(self, protocol, source, destination, username="", password=""):
@@ -99,8 +98,9 @@ class StorageMonitor():
         else:
             return
 
-        c = shell(cmd)
-        print (c.stderr().read())
+        c = Shell(cmd)
+        if c.retcode:
+            logging.error(c.stderr().read())
 
 
 

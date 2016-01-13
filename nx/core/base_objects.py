@@ -1,8 +1,8 @@
 from .common import *
 from .constants import *
-from .metadata import MetaType, meta_types
+from .metadata import meta_types
 
-from nx.connection import *
+__all__ = ["BaseObject", "BaseAsset", "BaseItem", "BaseBin", "BaseEvent"]
 
 class BaseObject(object):
     object_type = "asset"
@@ -115,12 +115,6 @@ class BaseAsset(BaseObject):
             self["mark_out"] = new_val
         return self["mark_out"]
 
-    def get_file_path(self): # DEPRECATED
-        return self.file_path
-
-    def get_duration(self): # DEPRECATED
-        return self.duration
-
     @property
     def file_path(self):
         try:
@@ -169,12 +163,6 @@ class BaseItem(BaseObject):
         if new_val:
             self["mark_out"] = new_val
         return float(self["mark_out"])
-
-    def get_asset(self): # DEPRECATED
-        return self.asset
-
-    def get_duration(self): # DEPRECATED
-        return self.duration
 
     @property
     def asset(self):

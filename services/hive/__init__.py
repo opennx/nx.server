@@ -3,12 +3,9 @@ from nx.services import BaseService
 from nx.objects import *
 
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-#from SocketServer import ThreadingMixIn
 
 import cgi
 import thread
-import zlib
-import traceback
 
 import hive_assets
 import hive_system
@@ -19,7 +16,6 @@ reload(sys)
 sys.setdefaultencoding('utf-8')
 
 REQUIRED_PROTOCOL = 140000
-
 
 class Sessions():
     def __init__(self):
@@ -159,26 +155,18 @@ class HiveHandler(BaseHTTPRequestHandler):
                     if response >= 300:
                         logging.error("{} failed to {}: {}".format(user, method, data))
             except:
-                msg = traceback.format_exc()
-                logging.error("{} failed to {}: {}".format(user, method, msg))
+                msg = log_traceback("{} failed to {}:".format(user, method))
                 self.push_response(400, "\n{}\n".format(msg))
         else:
-            logging.error("%s not implemented" % method)
-            self.result(ERROR_NOT_IMPLEMENTED,False)
+            logging.error("{} is not implemented".format(method))
+            self.result(ERROR_NOT_IMPLEMENTED, False)
             return
-
-        #logging.debug("Query {} completed in {:.03f} seconds ({})".format(method, time.time()-start_time, user))
-
 
     def push_response(self, response, data):
         data = json.dumps([response, data])
-        #if params.get("use_zlib", False):
-        #    data = zlib.compress(data)
         self._echo("{}\n".format(data))
 
 
-#class HiveHTTPServer(ForkingMixIn, HTTPServer):
-#    pass
 
 class HiveHTTPServer(HTTPServer):
     pass

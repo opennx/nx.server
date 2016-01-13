@@ -1,13 +1,15 @@
+import os
+import time
+
 try:
     import yaml
 except:
     yaml = False
 
-from .core import *
-from .core.metadata import meta_types
-from .connection import *
 
-from .core.base_objects import BaseObject, BaseAsset, BaseItem, BaseBin, BaseEvent
+from .core import *
+from .core.base_objects import *
+from .connection import *
 
 
 class ServerObject(object):
@@ -232,7 +234,7 @@ class Bin(ServerObject, BaseBin):
     def duration(self):
         dur = 0
         for item in self.items:
-            dur += item.get_duration()
+            dur += item.duration
         return dur
 
     def delete_childs(self):

@@ -94,25 +94,55 @@ def seismic_log(**kwargs):
 logging.user = config["user"]
 logging.add_handler(seismic_log)
 
-
-
-## ABOVE IS FROM FUTURE (v.5)
-#################################################################
-
 ##
 # Filesystem
 ##
 
 class Storage():
-    id_storage = False
-    title = "NO STORAGE"
-    protocol = False
-    path = False
-    login = False
-    password = False
+    def __init__(self,  **kwargs):
+        self.settings = kwargs
 
-class Storages(dict):
+    def __getitem__(self, key):
+        return self.settings[key]
+
+    def __repr__(self):
+        return "storage ID:{} ({})".format(self.id, self["title"])
+
+    @property
+    def id(self):
+        return self["id"]
+
+    @property
+    def local_path(self):
+        if self["protocol"] == LOCAL:
+            return self["path"]
+        elif PLATFORM == "unix":
+            return os.path.join("/mnt/{}_{:02d}".format(config["site_name"], self.id))
+        #lif PLATFORM == "windows":
+            #TODO
+        #   pass
+        logging.warning("Unsuported {} platform: {}".format(self, self["protocol"]))
+
+    def __len__(self):
+        return ismount(self.local_path) and len(os.listdir(self.local_path)) != 0
+
+
+class Storages():
     def __init__(self):
-        super(Storages, self).__init__()
+        self.clear()
+
+    def clear(self):
+        self.data = {}
+
+    def add(self, storage):
+        assert isinstance(storage, Storage)
+        self.data[storage.id] = storage
+
+    def __getitem__(self, key):
+        return self.data[key]
+
+    def __iter__(self):
+        return self.data.__iter__()
+
 
 storages  = Storages()

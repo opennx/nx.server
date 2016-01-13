@@ -13,7 +13,6 @@ else:
         os.makedirs(plugin_path)
 
 
-
 class PlayoutPluginSlot(object):
     def __init__(self, slot_type, **kwargs):
         self.slot_type = slot_type
@@ -43,10 +42,7 @@ class PlayoutPlugin(object):
 
     def main(self):
         self.busy = True
-        try:
-            self.on_main()
-        except:
-            logging.error("Plugin error: {}".format(str(sys.exc_info())))
+        self.on_main()
         self.busy = False
 
     def layer(self, id_layer=False):

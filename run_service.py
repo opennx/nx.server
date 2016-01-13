@@ -53,7 +53,7 @@ if __name__ == "__main__":
     except:
         critical_error("Unable to start service %s. No such service" % id_service)
 
-    config["user"] = title
+    config["user"] = logging.user = title
 
     if host != config["host"]:
         critical_error("This service should not run here.")
