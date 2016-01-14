@@ -118,7 +118,7 @@ def view_jobs(view="", search=""):
 		FROM nx_jobs as j
 		JOIN nx_actions as a ON a.id_action = j.id_action
 		"""+sql_join+"""
-		WHERE a.id_action = j.id_action {} ORDER BY stime DESC, etime DESC, ctime DESC """.format(cond))
+		WHERE a.id_action = j.id_action {} ORDER BY stime DESC, etime DESC, ctime DESC LIMIT 200""".format(cond))
 
 	if view=="json":
 		jobs = {}
