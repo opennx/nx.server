@@ -1,3 +1,4 @@
+import os
 import sys
 import imp
 
@@ -8,155 +9,163 @@ from nx import *
 from nx.objects import *
 
 from flask import request, url_for
-import os
 
 from nx.plugins import plugin_path
 if plugin_path:
-	python_plugin_path = os.path.join(plugin_path, "python")
-	if os.path.exists(python_plugin_path):
-		sys.path.append(python_plugin_path)
+    python_plugin_path = os.path.join(plugin_path, "python")
+    if os.path.exists(python_plugin_path):
+        sys.path.append(python_plugin_path)
 
 
 ########################################################################
 ## Misc tools
 
 def set_current_controller(data={}):
-
-	if 'title' in data:
-	   data['sub_title'] = data['title']
-	   data['title'] = data['title']+' | OpenNX'
-	else:
-	   data['sub_title'] = 'OpenNX'
-	   data['title'] = 'OpenNX'
-	return data
+    if 'title' in data:
+       data['sub_title'] = data['title']
+       data['title'] = data['title']+' | OpenNX'
+    else:
+       data['sub_title'] = 'OpenNX'
+       data['title'] = 'OpenNX'
+    return data
 
 
 def firefly_kill():
-	try:
-		messaging.send("firefly_shutdown")
-		res = {'status': True, 'reason': 'Ok', 'description': 'Everything went ok'}
-	except:
-		res = {'status': False, 'reason': 'Failed', 'description': 'Request failed' }
-	return res
+    try:
+        messaging.send("firefly_shutdown")
+        res = {'status': True, 'reason': 'Ok', 'description': 'Everything went ok'}
+    except:
+        res = {'status': False, 'reason': 'Failed', 'description': 'Request failed' }
+    return res
 
 
 ########################################################################
 ## Assets
 
-
 def view_browser():
-	db=DB()
-	result = []
-	db.query("SELECT id_object FROM nx_assets ORDER BY ctime DESC")
-	for id_object, in db.fetchall():
-		asset = Asset(id_object, db=db)
-		result.append(asset)
-	return result
+    db=DB()
+    result = []
+    db.query("SELECT id_object FROM nx_assets ORDER BY ctime DESC LIMIT 100")
+    for id_object, in db.fetchall():
+        asset = Asset(id_object, db=db)
+        result.append(asset)
+    return result
 
 ########################################################################
 ## Services administration
 
 def view_services(view=""):
-	db = DB()
-	cols = ["id_service", "agent", "title", "host", "autostart", "loop_delay", "settings", "state", "pid", "last_seen"]
-	db.query("SELECT id_service, agent, title, host, autostart, loop_delay, settings, state, pid, last_seen FROM nx_services ORDER BY id_service ASC")
-	if view=="json":
-		services={}
-		for sdata in db.fetchall():
-			services[str(sdata[0])] = sdata
-		return services
-	services = []
-	for service_data in db.fetchall():
-		service = {}
-		for i, c in enumerate(cols):
-			service[c] = service_data[i]
-		services.append(service)
-	return services
+    db = DB()
+    cols = ["id_service", "agent", "title", "host", "autostart", "loop_delay", "settings", "state", "pid", "last_seen"]
+    db.query("SELECT id_service, agent, title, host, autostart, loop_delay, settings, state, pid, last_seen FROM nx_services ORDER BY id_service ASC")
+    if view=="json":
+        services={}
+        for sdata in db.fetchall():
+            services[str(sdata[0])] = sdata
+        return services
+    services = []
+    for service_data in db.fetchall():
+        service = {}
+        for i, c in enumerate(cols):
+            service[c] = service_data[i]
+        services.append(service)
+    return services
 
 def service_action(id_service, action):
-	db = DB()
-	sstate = {
-		"stop" : 3,
-		"start" : 2,
-		"kill" : 4
-		}[action]
-	db.query("UPDATE nx_services set state = %s WHERE id_service=%s", [sstate, id_service])
-	db.commit()
-	return "OK"
+    db = DB()
+    sstate = {
+        "stop" : 3,
+        "start" : 2,
+        "kill" : 4
+        }[action]
+    db.query("UPDATE nx_services set state = %s WHERE id_service=%s", [sstate, id_service])
+    db.commit()
+    return "OK"
 
 def service_autostart(id_service, autostart):
-	db = DB()
-	db.query("UPDATE nx_services set autostart = %s WHERE id_service=%s", [autostart, id_service])
-	db.commit()
-	return "OK"
+    db = DB()
+    db.query("UPDATE nx_services set autostart = %s WHERE id_service=%s", [autostart, id_service])
+    db.commit()
+    return "OK"
 
 
 ########################################################################
 ## Jobs administration
 
 def view_jobs(view="", search=""):
-	db = DB()
-	cols = [ "id_job", "id_object", "id_action", "settings", "id_service", "priority", "progress", "retries", "ctime", "stime", "etime", "message", "id_user", "action_title", "asset_title" ]
+    db = DB()
+    cols = [
+        "id_job",
+        "id_object",
+        "id_action",
+        "settings",
+        "id_service",
+        "priority",
+        "progress",
+        "retries",
+        "ctime",
+        "stime",
+        "etime",
+        "message",
+        "id_user",
+        "action_title",
+        "asset_title"
+        ]
 
-	sql_join = ""
+    sql_join = ""
 
-	if view == "failed":
-		cond = " AND (j.progress = -3 OR j.progress = -4)"
-	elif view == "completed":
-		cond = " AND j.progress = -2"
-	else:
-		cond = " AND (j.progress >= -1 OR {} - etime < 60)".format(time.time())
+    if view == "failed":
+            cond = " AND (j.progress = -3 OR j.progress = -4)"
+    elif view == "completed":
+            cond = " AND j.progress = -2"
+    else:
+            cond = " AND (j.progress >= -1 OR {} - etime < 60)".format(time.time())
 
-	if len(search)>1:
+    if len(search)>1:
 
-		sql_join = """ JOIN nx_meta as m ON m.id_object = j.id_object """
+            sql_join = """ JOIN nx_meta as m ON m.id_object = j.id_object """
 
-		cond = cond + """ AND m.tag IN(SELECT tag FROM nx_meta_types WHERE searchable = 1)
-				AND lower(unaccent(m.value)) LIKE lower(unaccent('%"""+search.encode('utf-8').strip()+"""%')) """
+            cond = cond + """ AND m.tag IN(SELECT tag FROM nx_meta_types WHERE searchable = 1)
+                            AND lower(unaccent(m.value)) LIKE lower(unaccent('%"""+search.encode('utf-8').strip()+"""%')) """
 
-	db.query("""SELECT DISTINCT(j.id_job), j.id_object, j.id_action, j.settings, j.id_service, j.priority, j.progress, j.retries, j.ctime, j.stime, j.etime, j.message, j.id_user, a.title
-		FROM nx_jobs as j
-		JOIN nx_actions as a ON a.id_action = j.id_action
-		"""+sql_join+"""
-		WHERE a.id_action = j.id_action {} ORDER BY stime DESC, etime DESC, ctime DESC LIMIT 200""".format(cond))
+    db.query("""SELECT DISTINCT(j.id_job), j.id_object, j.id_action, j.settings, j.id_service, j.priority, j.progress, j.retries, j.ctime, j.stime, j.etime, j.message, j.id_user, a.title
+            FROM nx_jobs as j
+            JOIN nx_actions as a ON a.id_action = j.id_action
+            """+sql_join+"""
+            WHERE a.id_action = j.id_action {} ORDER BY stime DESC, etime DESC, ctime DESC LIMIT 200""".format(cond))
 
-	if view=="json":
-		jobs = {}
-		for job_data in db.fetchall():
-			jobs[str(job_data[0])] = [job_data[6], job_data[11]]
-		return json.dumps(jobs)
+    if view=="json":
+            jobs = {}
+            for job_data in db.fetchall():
+                    jobs[str(job_data[0])] = [job_data[6], job_data[11]]
+            return json.dumps(jobs)
 
-	jobs = []
-	for job_data in db.fetchall():
-		asset = Asset(job_data[1])
-		job_data = list(job_data)
-		job_data.append(asset["title"])
-		job = {}
-		for i,c in enumerate(cols):
-			job[c] = job_data[i]
-		jobs.append(job)
+    jobs = []
+    for job_data in db.fetchall():
+        asset = Asset(job_data[1])
+        job_data = list(job_data)
+        job_data.append(asset["title"])
+        job = {}
+        for i,c in enumerate(cols):
+                job[c] = job_data[i]
+        jobs.append(job)
 
-	return jobs
+    return jobs
 
 
 
 def job_action(id_job, action, id_user=0):
-
-	result = {'status': True, 'reason': 'Job action set'}
-
-	try:
-		# abort -> don't modify stime
-		db = DB()
-		id_job = id_job
-		db.query("UPDATE nx_jobs set id_service=0, progress=%s, retries=0, ctime=%s, stime=0, etime=0, message='Pending', id_user=%s WHERE id_job=%s", (action, time.time(), id_user, id_job))
-		db.commit()
-
-	except Exception, e:
-
-		result['status'] = False
-		result['reason'] = 'Users not loaded, database error' + format(e)
-
-	return result
+    result = {'status': True, 'reason': 'Job action set'}
+    try:
+        # abort -> don't modify stime
+        db = DB()
+        id_job = id_job
+        db.query("UPDATE nx_jobs set id_service=0, progress=%s, retries=0, ctime=%s, stime=0, etime=0, message='Pending', id_user=%s WHERE id_job=%s", (action, time.time(), id_user, id_job))
+        db.commit()
+    except Exception, e:
+        result['status'] = False
+        result['reason'] = 'Users not loaded, database error' + format(e)
+    return result
 
 
 
@@ -164,24 +173,17 @@ def job_action(id_job, action, id_user=0):
 ## Users administration
 
 def view_users():
-
-	db = DB()
-
-	result = {'users': [], 'status': True, 'reason': 'Users loaded'}
-
-	try:
-		db.query("SELECT id_object FROM nx_users ORDER BY login")
-
-		for id_object, in db.fetchall():
-			user = User(id_object, db=db)
-			result['users'].append(user)
-
-	except Exception, e:
-
-		result['status'] = False
-		result['reason'] = 'Users not loaded, database error: '  + format(e)
-
-	return result
+    db = DB()
+    result = {'users': [], 'status': True, 'reason': 'Users loaded'}
+    try:
+        db.query("SELECT id_object FROM nx_users ORDER BY login")
+        for id_object, in db.fetchall():
+            user = User(id_object, db=db)
+            result['users'].append(user)
+    except Exception, e:
+        result['status'] = False
+        result['reason'] = 'Users not loaded, database error: '  + format(e)
+    return result
 
 
 def get_user_data(id_user):
@@ -399,66 +401,46 @@ def remove_config_data(query_table, query_key, query_val):
 
 
 def load_config_data(query_table, query_order):
+    db = DB()
+    result = {'data': [], 'status': True, 'reason': 'Data loaded'}
+    try:
+        db.query("SELECT * FROM "+str(query_table)+" ORDER BY "+str(query_order))
+        for item in db.fetchall():
+            result['data'].append(item)
 
-	db = DB()
-
-	result = {'data': [], 'status': True, 'reason': 'Data loaded'}
-
-	try:
-		db.query("SELECT * FROM "+str(query_table)+" ORDER BY "+str(query_order))
-
-		for item in db.fetchall():
-			result['data'].append(item)
-
-	except Exception, e:
-
-		result['status'] = False
-		result['reason'] = 'Data not loaded, database error: ' + format(e)
-
-	return result
+    except Exception, e:
+            result['status'] = False
+            result['reason'] = 'Data not loaded, database error: ' + format(e)
+    return result
 
 
 def load_config_item_data(query_table, column, id):
-
 	db = DB()
-
 	result = {'data': [], 'status': True, 'reason': 'Data loaded'}
 
 	try:
-		db.query("SELECT * FROM "+str(query_table)+" WHERE "+str(column)+" = "+str(id))
+            db.query("SELECT * FROM "+str(query_table)+" WHERE "+str(column)+" = "+str(id))
+            res = db.fetchall()
 
-		res = db.fetchall()
-
-		if len(res) == 1:
-			result['data'] = res[0]
-
+            if len(res) == 1:
+                    result['data'] = res[0]
 	except Exception, e:
-
-		result['status'] = False
-		result['reason'] = 'Data not loaded, database error: ' + format(e)
-
+            result['status'] = False
+            result['reason'] = 'Data not loaded, database error: ' + format(e)
 	return result
 
 
 def nx_setting_exists(key):
-
-	db = DB()
-
-	result = False
-
-	try:
-		db.query("SELECT * FROM nx_settings WHERE key = '"+key+"'")
-
-		res = db.fetchall()
-
-		if len(res) == 1:
-			result = True
-
-	except:
-
-		result = False
-
-	return result
+    db = DB()
+    result = False
+    try:
+        db.query("SELECT * FROM nx_settings WHERE key = '"+key+"'")
+        res = db.fetchall()
+        if len(res) == 1:
+            result = True
+    except:
+        result = False
+    return result
 
 
 
@@ -573,6 +555,10 @@ def permission_helper():
 	]
 
 	return ACL
+
+
+
+
 
 
 #########################################################################

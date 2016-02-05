@@ -232,6 +232,7 @@ def settings(view="nx-settings", citem=-1):
     current_controller = set_current_controller({'title': 'Configuration', 'controller': 'configuration', 'current_view': current_view, 'current_item': item, 'current_user': current_user, 'acl': acl })
 
     if acl['status'] == True:
+
         template = 'configuration.html'
         # API actions
         if current_view == 'api':
@@ -256,55 +257,55 @@ def settings(view="nx-settings", citem=-1):
             return json.dumps(data)
 
         # STD view
-    else:
-
-        current_controller = set_current_controller({'title': 'Configuration', 'controller': 'configuration', 'current_view': current_view, 'current_item': item, 'current_user': current_user })
-
-        if current_view == "nx-settings":
-
-            if request.method == "POST" and "firefly_kill" in request.form:
-                res = firefly_kill()
-                return json.dumps(res)
-            else:
-                flash("Double check input, settings validity is critical and this action can not be undone.", "warning")
-
-            data = load_config_data('nx_settings', 'key')
-
-        elif current_view == "system-tools":
-            data = {}
-        elif current_view == "storages":
-            if item < 0:
-                data = load_config_data('nx_storages', 'title')
-            else:
-                data = load_config_item_data('nx_storages', 'id_storage', item)
-        elif current_view == "services":
-            if item < 0:
-                data = load_config_data('nx_services', 'title')
-            else:
-                data = load_config_item_data('nx_services', 'id_service', item)
-        elif current_view == "views":
-            if item < 0:
-                data = load_config_data('nx_views', 'title')
-            else:
-                current_controller['user_data'] = view_users()
-                data = load_config_item_data('nx_views', 'id_view', item)
-        elif current_view == "channels":
-            if item < 0:
-                data = load_config_data('nx_channels', 'title')
-            else:
-                data = load_config_item_data('nx_channels', 'id_channel', item)
-        elif current_view == "actions":
-            if item < 0:
-                data = load_config_data('nx_actions', 'title')
-            else:
-                data = load_config_item_data('nx_actions', 'id_action', item)
-        elif current_view == "users":
-            if item < 0:
-                data = view_users()
-            else:
-                data = get_user_data(item)
         else:
-            data = {}
+
+            current_controller = set_current_controller({'title': 'Configuration', 'controller': 'configuration', 'current_view': current_view, 'current_item': item, 'current_user': current_user })
+
+            if current_view == "nx-settings":
+
+                if request.method == "POST" and "firefly_kill" in request.form:
+                    res = firefly_kill()
+                    return json.dumps(res)
+                else:
+                    flash("Double check input, settings validity is critical and this action can not be undone.", "warning")
+
+                data = load_config_data('nx_settings', 'key')
+
+            elif current_view == "system-tools":
+                data = {}
+            elif current_view == "storages":
+                if item < 0:
+                    data = load_config_data('nx_storages', 'title')
+                else:
+                    data = load_config_item_data('nx_storages', 'id_storage', item)
+            elif current_view == "services":
+                if item < 0:
+                    data = load_config_data('nx_services', 'title')
+                else:
+                    data = load_config_item_data('nx_services', 'id_service', item)
+            elif current_view == "views":
+                if item < 0:
+                    data = load_config_data('nx_views', 'title')
+                else:
+                    current_controller['user_data'] = view_users()
+                    data = load_config_item_data('nx_views', 'id_view', item)
+            elif current_view == "channels":
+                if item < 0:
+                    data = load_config_data('nx_channels', 'title')
+                else:
+                    data = load_config_item_data('nx_channels', 'id_channel', item)
+            elif current_view == "actions":
+                if item < 0:
+                    data = load_config_data('nx_actions', 'title')
+                else:
+                    data = load_config_item_data('nx_actions', 'id_action', item)
+            elif current_view == "users":
+                if item < 0:
+                    data = view_users()
+                else:
+                    data = get_user_data(item)
+            else:
+                data = {}
 
     return render_template(template, data=data, current_controller=current_controller)
 
