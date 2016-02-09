@@ -14,7 +14,7 @@ if sys.version_info[:2] < (3, 0):
     reload(sys)
     sys.setdefaultencoding('utf-8')
 
-nebula_root = os.path.abspath(os.path.split(sys.argv[0])[0])
+nebula_root = os.path.abspath(os.getcwd())
 
 ##
 # Vendor imports
