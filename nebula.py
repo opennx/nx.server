@@ -198,7 +198,7 @@ class ServiceMonitor():
             return
         logging.info("Attempting to kill PID {}".format(pid))
         if PLATFORM == "linux":
-            os.system (os.path.join(nebula_root,"killgroup.sh {}".format(pid)))
+            os.system(os.path.join(nebula_root,"killtree.sh {}".format(pid)))
         elif PLATFORM == "windows":
             os.system ("taskkill /F /PID %s" % pid)
 
