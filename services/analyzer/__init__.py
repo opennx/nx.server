@@ -91,7 +91,7 @@ class Service(BaseService):
                 result = -1 if not a.status else analyzer.version
 
                 qinfo = asset["qc/analyses"] or {}
-                if type(qinfo) == str:
+                if type(qinfo) in [str, unicode]:
                     qinfo = json.loads(qinfo)
                 qinfo[analyzer.proc_name] = result
                 asset["qc/analyses"] = qinfo
