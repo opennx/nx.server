@@ -40,10 +40,11 @@ class Analyzer_BPM(BaseAnalyzer):
 
     def proc(self):
         fname = self.asset.file_path
-        s = shell("ffmpeg -i \"{}\" -vn -ar 44100 -f f32le - 2> /dev/null | bpm".format(fname))
+        s = Shell("ffmpeg -i \"{}\" -vn -ar 44100 -f f32le - 2> /dev/null | bpm".format(fname))
         try:
             bpm = float(s.stdout().read())
         except:
+            log_traceback("Unable to read BPM")
             return False
         self.update("audio/bpm", bpm)
         return True
