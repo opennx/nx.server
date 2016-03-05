@@ -89,7 +89,7 @@ class Messaging():
                         data
                         ])
                     ),
-                [self.addr, self.port]
+                (self.addr, self.port)
                 )
         except:
             log_traceback(handlers=False)
