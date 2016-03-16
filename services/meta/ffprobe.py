@@ -1,32 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-import json
-
 from nx import *
-
-class Probe(object):
-    title = "Generic Probe"
-    def __init__(self):
-        pass
-
-    def __repr__(self):
-        return self.title
-
-    def accepts(self, asset):
-        return False
-
-    def work(self, asset):
-        return asset
-
-###############################################################################################
-
-def guess_aspect (w,h):
-    if 0 in [w,h]:
-        return 0
-    valid_aspects = [(16, 9), (4, 3), (2.35, 1)]
-    ratio = float(w) / float(h)
-    return "%s/%s" % min(valid_aspects, key=lambda x:abs((float(x[0])/x[1])-ratio))
+from .common import Probe, guess_aspect
 
 class FFProbe(Probe):
     title = "FFProbe"
@@ -48,7 +21,7 @@ class FFProbe(Probe):
 
 
         asset["file/format"]   = format.get("format_name", "")
-        asset["duration"] = format.get("duration", "")
+        asset["duration"] = format.get("duration", 0)
 
         ## Streams
 
@@ -60,47 +33,49 @@ class FFProbe(Probe):
                 asset["video/fps"]          = stream.get("r_frame_rate","")
                 asset["video/codec"]        = stream.get("codec_name","")
                 asset["video/pixel_format"] = stream.get("pix_fmt", "")
+                asset["video/color_range"] = stream.get("color_range", "")
+                asset["video/color_space"] = stream.get("color_space", "")
+
+                #
+                # Duration (if not provided in container metadata)
+                #
 
                 if not asset["duration"]:
                     dur = float(stream.get("duration",0))
                     if dur:
                         asset["duration"] = dur
                     else:
-                        if stream.get("nb_frames","FUCK").isnumeric():
+                        if stream.get("nb_frames", "").isnumeric():
                             if asset["video/fps"]:
                                 asset["duration"] = int(stream["nb_frames"]) / asset[fps]
 
-                ## Duration
-                ####################
-                ## Frame size
+                #
+                # Frame size
+                #
 
                 try:
                     w, h = int(stream["width"]), int(stream["height"])
                 except:
-                    pass
-                else:
-                    if w and h:
-                        asset["video/width"]  = w
-                        asset["video/height"] = h
+                    w = h = 0
 
-                    if not (w and h):
-                        pass
-                 #   elif old_meta.get("video/aspect_ratio", 0) and old_meta.get("video/width",0) == w:
-                 #       pass # Pokud uz v meta aspect je a velikost se nezmenila, tak hodnotu neupdatujem. mohl ji zmenit uzivatel
-                    else:
-                        dar = stream.get("display_aspect_ratio", False)
-                        if dar:
-                            asset["video/aspect_ratio"] = guess_aspect(*[int(i) for i in dar.split(":")])
+                if w and h:
+                    asset["video/width"]  = w
+                    asset["video/height"] = h
 
-                        if asset["video/aspect_ratio"] == "0":
-                            asset["video/aspect_ratio"] = guess_aspect(w, h)
+                    dar = stream.get("display_aspect_ratio", False)
+                    if dar:
+                        asset["video/aspect_ratio"] = guess_aspect(*[int(i) for i in dar.split(":")])
+
+                    if asset["video/aspect_ratio"] == "0":
+                        asset["video/aspect_ratio"] = guess_aspect(w, h)
+
 
             elif stream["codec_type"] == "audio":
                 asset["audio/codec"] == stream
 
-        ## Streams
-        ######################
-        ## TAGS
+        #
+        # Descriptive metadata (tags)
+        #
 
         content_type = asset["content_type"]
         if "tags" in format.keys() and not "meta_probed" in asset.meta:
@@ -153,17 +128,5 @@ class FFProbe(Probe):
                             asset["genre/music"] = value
             asset["meta_probed"] = 1
 
-        ## TAGS
-        ######################
         return asset
 
-
-class YTProbe(Probe):
-    pass
-
-class VimeoProbe(Probe):
-    pass
-
-###############################################################################################
-
-probes = [FFProbe()]

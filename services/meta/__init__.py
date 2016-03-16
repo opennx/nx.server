@@ -3,13 +3,15 @@ from nx.services import BaseService
 from nx.objects import Asset
 from nx.core.metadata import meta_types
 
-from probes import probes
+from .ffprobe import FFProbe
 
+probes = [
+        FFProbe()
+    ]
 
 class Service(BaseService):
     def on_init(self):
-        filters = [] # Ignore archived and trashed
-        #filters.append("status=%d"%CREATING)
+        filters = []
         if filters:
             self.filters = "AND " + " AND ".join(filters)
         else:
@@ -23,7 +25,7 @@ class Service(BaseService):
                 self.mounted_storages.append(id_storage)
 
         db = DB()
-        db.query("SELECT id_object FROM nx_assets WHERE media_type = 0 {} AND status NOT IN (3,4)".format(self.filters))
+        db.query("SELECT id_object FROM nx_assets WHERE media_type = 0 {} AND status NOT IN (3, 4)".format(self.filters))
         for id_asset, in db.fetchall():
             self._proc(id_asset, db)
 
