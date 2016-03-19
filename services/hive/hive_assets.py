@@ -171,13 +171,17 @@ def hive_set_meta(user, params):
             obj[key] = value
             if obj[key] != old_value:
 
-                with fuckit:
+                try:
                     v1 = old_value
                     v1 = v1.encode("utf-8")
+                except:
+                    pass
 
-                with fuckit:
+                try:
                     v2 = obj[key]
                     v2 = v2.encode("utf-8")
+                except:
+                    pass
 
                 messages.append("{} set {} {} from {} to {}".format(user, obj, key, v1, v2))
                 changed = True
