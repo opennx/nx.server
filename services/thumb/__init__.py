@@ -14,7 +14,7 @@ def create_video_thumbnail(source, tbase, resolution=(512,288)):
     w, h = resolution
     target = tbase + "0.jpg"
     cmd = "ffmpeg -y -i \"{source}\" -vf \"thumbnail,scale={w}:{h}\" -frames:v 1 \"{target}\" ".format(source=source, target=target, w=w, h=h)
-    proc = shell(cmd)
+    proc = Shell(cmd)
     if proc.retcode > 0:
         return False
     return True
