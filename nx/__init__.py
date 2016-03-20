@@ -1,6 +1,6 @@
 from .core import *
 from .connection import *
-
+from .objects import *
 
 def load_site_settings(db):
     global config
