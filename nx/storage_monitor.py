@@ -5,7 +5,7 @@ from .agents import BaseAgent
 __all__ = ["StorageMonitor"]
 
 class StorageMonitor(BaseAgent):
-    def _main(self):
+    def main(self):
         for id_storage in storages:
             storage = storages[id_storage]
             if ismount(storage.local_path):

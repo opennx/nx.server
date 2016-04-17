@@ -38,9 +38,9 @@ class ServiceMonitor(BaseAgent):
         db = DB()
         db.query("SELECT id_service, agent, title, autostart, loop_delay, settings, state, pid FROM nx_services WHERE host=%s", [config["host"]])
 
-        ##
+        #
         # Start / stop service
-        ##
+        #
 
         for id_service, agent, title, autostart, loop_delay, settings, state, pid in db.fetchall():
             if state == STARTING: # Start service
@@ -51,9 +51,9 @@ class ServiceMonitor(BaseAgent):
                 if id_service in self.services.keys():
                     self.kill_service(self.services[id_service][0].pid)
 
-        ##
+        #
         # Real service state
-        ##
+        #
 
         for id_service in self.services.keys():
             proc, title = self.services[id_service]
@@ -64,9 +64,9 @@ class ServiceMonitor(BaseAgent):
             db.query("UPDATE nx_services SET state = 0  WHERE id_service = %s", [id_service])
             db.commit()
 
-        ##
+        #
         # Autostart
-        ##
+        #
 
         db.query("SELECT id_service, title, state, autostart FROM nx_services WHERE host=%s AND state=0 AND autostart=1", [config["host"]])
         for id_service, title, state, autostart in db.fetchall():
@@ -102,6 +102,4 @@ class ServiceMonitor(BaseAgent):
             return
         logging.info("Attempting to kill PID {}".format(pid))
         os.system(os.path.join(config["nebula_root"], "killtree.sh {}".format(pid)))
-
-
 
