@@ -47,7 +47,7 @@ class Service(BaseService):
             fmtime = int(os.path.getmtime(fname))
             fsize  = int(os.path.getsize(fname))
         except:
-            self.logging.error("Strange error 0x001 on %s" % asset)
+            log_traceback("Unable to get file attrs {}".format(asset))
             return
 
         if fsize == 0:
