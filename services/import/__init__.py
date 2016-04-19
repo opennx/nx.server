@@ -24,12 +24,8 @@ def temp_file(id_storage, ext):
     return os.path.join(temp_path, temp_name)
 
 
-
-
 class Service(BaseService):
     def on_init(self):
-
-
         ## TODO: Load this from service settings
         self.import_storage = 1
         self.import_dir = "import.dir"
@@ -39,12 +35,9 @@ class Service(BaseService):
         self.containers = ["."+f for f in file_types.keys() if file_types[f] == VIDEO]
         self.versioning = True
         self.profile = {
-            "name" : "DNxHD 1080p25 36Mbps",
             "fps" : 25,
-            #"loudness" : -23.0,
-            "deinterlace" : True,
+            "loudness" : -23.0,
             "container" : "mov",
-
             "width" : 1920,
             "height" : 1080,
             "pixel_format" : "yuv422p",
@@ -53,8 +46,6 @@ class Service(BaseService):
             "audio_codec" : "pcm_s16le",
             "audio_sample_rate" : 48000
         }
-
-
 
 
         self.filesizes = {}
@@ -80,7 +71,6 @@ class Service(BaseService):
                 continue
 
             idec = os.path.splitext(fname)[0]
-
             fpath = os.path.join(self.import_path, fname)
 
             try:
@@ -123,8 +113,6 @@ class Service(BaseService):
                 os.remove(os.path.join(self.import_path, fname))
 
 
-
-
     def mk_error(self, fname, message):
         fn = os.path.splitext(fname)[0] + ".error.txt"
         fn = os.path.join(self.import_path, fn)
@@ -139,7 +127,6 @@ class Service(BaseService):
             f.close()
 
             logging.error("{} : {}".format(fname, message))
-
 
 
     def version_backup(self, asset):
@@ -177,8 +164,10 @@ class Service(BaseService):
     def do_import(self, fname, asset):
         logging.info("Importing {}".format(asset))
 
-        #############################################################
-        ## Remove / backup old file
+        #
+        # Remove / backup old file
+        #
+
         if os.path.exists(asset.file_path):
             if self.versioning and os.path.exists(asset.file_path):
                 self.version_backup(asset)
@@ -194,26 +183,25 @@ class Service(BaseService):
             asset["qc/state"] = 0
             asset.save()
 
-        ## Remove / backup old file
-        #############################################################
-        ## Process file
+        #
+        # Process
+        #
 
         tempfile = temp_file(asset["id_storage"], os.path.splitext(asset["path"])[1])
 
         try:
             open(tempfile,"w")
         except:
-            mk_error(fname, "Unable to open target for writing")
+            self.mk_error(fname, "Unable to open target for writing")
             return False
 
         themis = Themis(
             os.path.join(self.import_path, fname),
-            logging=logging
+            **self.profile
             )
-        themis.analyze()
 
-        if not themis.process(tempfile, self.profile):
-            mk_error(fname, "Unable to import. Check log for more details")
+        if not themis.process(output_path=tempfile):
+            self.mk_error(fname, "Unable to import. Check log for more details")
             return False
 
         try:
@@ -222,10 +210,9 @@ class Service(BaseService):
             mk_error(fname, "Unable to move converted file to it's destination")
             return False
 
-
-        ## Process file
-        #############################################################
-        ## Backup original source file
+        #
+        # Backup original source file
+        #
 
         if os.path.exists(os.path.join(self.import_path, fname)):
             logging.debug("Creating import file backup")
@@ -241,7 +228,4 @@ class Service(BaseService):
         except:
             pass
 
-
         logging.goodnews("Import {} completed".format(asset))
-
-
