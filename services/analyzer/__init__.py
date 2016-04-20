@@ -56,9 +56,9 @@ class Service(BaseService):
     def on_init(self):
       self.max_mtime = 0
       self.analyzers = [
-        Analyzer_AV,
-        Analyzer_BPM
-        ]
+              Analyzer_AV,
+              Analyzer_BPM
+          ]
 
     def on_main(self):
         db = DB()
@@ -66,9 +66,7 @@ class Service(BaseService):
         res = db.fetchall()
         if res:
             logging.debug("{} assets will be analyzed".format(len(res)))
-
             for id_asset, mtime in res:
-                self.max_mtime = max(self.max_mtime, mtime)
                 self._proc(id_asset, db)
 
     def _proc(self, id_asset, db):
@@ -79,14 +77,17 @@ class Service(BaseService):
             if type(qinfo) in [str, unicode]:
                 qinfo = json.loads(qinfo)
 
-            if analyzer.proc_name in qinfo and (qinfo[analyzer.proc_name] == -1 or qinfo[analyzer.proc_name] >= analyzer.version ):
+            if analyzer.proc_name in qinfo and (qinfo[analyzer.proc_name] == -1 or qinfo[analyzer.proc_name] >= analyzer.version):
                 continue
 
             if eval(analyzer.condition):
                 logging.info("Analyzing {} using '{}'".format(asset, analyzer.proc_name))
                 a = analyzer(asset)
 
-                ## Reload asset (it may be changed by someone during analysis
+                #
+                # Reload asset (it may be changed by someone during analysis
+                #
+
                 del(asset)
                 asset = Asset(id_asset, db=db)
                 result = -1 if not a.status else analyzer.version
@@ -97,7 +98,10 @@ class Service(BaseService):
                 qinfo[analyzer.proc_name] = result
                 asset["qc/analyses"] = qinfo
 
-                ## Save result
+                #
+                # Save result
+                #
+
                 for key in a.result:
                     value = a.result[key]
                     if value:
