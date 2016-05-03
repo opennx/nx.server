@@ -7,7 +7,7 @@
 
 
 <div class="view_switcher">
-    
+
 	<div class="col-lg-12">
 
 		{% set activeClass = " class=\"active\"" %}
@@ -36,10 +36,10 @@
 					</div>
 				</div>
 			</form>
-		  </li>	
+		  </li>
 		</ul>
 
-	</div>	
+	</div>
 
 	<div class="clearfix"></div>
 </div>
@@ -52,7 +52,10 @@
 	            <tr>
 	                <th style='width:50px;'>#</th>
 	                <th>Asset</th>
-	                <th>Action</th>
+                    <th>Server</th>
+                    <th>Agent</th>
+                    <th>Service</th>
+                    <th>Action</th>
 	                <th>Priority</th>
 	                <th style='width:160px;'>Progress</th>
 	                <th style='width:150px;'>Status</th>
@@ -61,25 +64,28 @@
 	        </thead>
 	        <tbody id='jobs_body'>
 	            {% for job in jobs%}
-	            	
+
 
 	            	{% set action_permit = False %}
-	            	
-	            	{% if job_control['can/job_control'] == True %} 
+
+	            	{% if job_control['can/job_control'] == True %}
 	            		{% set action_permit = True %}
 	            	{% endif %}
 
 
 	            	{% if action_permit == False and job_control['can/job_control'] != False and job_control['can/job_control'] != True and job.id_action in job_control['can/job_control'] %}
 	            		{% set action_permit = True %}
-	            	{% endif %}	
+	            	{% endif %}
 
-	                <tr>                
+	                <tr>
 	                    <td>{{ job.id_job }}</td>
 	                    <td class='oneliner'>{{ job.asset_title }}</td>
-	                    <td>{{ job.action_title }}</td>
-	                    <td>{{ job.priority }}</td>
-	                    
+	                    <td>{{ job.host }}</td>
+                        <td>{{ job.agent }}</td>
+                        <td>{{ job.service_title }}({{ job.id_service }})</td>
+                        <td>{{ job.action_title }}</td>
+                        <td>{{ job.priority }}</td>
+
 	                    <td id='job_progress_{{job.id_job}}' data-id_job="{{job.id_job}}">
 	                        {% if job.progress == -2%}
 	                            <span class="glyphicon glyphicon-ok"></span>
@@ -93,9 +99,9 @@
 	                            </div>
 	                        {% endif %}
 	                    </td>
-	                    
+
 	                    <td id='job_msg_{{job.id_job}}'>{{job.message}}</td>
-	                    
+
 	                    <td class="action-box">
 	                    {% if action_permit == True %}
 	                        {% if job.progress < -1 %}
@@ -103,7 +109,7 @@
 	                        {% else %}
 	                            <button class="btn btn-default btn-xs btn-danger job-action" data-action="-4" data-id-job="{{job.id_job}}"><span class="glyphicon glyphicon-remove"></span></button>
 	                        {% endif %}
-	                    {% endif %}    
+	                    {% endif %}
 	                    </td>
 	                </tr>
 	            {% endfor %}
@@ -117,20 +123,20 @@
 
 {% block js %}
     <script type='text/javascript'>
-    
-    /* ******************     
+
+    /* ******************
     | States
-        
-        PROGRESS  = 0-100   
+
+        PROGRESS  = 0-100
         PENDING   = -1
         COMPLETED = -2
         FAILED    = -3
         ABORTED   = -4
-    | 
-    ******************* */ 
+    |
+    ******************* */
 
     var search_cache = '{{ current_controller.search }}';
-    var redirect_path = search_cache.length>1 ? $('.job_search').attr('action')+'/'+search_cache: nx.settings.controller+'/{{ current_controller.current_view }}'; 
+    var redirect_path = search_cache.length>1 ? $('.job_search').attr('action')+'/'+search_cache: nx.settings.controller+'/{{ current_controller.current_view }}';
 
     var job_search = function(){
         var search = $('.job-fulltext').val();
@@ -144,9 +150,9 @@
     }
 
     var job_action = function(e){
-        
+
         var data = {
-            id_job : e.data('id-job'), 
+            id_job : e.data('id-job'),
             action : e.data('action')
         }
 
@@ -158,7 +164,7 @@
             notifyFail: true,
             notifyError: true,
             postDone: load_job_callback
-        });        
+        });
     }
 
     var load_job_callback = function(){
@@ -172,7 +178,7 @@
 	|
 	| ACTIVE JOBS LIVE UPDATE
 	| START
-	*********************** */ 	
+	*********************** */
 
     var timeout_init = function() {
         setTimeout('update_progress()', 2000);
@@ -191,14 +197,14 @@
 	}
 
     var update_progress = function() {
-        
+
     	$.getJSON(nx.settings.controller+"/json").done(function(data) {
-            
+
             $.each( data, function( id_job, item ) {
                 pval = item[0];
                 pmsg = item[1];
                 var progressWrap = $("#job_progress_" + id_job);
-                var id_job = progressWrap.data('id_job');	
+                var id_job = progressWrap.data('id_job');
                 var btnParent = progressWrap.parent('tr').find('td.action-box');
 
                 if (pval == -2){
@@ -210,16 +216,16 @@
                     buttonSwap(btnParent, id_job, -1);
                 }
                 else if(pval == -1) {
-                    progressWrap.html("<span class='glyphicon glyphicon-refresh'></span>"); 
+                    progressWrap.html("<span class='glyphicon glyphicon-refresh'></span>");
                     buttonSwap(btnParent, id_job, -4);
                 }else{
-                	
+
                 	var progressBar = progressWrap.find(".progress-bar");
                 	var moveItem = false;
 
                 	if(progressBar.length == 0){
-                		//console.log('Changed: '+pval); 
-                		
+                		//console.log('Changed: '+pval);
+
                 		prp = $('<div class="progress job-progress"><div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="'+pval+'" aria-valuemin="0" aria-valuemax="100" style="width: '+pval+'%;">'+pval+'%</div></div>');
 
                 		progressWrap.html(prp);
@@ -228,16 +234,16 @@
                 	}else{
                 		//console.log('Just add: '+pval);
                 	}
-                	progressBar.html(pval+'%').css('width', pval+'%').attr('aria-valuenow', pval); 
+                	progressBar.html(pval+'%').css('width', pval+'%').attr('aria-valuenow', pval);
 
                 	// move up
                 	if(moveItem === true){
-                		parent = progressWrap.parent('tr');		
+                		parent = progressWrap.parent('tr');
                 		parent.prependTo('#jobs_body');
                 		buttonSwap(btnParent, id_job, -4);
 	               	}
                 }
-             
+
                 $("#job_msg_" + id_job).html(pmsg);
 
               });
@@ -249,16 +255,16 @@
     // ts go
     $(document).ready(function(){
         timeout_init();
-    }); 
+    });
 
     /* ***********************
 	|
 	| ACTIVE JOBS LIVE UPDATE
 	| END
-	*********************** */ 	
+	*********************** */
 
 {% endif %}
-	
+
 	if(search_cache.length>0){
 		$('.job-fulltext').css({
 			'border-color': 'rgba(82,168,236,.8)',
@@ -286,7 +292,7 @@
 	});
 
     $('.action-box').on('click', '.job-action', function(){
-        job_action($(this));    
+        job_action($(this));
     });
 
     $('.job_state').on('click', 'button', function(e){
