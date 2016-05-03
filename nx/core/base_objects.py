@@ -1,9 +1,8 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+from .common import *
+from .constants import *
+from .metadata import meta_types
 
-from nx.common import *
-from nx.connection import *
-from nx.common.metadata import MetaType, meta_types
+__all__ = ["BaseObject", "BaseAsset", "BaseItem", "BaseBin", "BaseEvent"]
 
 class BaseObject(object):
     object_type = "asset"
@@ -70,7 +69,7 @@ class BaseObject(object):
 
     def __delitem__(self, key):
         key = key.lower().strip()
-        if key in meta_types and meta_types[key].namespace == self.object_type[0]: 
+        if key in meta_types and meta_types[key].namespace == self.object_type[0]:
             return
         if not key in self.meta:
             return
@@ -83,7 +82,7 @@ class BaseObject(object):
             iid = "new {}".format(self.object_type)
         try:
             title = self["title"] or ""
-            if title: 
+            if title:
                 title = " ({})".format(title)
             return "{}{}".format(iid, title)
         except:
@@ -115,12 +114,6 @@ class BaseAsset(BaseObject):
         if new_val:
             self["mark_out"] = new_val
         return self["mark_out"]
-
-    def get_file_path(self): # DEPRECATED
-        return self.file_path
-
-    def get_duration(self): # DEPRECATED
-        return self.duration
 
     @property
     def file_path(self):
@@ -171,12 +164,6 @@ class BaseItem(BaseObject):
             self["mark_out"] = new_val
         return float(self["mark_out"])
 
-    def get_asset(self): # DEPRECATED
-        return self.asset
-
-    def get_duration(self): # DEPRECATED
-        return self.duration
-
     @property
     def asset(self):
         pass
@@ -192,7 +179,7 @@ class BaseItem(BaseObject):
     @property
     def duration(self):
         """Final duration of the item"""
-        if self["id_asset"]: 
+        if self["id_asset"]:
             dur = self.asset["duration"]
         elif self["duration"]:
             dur = self["duration"]

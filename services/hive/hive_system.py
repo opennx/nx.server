@@ -1,5 +1,5 @@
 from nx import *
-from nx.common.metadata import meta_types
+from nx.core.metadata import meta_types
 from nx.objects import *
 
 
@@ -64,7 +64,7 @@ def hive_site_settings(user, params):
 
 
 def hive_services(user, params):
-    command    = params.get("command", 0) 
+    command    = params.get("command", 0)
     id_service = params.get("id_service", 0)
     db = DB()
     if id_service and command in [STARTING, STOPPING, KILL]:
@@ -75,19 +75,19 @@ def hive_services(user, params):
 
     res = []
     db.query("SELECT id_service, agent, title, host, autostart, loop_delay, settings, state, last_seen FROM nx_services ORDER BY id_service ASC")
-    for id_service, agent, title, host, autostart, loop_delay, settings, state, last_seen in db.fetchall(): 
+    for id_service, agent, title, host, autostart, loop_delay, settings, state, last_seen in db.fetchall():
         s = {
-            "id_service" : id_service, 
-            "agent" : agent, 
-            "title" : title, 
-            "host" : host, 
-            "autostart" : bool(autostart), 
-            "loop_delay" : loop_delay, 
-            "settings" : settings, 
-            "state" : state, 
+            "id_service" : id_service,
+            "agent" : agent,
+            "title" : title,
+            "host" : host,
+            "autostart" : bool(autostart),
+            "loop_delay" : loop_delay,
+            "settings" : settings,
+            "state" : state,
             "last_seen" : time.time() - last_seen
         }
-        res.append(s)   
+        res.append(s)
     return [[200, res]]
 
 

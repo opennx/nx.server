@@ -1,8 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-from nx.common import *
-from nx.connection import *
+from .common import *
+from .constants import *
 
 class MetaType(object):
     def __init__(self, title):
@@ -48,42 +45,6 @@ class MetaTypes(dict):
 
     def __getitem__(self, key):
         return self.get(key, self._default())
-
-    def load(self):
-        if connection_type == "server":
-            db = DB()
-            db.query("SELECT namespace, tag, editable, searchable, class, default_value,  settings FROM nx_meta_types")
-            for ns, tag, editable, searchable, class_, default, settings in db.fetchall():
-                meta_type = MetaType(tag)
-                meta_type.namespace  = ns
-                meta_type.editable   = bool(editable)
-                meta_type.searchable = bool(searchable)
-                meta_type.class_     = class_
-                meta_type.default    = default
-                meta_type.settings   = json.loads(settings)
-                db.query("SELECT lang, alias, col_header FROM nx_meta_aliases WHERE tag='{0}'".format(tag))
-                for lang, alias, col_header in db.fetchall():
-                    meta_type.aliases[lang] = alias, col_header
-                self[tag] = meta_type
-            return True
-
-        elif connection_type == "client":
-            ret_code, result = query("meta_types")
-            if ret_code < 300:
-                for t in result:
-                    m = MetaType(t["title"])
-                    m.namespace   = t["namespace"]
-                    m.editable    = t["editable"]
-                    m.searchable  = t["searchable"]
-                    m.class_      = t["class"]
-                    m.default     = t["default"]
-                    m.settings    = t["settings"]
-                    m.aliases     = t["aliases"]
-                    self[t["title"]] = m
-                return True
-            else:
-                return False
-        return False
 
     def _default(self):
         meta_type = MetaType("Unknown")
@@ -161,5 +122,3 @@ class MetaTypes(dict):
 
 meta_types = MetaTypes()
 
-if connection_type == "server":
-    meta_types.load()

@@ -1,10 +1,10 @@
 Nebula
 ======
-_Version 4.13_
+_Version 4.25_
 
-Nebula is media asset management and workflow automation system for TV and radio broadcast. 
+Nebula is media asset management and workflow automation system for TV and radio broadcast.
 
-Nebula profits from several great open source projects such as [ffmpeg](http://www.ffmpeg.org) and [CasparCG](http://www.casparcg.com) 
+Nebula profits from several great open source projects such as [ffmpeg](http://www.ffmpeg.org) and [CasparCG](http://www.casparcg.com)
 and provides (almost) complete toolset for:
 
  - signal, stream and file based ingest

@@ -1,7 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 from nx import *
+from nx.services import BaseService
 from nx.objects import Asset, Event
 
 ACTION_PRIMARY_INGEST = -1
@@ -126,7 +124,7 @@ class Capture():
 
 
 
-class Service(ServicePrototype):
+class Service(BaseService):
     def on_init(self):
         self.id_channel = int(self.settings.find("channel").text)
         self.current_task = None

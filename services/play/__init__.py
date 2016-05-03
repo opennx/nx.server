@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 import imp
 import cgi
 import thread
@@ -8,6 +5,7 @@ import thread
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
 from nx import *
+from nx.services import BaseService
 from nx.objects import *
 from nx.plugins import plugin_path
 
@@ -33,7 +31,11 @@ class PlayoutPlugins():
             if not mod_name in channel.enabled_plugins:
                 continue
 
-            py_mod = imp.load_source(mod_name, os.path.join(bpath, fname))
+            try:
+                py_mod = imp.load_source(mod_name, os.path.join(bpath, fname))
+            except:
+                log_traceback("Unable to load plugin {}".format(mod_name))
+                continue
 
             if not "__manifest__" in dir(py_mod):
                 logging.warning("No plugin manifest found in {}".format(fname))
@@ -78,7 +80,6 @@ class ControlHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         service = self.server.service
-        #self.result(service.stat())
         self.result(service.cg_list(id_channel=1))
 
     def do_POST(self):
@@ -103,8 +104,6 @@ class ControlHandler(BaseHTTPRequestHandler):
             self.error(400)
             return
 
-        #logging.debug("Requested {} /w params {}".format(method, params))
-
         methods = {
             "take" : service.take,
             "cue" : service.cue,
@@ -126,14 +125,13 @@ class ControlHandler(BaseHTTPRequestHandler):
 
 
 
-class Service(ServicePrototype):
+class Service(BaseService):
     def on_init(self):
         allowed_channels = []
         chlist = self.settings.find("channels")
         if chlist is not None:
             for ch in chlist.findall("channel"):
                 allowed_channels.append(int(ch.text))
-
 
         self.caspar = Caspar()
         for id_channel in config["playout_channels"]:
@@ -349,7 +347,7 @@ class Service(ServicePrototype):
             try:
                 plugin.main()
             except:
-                logging.error("Plugin error {}".format(str(sys.exc_info())))
+                log_traceback("Playout plugin error:")
 
         if channel.current_item and not channel.cued_item and not channel._cueing:  # and not channel._next_studio and not channel._now_studio:
             self.cue_next(channel)
@@ -388,7 +386,7 @@ class Service(ServicePrototype):
                 ])
             channel._last_run = db.lastid()
             db.commit()
-            
+
         else:
             channel._last_run = False
 
@@ -397,7 +395,7 @@ class Service(ServicePrototype):
             try:
                 plugin.on_change()
             except:
-                logging.error("Plugin OnChange error {}".format(str(sys.exc_info())))
+                log_traceback("Plugin on_change error")
 
 
 
@@ -445,7 +443,7 @@ class Service(ServicePrototype):
         lcache = Cache()
         id_item = id_item or channel.current_item
         item_next = get_next_item(id_item, db=db, cache=lcache)
-        
+
 
         if item_next["run_mode"] == 1:
             auto = False

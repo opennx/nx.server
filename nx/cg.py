@@ -1,16 +1,17 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#
+# WARNING. THIS LIBRARY IS DEPRECATED!
+#
+
+import random
 
 from nx import *
 from nx.plugins import plugin_path
 
-import random
 
 try:
     import cairo
 except ImportError:
     logging.error("Cairo is not installed")
-
 
 def hex_color(hex_string):
     h = hex_string.lstrip("#")
@@ -87,5 +88,4 @@ class CG(object):
 
     for plugin in plugins():
         exec(plugin)
-
 

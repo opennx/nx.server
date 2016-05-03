@@ -1,11 +1,7 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 from nx import *
 
 import thread
 import telnetlib
-import traceback
 
 def basefname(fname):
     """Platform dependent path splitter (caspar is always on win)"""
@@ -210,10 +206,9 @@ class CasparChannel():
                 self.dur  = int(fg_prod.find("nb-frames").text)
                 current_fname = basefname(fg_prod.find("filename").text)
         except:
-            logging.error(traceback.format_exc())
-            print (fg_prod.text)
+            log_traceback()
             current_fname = False
-            
+
 
         ## Get current_fname
         #######################################
@@ -242,7 +237,7 @@ class CasparChannel():
         ## Auto recovery
         #######################################
         ## Playlist advancing
-        
+
 
         if not cued_fname and current_fname and not self._cueing:
             self._changing = True

@@ -5,7 +5,7 @@ BLOCK_MODES = ["LINK", "MANUAL", "SOFT AUTO", "HARD AUTO"]
 
 ##################################################################################
 ## MACRO SCHEDULING BEGIN
-  
+
 
 def hive_get_events(user, params={}):
     start_time = params.get("start_time", 0)
@@ -41,12 +41,12 @@ def hive_get_events(user, params={}):
 
 
 ASSET_TO_EVENT_INHERIT = [
-    "title",          
-    "title/subtitle", 
+    "title",
+    "title/subtitle",
     "title/alternate",
-    "title/series",   
-    "title/original", 
-    "description",    
+    "title/series",
+    "title/original",
+    "description",
     "promoted"
     ]
 
@@ -70,12 +70,12 @@ def hive_set_events(user, params={}):
         event = Event(id_event, db=db)
 
         if not user.has_right("scheduler_edit", event["id_channel"]):
-            return [[403, "Delete events: access denied"]]            
+            return [[403, "Delete events: access denied"]]
 
         if not event:
             logging.warning("Unable to delete non existent event ID {}".format(id_event))
             continue
-        
+
         event.bin.delete()
         event.delete()
         deleted += 1
@@ -87,7 +87,7 @@ def hive_set_events(user, params={}):
         id_channel = id_channel or event_data.get("id_channel", False)
 
         if not user.has_right("scheduler_edit", id_channel):
-            return [[403, "Delete events: access denied"]]    
+            return [[403, "Delete events: access denied"]]
 
         pbin = False
         db.query("SELECT id_object FROM nx_events WHERE id_channel = %s and start = %s", [event_data.get("id_channel", id_channel), event_data["start"]])
@@ -125,7 +125,7 @@ def hive_set_events(user, params={}):
 
                 pbin.delete_childs()
                 pbin.items = []
-                
+
 #                if not event["dramatica/config"]:
                 item = Item(db=db)
                 item["id_asset"] = asset.id
@@ -134,7 +134,7 @@ def hive_set_events(user, params={}):
                 item.save()
                 pbin.items.append(item)
                 pbin.save()
-    
+
                 event["id_asset"] = asset.id
                 for key in ASSET_TO_EVENT_INHERIT:
                     if asset[key]:
@@ -147,8 +147,8 @@ def hive_set_events(user, params={}):
 
         changed_ids.append(event.id)
         event.save()
-   
-    messaging.send("objects_changed", objects=changed_ids, object_type="event", user=user.__repr__()) 
+
+    messaging.send("objects_changed", objects=changed_ids, object_type="event", user=user.__repr__())
 
     return [[200, "TODO: Statistics"]]
 
@@ -157,7 +157,7 @@ def hive_set_events(user, params={}):
 def hive_get_runs(user, params):
     asset_ids  = params.get("asset_ids", [])
     id_channel = int(params.get("id_channel", 0))
-    
+
     if not asset_ids:
         return [[400, "Bad request"]]
 
@@ -173,7 +173,7 @@ def hive_get_runs(user, params):
         """.format(id_channel, id_asset_cond, conds))
 
     #TODO: Take past items from nx_asrun instead of "scheduled" times
-    
+
     result = []
     for id_event, in db.fetchall():
         event = Event(id_event, db=db)
@@ -181,10 +181,10 @@ def hive_get_runs(user, params):
         for item in event.bin.items:
             if item["id_asset"] in asset_ids:
                 result.append([id_event, item["id_asset"], start, False])
-            start += item.get_duration()
-            
+            start += item.duration
 
-    return [[200, {"data": result}]] 
+
+    return [[200, {"data": result}]]
 
 
 
@@ -217,7 +217,7 @@ def hive_rundown(user, params):
     data = []
 
     db.query("SELECT id_object FROM nx_events WHERE id_channel = %s AND start >= %s AND start < %s ORDER BY start ASC", (id_channel, start_time, end_time))
-    
+
     ts_broadcast = 0
     events = db.fetchall()
     rlen = float(len(events))
@@ -233,7 +233,7 @@ def hive_rundown(user, params):
         event_meta = event.meta
         event_meta["rundown_scheduled"] = ts_scheduled = event["start"]
         event_meta["rundown_broadcast"] = ts_broadcast = ts_broadcast or ts_scheduled
-        
+
         bin_meta   = event.bin.meta
         items = []
         for item in event.bin.items:
@@ -242,7 +242,7 @@ def hive_rundown(user, params):
                 a_meta = item.asset.meta
             else:
                 a_meta = {}
-                
+
             as_start, as_stop = item_runs.get(item.id, (0, 0))
             if as_start:
                 ts_broadcast = as_start
@@ -251,16 +251,16 @@ def hive_rundown(user, params):
             i_meta["rundown_scheduled"] = ts_scheduled
             i_meta["rundown_broadcast"] = ts_broadcast
 
-            ts_scheduled += item.get_duration()
-            ts_broadcast += item.get_duration()
+            ts_scheduled += item.duration
+            ts_broadcast += item.duration
 
             # ITEM STATUS
             #
             # -1 : AIRED
             # -2 : Partialy aired. Probably still on air or play service was restarted during broadcast
             #  0 : Master asset is offline. Show as "OFFLINE"
-            #  1 : Master asset is online, but playout asset does not exist or is offline 
-            #  2 : Playout asset is online. Show as "READY" 
+            #  1 : Master asset is online, but playout asset does not exist or is offline
+            #  2 : Playout asset is online. Show as "READY"
 
             if as_start and as_stop:
                 i_meta["rundown_status"] = -1 # AIRED
@@ -297,12 +297,12 @@ def hive_rundown(user, params):
 
 
 def hive_bin_order(user, params):
-    id_channel = params.get("id_channel", False) # Optional. Just for playlist-bin. 
- 
+    id_channel = params.get("id_channel", False) # Optional. Just for playlist-bin.
+
     if not user or (id_channel and not user.has_right("rundown_edit", id_channel)):
         yield 403, [["Not authorised"]]
         return
- 
+
     id_bin = params.get("id_bin", False)
     order  = params.get("order", [])
     sender = params.get("sender", False)
@@ -343,8 +343,8 @@ def hive_bin_order(user, params):
                 if not item:
                     logging.debug("Skipping {}".format(item))
                     continue
-                
-            if not item["id_bin"] in affected_bins: 
+
+            if not item["id_bin"] in affected_bins:
                 affected_bins.append(item["id_bin"])
 
         elif object_type == ASSET:
@@ -383,7 +383,7 @@ def hive_del_items(user, params):
     db = DB()
     for id_item in items:
         item = Item(id_item, db=db)
-        if not item["id_bin"] in affected_bins and item["id_bin"]: 
+        if not item["id_bin"] in affected_bins and item["id_bin"]:
                 affected_bins.append(item["id_bin"])
         item.delete()
     bin_refresh(affected_bins, sender, db)

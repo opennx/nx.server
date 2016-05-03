@@ -1,31 +1,31 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 from nx import *
+from nx.services import BaseService
 from nx.objects import Asset
-from nx.common.metadata import meta_types
+from nx.core.metadata import meta_types
 
-from probes import probes
+from .ffprobe import FFProbe
 
+probes = [
+        FFProbe()
+    ]
 
-class Service(ServicePrototype):
+class Service(BaseService):
     def on_init(self):
-        filters = [] # Ignore archived and trashed
-        #filters.append("status=%d"%CREATING)
+        filters = []
         if filters:
             self.filters = "AND " + " AND ".join(filters)
-        else: 
+        else:
             self.filters = ""
 
     def on_main(self):
         self.mounted_storages = []
         for id_storage in storages:
-            sp = storages[id_storage].get_path()
+            sp = storages[id_storage].local_path
             if os.path.exists(sp) and len(os.listdir(sp)) != 0:
                 self.mounted_storages.append(id_storage)
 
         db = DB()
-        db.query("SELECT id_object FROM nx_assets WHERE media_type = 0 {} AND status NOT IN (3,4)".format(self.filters))
+        db.query("SELECT id_object FROM nx_assets WHERE media_type = 0 {} AND status NOT IN (3, 4)".format(self.filters))
         for id_asset, in db.fetchall():
             self._proc(id_asset, db)
 
@@ -47,10 +47,10 @@ class Service(ServicePrototype):
             fmtime = int(os.path.getmtime(fname))
             fsize  = int(os.path.getsize(fname))
         except:
-            self.logging.error("Strange error 0x001 on %s" % asset)
+            log_traceback("Unable to get file attrs {}".format(asset))
             return
 
-        if fsize == 0: 
+        if fsize == 0:
             if asset["status"] != OFFLINE:
                 logging.warning("Turning offline {} (empty file)".format(asset))
                 asset["status"] = OFFLINE
@@ -58,9 +58,9 @@ class Service(ServicePrototype):
             return
 
         if fmtime != asset["file/mtime"] or asset["status"] == RESET:
-            try:    
+            try:
                 f = open(fname,"rb")
-            except: 
+            except:
                 logging.debug("{} creation in progress.".format(asset))
                 return
             else:
@@ -71,9 +71,9 @@ class Service(ServicePrototype):
             if asset["status"] == RESET:
                 asset.load_sidecar_metadata()
 
-            # Filesize must be changed to update metadata automatically. 
+            # Filesize must be changed to update metadata automatically.
             # It sucks, but mtime only condition is.... errr doesn't work always
-            
+
             if fsize == asset["file/size"] and asset["status"] != RESET:
                 logging.debug("{} file mtime has been changed. Updating.".format(asset))
                 asset["file/mtime"] = fmtime
@@ -88,7 +88,7 @@ class Service(ServicePrototype):
 
                 asset["file/size"]  = fsize
                 asset["file/mtime"] = fmtime
-            
+
                 #########################################
                 ## PROBE
 
@@ -106,9 +106,9 @@ class Service(ServicePrototype):
                 else:
                     asset["status"] = CREATING
                 asset.save()
-        
-   
-        if asset["status"] == CREATING and asset["mtime"] + 15 > time.time(): 
+
+
+        if asset["status"] == CREATING and asset["mtime"] + 15 > time.time():
             logging.debug("Waiting for {} completion assurance.".format(asset))
             asset.save(set_mtime=False, notify=False)
 
@@ -116,11 +116,11 @@ class Service(ServicePrototype):
             logging.goodnews("Turning online {}".format(asset))
             asset["status"] = ONLINE
             asset.save()
-    
+
             db = DB()
-            db.query("""UPDATE nx_jobs SET progress=-1, id_service=0, ctime=%s, stime=0, etime=0, id_user=0, message='Restarting after source update' 
-                    WHERE id_object=%s AND id_action > 0 and progress IN (-2, -3)""", 
+            db.query("""UPDATE nx_jobs SET progress=-1, id_service=0, ctime=%s, stime=0, etime=0, id_user=0, message='Restarting after source update'
+                    WHERE id_object=%s AND id_action > 0 and progress IN (-2, -3)""",
                     [time.time(), id_asset]
                     )
-            
-            db.commit()       
+
+            db.commit()

@@ -50,11 +50,11 @@ def day_start(ts, start):
     hh, mm = start
     r =  ts - (hh*3600 + mm*60)
     dt = datetime.datetime.fromtimestamp(r).replace(
-        hour = hh, 
-        minute = mm, 
+        hour = hh,
+        minute = mm,
         second = 0
         )
-    return time.mktime(dt.timetuple()) 
+    return time.mktime(dt.timetuple())
 
 
 def load_solvers():
@@ -79,7 +79,7 @@ def get_template(tpl_name):
     fname = os.path.join(plugin_path, "dramatica_templates", "{}.py".format(tpl_name))
     if not os.path.exists(fname):
         logging.error("Template does not exist")
-        return 
+        return
     py_mod = imp.load_source(tpl_name, fname)
     return py_mod.Template
 
@@ -97,15 +97,15 @@ def nx_assets_connector():
 def nx_history_connector(now):
     local_cache = Cache()
     db = DB()
-   
+
     start = now - (3600*24*90)
     stop = now + (3400*24*7)
-    
+
     cond = ""
     cond += " AND start > {}".format(start)
     cond += " AND start < {}".format(stop)
     db.query("SELECT id_object FROM nx_events WHERE id_channel in ({}){} ORDER BY start ASC".format(", ".join([str(i) for i in config["playout_channels"] ]), cond ))
-    
+
     for id_object, in db.fetchall():
         event = Event(id_object, db=db, cache=local_cache)
         tstamp = event["start"]
@@ -116,7 +116,7 @@ def nx_history_connector(now):
 
         for item in event.bin.items:
             yield (event["id_channel"], tstamp, item["id_asset"])
-            tstamp += item.get_duration()
+            tstamp += item.duration
 
 
 
@@ -143,7 +143,7 @@ class Session():
                 time.sleep(.2)
                 yield self.status
 
-    def _open_rundown(self, id_channel=1, date=time.strftime("%Y-%m-%d")):        
+    def _open_rundown(self, id_channel=1, date=time.strftime("%Y-%m-%d")):
         day_start = config["playout_channels"][id_channel].get("day_start", (6,0))
 
         logging.debug("Loading asset cache")
@@ -211,7 +211,7 @@ class Session():
         for msg in self.rundown.solve(id_event):
             self.status = msg
         self.busy = False
-  
+
 
     def save(self, id_event=False):
         if not self.rundown:
@@ -290,7 +290,7 @@ class Session():
         start_time = datestr2ts(date, *day_start)
         end_time = start_time + (3600*24)
         logging.info("Clear rundown {}".format(time.strftime("%Y-%m-%d", time.localtime(start_time))))
-        
+
         db = DB()
         db.query("SELECT id_object FROM nx_events WHERE id_channel = %s and start >= %s and start < %s ORDER BY start ASC", (id_channel, start_time, end_time))
         for id_event, in db.fetchall():
@@ -299,7 +299,7 @@ class Session():
             if not event:
                 logging.warning("Unable to delete non existent event ID {}".format(id_event))
                 continue
-            
+
             for item in event.bin.items:
                 if not item.id:
                     continue
@@ -337,7 +337,7 @@ def hive_dramatica(user, params={}):
         if params.get("solve", False):
             for msg in session.solve(id_event=params.get("id_event", False)):
                 yield -1, {"message":msg}
-        
+
         for msg in session.save(id_event=params.get("id_event", False)):
             yield -1, {"message":msg}
 

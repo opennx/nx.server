@@ -16,9 +16,9 @@ def hive_browse(user, params):
         try:
             db.query("SELECT DISTINCT(a.id_object) as id, a.mtime FROM nx_assets AS a, nx_meta AS m WHERE a.id_object=m.id_object AND object_type=0 AND ({})".format(q.encode("utf-8")))
         except:
-            return[[400, "Query error: {}".format(sys.exc_info())]]
+            return [[400, log_traceback("Query error")]]
         return [[200, {"result":db.fetchall(), "asset_data":[]}]]
-    
+
 
     conds = []
 
@@ -70,9 +70,9 @@ def hive_get_assets(user, params):
 def hive_actions(user, params):
     i = 0
     assets = params.get("assets", [])
-    if not assets: 
+    if not assets:
         return [[400, "No asset selected"]]
-        
+
     result = []
     db = DB()
     db.query("SELECT id_action, title, config FROM nx_actions ORDER BY id_action ASC")
@@ -104,7 +104,7 @@ def hive_send_to(user, params):
     if not user.has_right("job_control", id_action):
         yield 403, "Not authorised"
         return
-    
+
     logging.info("{} is starting action {} for following assets: {}".format(user, id_action, params.get("objects", [])))
 
     db = DB()
@@ -147,7 +147,7 @@ def hive_set_meta(user, params):
 
             # New asset need create_script and id_folder
             if not id_object:
- 
+
                 if not user.has_right("asset_edit", id_folder):
                     msg = "Unauthorised (create asset in folder {})".format(id_folder)
                     logging.warning(msg)
@@ -157,12 +157,12 @@ def hive_set_meta(user, params):
                     msg = "It is not possible create asset in this folder."
                     logging.warning(msg)
                     return [[400, msg]]
-                    
+
                 if not data["id_folder"]:
                     msg = "You must select asset folder"
                     logging.warning(msg)
                     return [[400, msg]]
-                
+
         changed = False
         messages = []
         for key in data:
@@ -170,15 +170,19 @@ def hive_set_meta(user, params):
             old_value = obj[key]
             obj[key] = value
             if obj[key] != old_value:
-                
-                with fuckit:
+
+                try:
                     v1 = old_value
                     v1 = v1.encode("utf-8")
-    
-                with fuckit:
+                except:
+                    pass
+
+                try:
                     v2 = obj[key]
                     v2 = v2.encode("utf-8")
-                
+                except:
+                    pass
+
                 messages.append("{} set {} {} from {} to {}".format(user, obj, key, v1, v2))
                 changed = True
 

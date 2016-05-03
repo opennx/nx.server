@@ -1,15 +1,31 @@
-from nx.common import *
+import time
+from .core import *
 
-connection_type = "server"
+try:
+    import psycopg2
+except ImportError:
+    log_traceback("Import error")
+    critical_error("Unable to import psycopg2")
 
-__all__ = ["connection_type", "DB", "cache", "Cache"]
+try:
+    import pylibmc
+except ImportError:
+    log_traceback("Import error")
+    critical_error("Unable to import pylibmc")
 
-#######################################################################################################
-## Database
+__all__ = ["DB", "cache", "Cache"]
 
-class DBproto(object):
+##
+# Database
+##
+
+class BaseDB(object):
+    pmap = {}
+
     def __init__(self, **kwargs):
-        self.kwargs = kwargs
+        self.settings = {
+            key : kwargs.get(self.pmap[key], config[self.pmap[key]]) for key in self.pmap
+            }
         self._connect()
 
     def _connect(self):
@@ -26,138 +42,71 @@ class DBproto(object):
 
     def rollback(self):
         self.conn.rollback()
-     
+
     def close(self):
         self.conn.close()
 
     def __len__(self):
         return True
 
-if config['db_driver'] == 'postgres': 
-    import psycopg2
-    class DB(DBproto):
-        def _connect(self):
-            i = 0
-            while i < 3:
-                try:
-                    self.conn = psycopg2.connect(database = self.kwargs.get('db_name', False) or config['db_name'], 
-                                                 host     = self.kwargs.get('db_host', False) or config['db_host'], 
-                                                 user     = self.kwargs.get('db_user', False) or config['db_user'],
-                                                 password = self.kwargs.get('db_pass', False) or config['db_pass']
-                                                 ) 
-                except psycopg2.OperationalError:
-                    time.sleep(1)
-                    i+=1
-                    continue
-                else:
-                    break
 
-            self.cur = self.conn.cursor()
+class DB(BaseDB):
+    pmap = {
+        "host" : "db_host",
+        "user" : "db_user",
+        "password" : "db_pass",
+        "database" : "db_name",
+        }
 
-        def sanit(self, instr):
-            try: 
-                return str(instr).replace("''","'").replace("'","''").decode("utf-8")
-            except: 
-                return instr.replace("''","'").replace("'","''")
-       
-        def lastid (self):
-            self.query("select lastval()")
-            return self.fetchall()[0][0]
-
-elif config['db_driver'] == 'sqlite':
-    import sqlite3
-    class DB(DBproto):
-        def _connect(self):
+    def _connect(self):
+        i = 0
+        while i < 3:
             try:
-                self.conn = sqlite3.connect(config["db_host"]) 
-                self.cur = self.conn.cursor()
-            except:
-                raise (Exception, "Unable to connect database.")
-
-        def sanit(self, instr):
-            try: 
-                return str(instr).replace("''","'").replace("'","''").decode("utf-8")
-            except: 
-                return instr.replace("''","'").replace("'","''")
-          
-        def lastid(self):
-            r = self.cur.lastrowid
-            return r
-
-else:
-    critical_error("Unknown DB Driver. Exiting.")
- 
-## Database
-#######################################################################################################
-## Site settings
-
-def load_site_settings():
-    """Should be called after db initialisation"""
-    db = DB()
-    global config
-
-    config["playout_channels"] = {}
-    config["ingest_channels"] = {}
-    config["views"] = {}
-
-    db.query("SELECT key, value FROM nx_settings")
-    for key, value in db.fetchall():
-        config[key] = value
-
-    db.query("SELECT id_view, config FROM nx_views")
-    for id_view, view_config in db.fetchall():
-        view_config = ET.XML(view_config)
-        view = {}
-        for elm in ["query", "folders", "origins", "media_types", "content_types", "statuses"]:
-            try:
-                view[elm] = view_config.find(elm).text.strip()
-            except:
+                self.conn = psycopg2.connect(**self.settings)
+            except psycopg2.OperationalError:
+                time.sleep(1)
+                i+=1
                 continue
-        config["views"][id_view] = view
+            else:
+                break
+        self.cur = self.conn.cursor()
 
-    db.query("SELECT id_channel, channel_type, title, config FROM nx_channels")
-    for id_channel, channel_type, title, ch_config in db.fetchall():
+    def sanit(self, instr):
         try:
-            ch_config = json.loads(ch_config)
+            return str(instr).replace("''","'").replace("'","''").decode("utf-8")
         except:
-            print ("Unable to parse channel {}:{} config.".format(id_channel, title))
-            continue
-        ch_config.update({"title":title})
-        if channel_type == PLAYOUT:
-            config["playout_channels"][id_channel] = ch_config
-        elif channel_type == INGEST:
-            config["ingest_channels"][id_channel] = ch_config
+            return instr.replace("''","'").replace("'","''")
 
+    def lastid (self):
+        self.query("select lastval()")
+        return self.fetchall()[0][0]
 
-
-
-load_site_settings()
-messaging.init()
-
-## Site settings
-#######################################################################################################
-## Cache
-
-import pylibmc
+##
+# Cache
+##
 
 class Cache():
     def __init__(self):
+        if "cache_host" in config:
+            self.configure()
+
+    def configure(self):
         self.site = config["site_name"]
         self.host = config["cache_host"]
         self.port = config["cache_port"]
-        self.cstring = '%s:%s'%(self.host,self.port)
+        self.cstring = "{}:{}".format(self.host, self.port)
         self.pool = False
         self.connect()
 
     def connect(self):
         self.conn = pylibmc.Client([self.cstring])
         self.pool = False
-        
+
     def load(self, key):
         if config.get("mc_thread_safe", False):
-            return self.tload(key)
+            return self.threaded_load(key)
 
-        key = "{}_{}".format(self.site,key)
+        key = "{}_{}".format(self.site, key)
         try:
             result = self.conn.get(key)
         except pylibmc.ConnectionError:
@@ -167,41 +116,40 @@ class Cache():
 
     def save(self, key, value):
         if config.get("mc_thread_safe", False):
-            return self.tsave(key, value)
+            return self.threaded_save(key, value)
 
         key = "{}_{}".format(self.site, key)
         for i in range(10):
             try:
                 self.conn.set(key, str(value))
                 break
-            except:  
-                logging.error("Cache save failed ({}): {}".format(key, str(sys.exc_info())))
+            except:
+                log_traceback("Cache save failed ({})".format(key))
                 time.sleep(.3)
                 self.connect()
         else:
-            critical_error ("Memcache save failed. This should never happen. Check MC server")
+            critical_error("Memcache save failed. This should never happen. Check MC server")
             sys.exit(-1)
         return True
 
     def delete(self,key):
         if config.get("mc_thread_safe", False):
-            return self.tdelete(key)
+            return self.threaded_delete(key)
         key = "{}_{}".format(self.site, key)
         for i in range(10):
             try:
                 self.conn.delete(key)
                 break
-            except: 
-                logging.error("Cache delete failed ({}): {}".format(key, str(sys.exc_info())))
+            except:
+                log_traceback("Cache delete failed ({})".format(key))
                 time.sleep(.3)
                 self.connect()
         else:
-            critical_error ("Memcache delete failed. This should never happen. Check MC server")
+            critical_error("Memcache delete failed. This should never happen. Check MC server")
             sys.exit(-1)
         return True
 
-
-    def tload(self, key):
+    def threaded_load(self, key):
         if not self.pool:
             self.pool = pylibmc.ThreadMappedPool(self.conn)
         key = "{}_{}".format(self.site, key)
@@ -215,7 +163,7 @@ class Cache():
         self.pool.relinquish()
         return result
 
-    def tsave(self, key, value):
+    def threaded_save(self, key, value):
         if not self.pool:
             self.pool = pylibmc.ThreadMappedPool(self.conn)
         key = "{}_{}".format(self.site, key)
@@ -224,17 +172,17 @@ class Cache():
                 try:
                     mc.set(key, str(value))
                     break
-                except:  
-                    logging.error("Cache save failed ({}): {}".format(key, str(sys.exc_info())))
+                except:
+                    log_traceback("Cache save failed ({})".format(key))
                     time.sleep(.3)
                     self.connect()
             else:
-                critical_error ("Memcache save failed. This should never happen. Check MC server")
+                critical_error("Memcache save failed. This should never happen. Check MC server")
                 sys.exit(-1)
         self.pool.relinquish()
         return True
 
-    def tdelete(self,key):
+    def threaded_delete(self,key):
         if not self.pool:
             self.pool = pylibmc.ThreadMappedPool(self.conn)
         key = "{}_{}".format(self.site, key)
@@ -243,57 +191,14 @@ class Cache():
                 try:
                     mc.delete(key)
                     break
-                except: 
-                    logging.error("Cache delete failed ({}): {}".format(key, str(sys.exc_info())))
+                except:
+                    log_traceback("Cache delete failed ({})".format(key))
                     time.sleep(.3)
                     self.connect()
             else:
-                critical_error ("Memcache delete failed. This should never happen. Check MC server")
+                critical_error("Memcache delete failed. This should never happen. Check MC server")
                 sys.exit(-1)
         self.pool.relinquish()
         return True
 
-
-
-
 cache = Cache()
-
-## Cache
-########################################################################
-## Storages
-
-class Storage():
-    def __init__(self): 
-        pass
-
-    @property 
-    def local_path(self):
-        return self.get_path()
-
-    def get_path(self,rel=False):
-        if self.protocol == LOCAL:
-            return self.path
-        elif PLATFORM == "linux":
-            return os.path.join ("/mnt","nx%02d"%self.id_storage)
-
-    def __len__(self):
-        return ismount(self.get_path()) and len(os.listdir(self.get_path())) != 0
-
-def load_storages():
-    try:
-        db = DB()
-        db.query("SELECT id_storage, title, protocol, path, login, password FROM nx_storages")
-    except:
-        return
-        
-    for id_storage, title, protocol, path, login, password in db.fetchall():
-        storage = Storage()
-        storage.id_storage = id_storage
-        storage.title      = title
-        storage.protocol   = protocol
-        storage.path       = path
-        storage.login      = login
-        storage.password   = password
-        storages[id_storage] = storage
-
-load_storages()

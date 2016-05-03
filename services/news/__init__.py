@@ -1,76 +1,16 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-
-import urllib2
 import thread
-import uuid
-import email
 
 from datetime import datetime
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
 from nx import *
+from nx.services import BaseService
 from nx.objects import *
 
-
-from xml.etree import ElementTree as ET
-
-
-
-def rfc822(timestamp):
-    return  email.Utils.mktime_tz(email.Utils.parsedate_tz(timestamp))
-
-
-class NewsItem(dict):
-    pass
-
-
-class RSS():
-    def __init__(self, feed_url, parser=False):
-        self.feed_url = feed_url
-        self.parser = parser
-        data = urllib2.urlopen(self.feed_url).read()
-        self.feed = ET.XML(data).find("channel")
-
-    def default_parser(self, item_data):
-        item = NewsItem()
-        try:
-            guid = item_data.find("guid").text.strip()
-            title = item_data.find("title").text.strip()
-        except:
-            return False
-
-        description =  item_data.find("description").text
-        description = description.strip() if description else ""
-
-        pub_date = item_data.find("pubDate").text
-        pub_date = rfc822(pub_date.strip()) if pub_date else time.time()
-
-
-
-        item["identifier/guid"] = guid
-        item["title"] = title
-        item["description"] = description
-        item["source"] = "" #TODO: Domain/RSS name here
-
-
-        return item
-
-
-    @property
-    def items(self):
-        for item_data in self.feed.findall("item"):
-            if not self.parser:
-                item = self.default_parser(item_data)
-                if item:
-                    yield item
-            # TODO: Custom parsers
-
-
+from rss import *
 
 class ControlHandler(BaseHTTPRequestHandler):
-    def log_request(self, code='-', size='-'): 
+    def log_request(self, code='-', size='-'):
         pass
 
     def _do_headers(self,mime="application/json", response=200, headers=[]):
@@ -94,7 +34,7 @@ class ControlHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         service = self.server.service
-        article = service.get_article(1, ["rfe"])
+        article = service.get_article(1, ["google_news"])
         if not article:
            self.result(False)
            return
@@ -102,7 +42,7 @@ class ControlHandler(BaseHTTPRequestHandler):
 
 
 
-class Service(ServicePrototype):
+class Service(BaseService):
     def on_init(self):
         port = 42200
         self.max_articles = 20
@@ -125,13 +65,12 @@ class Service(ServicePrototype):
 
 
         if not self.sources:
-            # DEFAULT RFE/RL ARTICLES SOURCE
             self.sources = [
-                    ["rfe", "rss", "http://www.rferl.org/api/c$tmnpuqdvki!ktqeo_qo", False]
+                    ["google_news", "rss", "https://news.google.com/news?cf=all&hl=cs&pz=1&ned=cs_cz&topic=h&output=rss", google_news_parser]
                 ]
 
         self.history = {}
-        self.server = HTTPServer(('',port), ControlHandler)
+        self.server = HTTPServer(('', port), ControlHandler)
         self.server.service = self
         thread.start_new_thread(self.server.serve_forever,())
 
@@ -177,7 +116,7 @@ class Service(ServicePrototype):
 
     def push_item(self, item, db=False):
         db = db or DB()
-        db.query("SELECT id_object FROM nx_meta WHERE tag='identifier/guid' AND value = %s AND id_object IN (SELECT id_object FROM nx_meta WHERE tag='news_group' AND value=%s )", 
+        db.query("SELECT id_object FROM nx_meta WHERE tag='identifier/guid' AND value = %s AND id_object IN (SELECT id_object FROM nx_meta WHERE tag='news_group' AND value=%s )",
                 [item["identifier/guid"], item["news_group"] ]
             )
 
@@ -189,6 +128,7 @@ class Service(ServicePrototype):
             logging.debug("Saving news item")
 
         asset = self.get_free_asset(db=db)
+        asset.meta = {}
         asset["id_folder"] = 6
         asset["origin"] = "News"
         asset["status"] = ONLINE

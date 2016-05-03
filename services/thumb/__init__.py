@@ -1,9 +1,6 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 from nx import *
+from nx.services import BaseService
 from nx.objects import *
-from nx.shell import shell
 
 THUMBS = [
     [(32,18),   "xs"],
@@ -17,17 +14,17 @@ def create_video_thumbnail(source, tbase, resolution=(512,288)):
     w, h = resolution
     target = tbase + "0.jpg"
     cmd = "ffmpeg -y -i \"{source}\" -vf \"thumbnail,scale={w}:{h}\" -frames:v 1 \"{target}\" ".format(source=source, target=target, w=w, h=h)
-    proc = shell(cmd)
+    proc = Shell(cmd)
     if proc.retcode > 0:
         return False
     return True
 
 
-class Service(ServicePrototype):
+class Service(BaseService):
     def on_init(self):
         try:
             self.thumb_root = os.path.join (
-                storages[int(config.get("thumb_storage",0))].local_path, 
+                storages[int(config.get("thumb_storage",0))].local_path,
                 config["thumb_root"]
                 )
         except KeyError:
@@ -36,7 +33,7 @@ class Service(ServicePrototype):
 
     def on_main(self):
         if not self.thumb_root:
-            return 
+            return
 
         db = DB()
         db.query("SELECT id_object FROM nx_assets WHERE status=1 AND media_type=0 AND id_object NOT IN (SELECT id_object FROM nx_meta WHERE object_type=0 AND tag='has_thumbnail') ORDER BY mtime DESC")

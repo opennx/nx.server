@@ -1,9 +1,7 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 import uuid
 
 from nx import *
+from nx.services import BaseService
 from nx.objects import *
 from nx.common.filetypes import file_types
 
@@ -12,26 +10,22 @@ from themis import Themis
 
 def temp_file(id_storage, ext):
     if id_storage:
-        temp_path = os.path.join(storages[id_storage].get_path(),".nx", "creating")
+        temp_path = os.path.join(storages[id_storage].local_path,".nx", "creating")
     else:
         temp_path = "/tmp/nx"
 
     if not os.path.exists(temp_path):
         try:
             os.makedirs(temp_path)
-        except: 
+        except:
             return False
 
     temp_name = str(uuid.uuid1()) + ext
     return os.path.join(temp_path, temp_name)
 
 
-
-
-class Service(ServicePrototype):
+class Service(BaseService):
     def on_init(self):
-        
-
         ## TODO: Load this from service settings
         self.import_storage = 1
         self.import_dir = "import.dir"
@@ -41,12 +35,9 @@ class Service(ServicePrototype):
         self.containers = ["."+f for f in file_types.keys() if file_types[f] == VIDEO]
         self.versioning = True
         self.profile = {
-            "name" : "DNxHD 1080p25 36Mbps",
             "fps" : 25,
-            #"loudness" : -23.0,
-            "deinterlace" : True,
+            "loudness" : -23.0,
             "container" : "mov",
-
             "width" : 1920,
             "height" : 1080,
             "pixel_format" : "yuv422p",
@@ -55,8 +46,6 @@ class Service(ServicePrototype):
             "audio_codec" : "pcm_s16le",
             "audio_sample_rate" : 48000
         }
-
-
 
 
         self.filesizes = {}
@@ -82,10 +71,9 @@ class Service(ServicePrototype):
                 continue
 
             idec = os.path.splitext(fname)[0]
-
             fpath = os.path.join(self.import_path, fname)
 
-            try:    
+            try:
                 f = open(fpath,"rb")
             except:
                 logging.debug("File creation in progress. {}".format(fname))
@@ -123,8 +111,6 @@ class Service(ServicePrototype):
             idec = fname.replace(".error.txt", "")
             if not idec in [os.path.splitext(f)[0] for f in os.listdir(self.import_path)]:
                 os.remove(os.path.join(self.import_path, fname))
-    
-
 
 
     def mk_error(self, fname, message):
@@ -143,18 +129,17 @@ class Service(ServicePrototype):
             logging.error("{} : {}".format(fname, message))
 
 
-
     def version_backup(self, asset):
         target_path = os.path.join(
             storages[asset["id_storage"]].local_path,
-            ".nx", 
-            "versions", 
-            "{:04d}".format(int(asset.id/1000)), 
+            ".nx",
+            "versions",
+            "{:04d}".format(int(asset.id/1000)),
             "{:d}".format(asset.id)
             )
 
         target_fname = "{:d}{}".format(
-            int(asset["mtime"]), 
+            int(asset["mtime"]),
             os.path.splitext(asset.file_path)[1]
             )
 
@@ -179,8 +164,10 @@ class Service(ServicePrototype):
     def do_import(self, fname, asset):
         logging.info("Importing {}".format(asset))
 
-        #############################################################
-        ## Remove / backup old file
+        #
+        # Remove / backup old file
+        #
+
         if os.path.exists(asset.file_path):
             if self.versioning and os.path.exists(asset.file_path):
                 self.version_backup(asset)
@@ -196,26 +183,25 @@ class Service(ServicePrototype):
             asset["qc/state"] = 0
             asset.save()
 
-        ## Remove / backup old file
-        #############################################################
-        ## Process file
+        #
+        # Process
+        #
 
         tempfile = temp_file(asset["id_storage"], os.path.splitext(asset["path"])[1])
 
         try:
             open(tempfile,"w")
         except:
-            mk_error(fname, "Unable to open target for writing")
+            self.mk_error(fname, "Unable to open target for writing")
             return False
 
         themis = Themis(
             os.path.join(self.import_path, fname),
-            logging=logging
+            **self.profile
             )
-        themis.analyze()
 
-        if not themis.process(tempfile, self.profile):
-            mk_error(fname, "Unable to import. Check log for more details")
+        if not themis.process(output_path=tempfile):
+            self.mk_error(fname, "Unable to import. Check log for more details")
             return False
 
         try:
@@ -224,18 +210,17 @@ class Service(ServicePrototype):
             mk_error(fname, "Unable to move converted file to it's destination")
             return False
 
+        #
+        # Backup original source file
+        #
 
-        ## Process file
-        #############################################################
-        ## Backup original source file
-        
         if os.path.exists(os.path.join(self.import_path, fname)):
             logging.debug("Creating import file backup")
             try:
                 os.remove(os.path.join(self.backup_path, fname))
             except:
                 pass
-            
+
             os.rename(os.path.join(self.import_path, fname), os.path.join(self.backup_path, fname) )
 
         try:
@@ -243,7 +228,4 @@ class Service(ServicePrototype):
         except:
             pass
 
-
         logging.goodnews("Import {} completed".format(asset))
-
-

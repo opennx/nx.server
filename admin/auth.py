@@ -1,8 +1,10 @@
-from nx_admin import *
-from nx.objects import User, get_user 
+from nx import *
+from nx.objects import User, get_user
+
+from .nx_admin import *
 
 from flask.ext.login import (LoginManager, current_user, login_required,
-                            login_user, logout_user, UserMixin, 
+                            login_user, logout_user, UserMixin,
                             confirm_login, fresh_login_required)
 import hashlib
 
@@ -43,11 +45,11 @@ class FlaskUser(UserMixin):
 class Anonymous(UserMixin):
     name = u"Anonymous"
     id = 0
-    
+
     def is_admin(self):
         return 'false'
 
-    def is_disabled(self):    
+    def is_disabled(self):
         return 'true'
 
     def is_authenticated(self):

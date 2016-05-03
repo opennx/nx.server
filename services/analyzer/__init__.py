@@ -1,10 +1,6 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 from nx import *
 from nx.objects import Asset
-from nx.shell import shell
-
+from nx.services import BaseService
 
 class BaseAnalyzer():
     condition = False
@@ -27,51 +23,13 @@ class BaseAnalyzer():
 class Analyzer_AV(BaseAnalyzer):
     condition = "asset['content_type'] in [AUDIO, VIDEO]"
     proc_name = "av"
-    version   = 1.0
-    
+    version   = 1.2
+
     def proc(self):
         fname = self.asset.file_path
-        tags = [
-                ("mean_volume:", "audio/gain/mean"),
-                ("max_volume:",  "audio/gain/peak"),
-                ("I:",           "audio/r128/i"),
-                ("Threshold:",   "audio/r128/t"),
-                ("LRA:",         "audio/r128/lra"),
-                ("Threshold:",   "audio/r128/lra/t"),
-                ("LRA low:",     "audio/r128/lra/l"),
-                ("LRA high:",    "audio/r128/lra/r"),
-            ]
-        exp_tag = tags.pop(0) 
-        s = shell("ffmpeg -i \"{}\" -vn -filter_complex silencedetect=n=-20dB:d=5,ebur128,volumedetect -f null -".format(fname))
-        silences = []
-        for line in s.stderr().readlines():
-            line = line.strip()
-
-            if line.find("silence_end") > -1:
-                e, d = line.split("|")
-                e = e.split(":")[1].strip()
-                d = d.split(":")[1].strip()
-
-                try:
-                    e = float(e)
-                    s = max(0, e - float(d))
-                except:
-                    pass
-                else:
-                    silences.append([s, e])
-
-
-            if line.find(exp_tag[0]) > -1:
-                value = float(line.split()[-2])
-                self.update(exp_tag[1], value)
-                try:
-                    exp_tag = tags.pop(0)
-                except:
-                    break
-
-        if silences:
-            self.update("qc/silence", silences)
-
+        res = ffanalyse(fname, video=False)
+        for key in res:
+            self.update(key, res[key])
         return True
 
 
@@ -82,32 +40,32 @@ class Analyzer_BPM(BaseAnalyzer):
 
     def proc(self):
         fname = self.asset.file_path
-        s = shell("ffmpeg -i \"{}\" -vn -ar 44100 -f f32le - 2> /dev/null | bpm".format(fname))
+        s = Shell("ffmpeg -i \"{}\" -vn -ar 44100 -f f32le - 2> /dev/null | bpm".format(fname))
         try:
             bpm = float(s.stdout().read())
         except:
-            return False 
+            log_traceback("Unable to read BPM")
+            return False
         self.update("audio/bpm", bpm)
         return True
 
 
 
 
-class Service(ServicePrototype):
+class Service(BaseService):
     def on_init(self):
       self.max_mtime = 0
       self.analyzers = [
-        Analyzer_AV,
-        Analyzer_BPM
-        ]
+              Analyzer_AV,
+              Analyzer_BPM
+          ]
 
     def on_main(self):
         db = DB()
         db.query("SELECT id_object, mtime FROM nx_assets WHERE status = '{}' and mtime > {} ORDER BY mtime DESC".format(ONLINE, self.max_mtime))
         res = db.fetchall()
         if res:
-            logging.debug("{} assets will be analyzed".format(len(res)))
-
+            logging.debug("Analysing {} assets".format(len(res)))
             for id_asset, mtime in res:
                 self.max_mtime = max(self.max_mtime, mtime)
                 self._proc(id_asset, db)
@@ -119,26 +77,32 @@ class Service(ServicePrototype):
             qinfo = asset["qc/analyses"] or {}
             if type(qinfo) in [str, unicode]:
                 qinfo = json.loads(qinfo)
-                  
-            if analyzer.proc_name in qinfo and (qinfo[analyzer.proc_name] == -1 or qinfo[analyzer.proc_name] >= analyzer.version ):
+
+            if analyzer.proc_name in qinfo and (qinfo[analyzer.proc_name] == -1 or qinfo[analyzer.proc_name] >= analyzer.version):
                 continue
 
             if eval(analyzer.condition):
                 logging.info("Analyzing {} using '{}'".format(asset, analyzer.proc_name))
                 a = analyzer(asset)
 
-                ## Reload asset (it may be changed by someone during analysis
+                #
+                # Reload asset (it may be changed by someone during analysis
+                #
+
                 del(asset)
                 asset = Asset(id_asset, db=db)
                 result = -1 if not a.status else analyzer.version
 
                 qinfo = asset["qc/analyses"] or {}
-                if type(qinfo) == str:
+                if type(qinfo) in [str, unicode]:
                     qinfo = json.loads(qinfo)
                 qinfo[analyzer.proc_name] = result
-                asset["qc/analyses"] = qinfo 
+                asset["qc/analyses"] = qinfo
 
-                ## Save result
+                #
+                # Save result
+                #
+
                 for key in a.result:
                     value = a.result[key]
                     if value:

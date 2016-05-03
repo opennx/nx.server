@@ -1,16 +1,11 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 from nx import *
+from nx.services import BaseService
 from nx.objects import *
 
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-#from SocketServer import ThreadingMixIn
 
 import cgi
 import thread
-import zlib
-import traceback
 
 import hive_assets
 import hive_system
@@ -21,7 +16,6 @@ reload(sys)
 sys.setdefaultencoding('utf-8')
 
 REQUIRED_PROTOCOL = 140000
-
 
 class Sessions():
     def __init__(self):
@@ -78,7 +72,7 @@ class Sessions():
 
 
 class HiveHandler(BaseHTTPRequestHandler):
-    def log_request(self, code='-', size='-'): 
+    def log_request(self, code='-', size='-'):
         pass
 
     def _do_headers(self,mime="application/json",response=200,headers=[]):
@@ -159,34 +153,26 @@ class HiveHandler(BaseHTTPRequestHandler):
                 for response, data in methods[method](user, params):
                     self.push_response(response, data)
                     if response >= 300:
-                        logging.error("{} failed to {}: {}".format(user, method, data)) 
+                        logging.error("{} failed to {}: {}".format(user, method, data))
             except:
-                msg = traceback.format_exc()
-                logging.error("{} failed to {}: {}".format(user, method, msg))
+                msg = log_traceback("{} failed to {}:".format(user, method))
                 self.push_response(400, "\n{}\n".format(msg))
         else:
-            logging.error("%s not implemented" % method)
-            self.result(ERROR_NOT_IMPLEMENTED,False)
+            logging.error("{} is not implemented".format(method))
+            self.result(ERROR_NOT_IMPLEMENTED, False)
             return
-
-        #logging.debug("Query {} completed in {:.03f} seconds ({})".format(method, time.time()-start_time, user))
-
 
     def push_response(self, response, data):
         data = json.dumps([response, data])
-        #if params.get("use_zlib", False):
-        #    data = zlib.compress(data)
         self._echo("{}\n".format(data))
 
 
-#class HiveHTTPServer(ForkingMixIn, HTTPServer):
-#    pass
 
 class HiveHTTPServer(HTTPServer):
     pass
 
 
-class Service(ServicePrototype):
+class Service(BaseService):
     def on_init(self):
         self.methods = {}
 
@@ -195,10 +181,10 @@ class Service(ServicePrototype):
                 if not method.startswith("hive_"):
                     continue
                 method_title = method[5:]
-                module_name  = module.__name__.split(".")[-1] 
+                module_name  = module.__name__.split(".")[-1]
                 exec ("self.methods['{}'] = {}.{}".format(method_title, module_name, method ))
                 logging.debug("Enabling method '{}'".format(method_title))
-        
+
         try:
             port = int(self.config.find("port").text)
         except:
@@ -207,7 +193,7 @@ class Service(ServicePrototype):
         logging.debug("Starting hive at port {}".format(port))
 
         self.server = HiveHTTPServer(('',port), HiveHandler)
-        
+
         self.sessions = Sessions()
         self.server.service = self
         thread.start_new_thread(self.server.serve_forever,())
