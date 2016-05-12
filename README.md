@@ -16,5 +16,47 @@ and provides (almost) complete toolset for:
  - web publishing
  - statistics
 
-## Documentation
+Documentation
+------------
+
 See [wiki](https://github.com/opennx/nx.server/wiki/)
+
+
+
+Installation
+------------
+
+Nebula requires Debian Jessie.
+
+### Base node
+```bash
+apt-get install git python-psycopg2 python-pylibmc cifs-utils screen ntp
+cd /opt/ && git clone https://github.com/opennx/installers
+cd /opt/ && git clone https://github.com/opennx/nx.server
+cd /opt/nx.server && ./vendor.sh
+```
+
+### DB Server
+```
+cd /opt/installers && ./install.postgres.sh
+```
+
+### Core Server
+
+```bash
+cd /opt/installers && ./install.nginx.sh
+
+```
+
+### Media processing node
+
+```bash
+cd /opt/installers && ./install.ffmpeg.sh
+```
+
+### Node configuration
+
+```
+cd /opt/nx.server
+vim local_settings.json
+```
