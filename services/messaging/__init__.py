@@ -1,10 +1,21 @@
 import socket
 import thread
+import time
 
 from urllib2 import urlopen
 
 from nx import *
 from nx.services import BaseService
+
+
+class SeismicMessage():
+    def __init__(self, packet):
+        self.timestamp, self.site_name, self.host, self.method, self.data = packet
+
+    @property
+    def json(self):
+        return json.dumps(self.timestamp, self.site_name, self.host, self.method, self.data)
+
 
 class Service(BaseService):
     def on_init(self):
@@ -18,26 +29,30 @@ class Service(BaseService):
         status = self.sock.setsockopt(socket.IPPROTO_IP,socket.IP_ADD_MEMBERSHIP,socket.inet_aton(config["seismic_addr"]) + socket.inet_aton("0.0.0.0"));
         self.sock.settimeout(1)
 
-        # Message relay
+        self.message_queue = []
 
-        try:
-            host = self.settings.find("http_host").text
-        except:
-            host = "localhost"
+        #
+        # Message relaying
+        #
 
-        try:
-            port = int(self.settings.find("http_port").text)
-        except:
-            port = "80"
+        self.relays = []
+        for relay in self.settings.findall("relay"):
+            host = relay.text
+            port = int(relay.attrib.get("port", 443))
+            ssl = int(relay.attrib.get("ssl", True))
+            if not host:
+                continue
+            url = "{protocol}://{host}:{port}/msg_publish?id={site_name}".format(
+                    protocol=["http","https"][ssl],
+                    host=host,
+                    port=port,
+                    site_name=config["site_name"]
+                )
+            self.relays.append(url)
 
-        try:
-            ssl = int(self.settings.find("use_ssl").text)
-        except:
-            ssl = 0
-
-        self.url = "{protocol}://{host}:{port}/msg_publish?id={site_name}".format(protocol=["http","https"][ssl], host=host, port=port, site_name=config["site_name"])
-
+        #
         # Logging
+        #
 
         try:
             self.log_path = self.settings.find("log_path").text
@@ -50,8 +65,8 @@ class Service(BaseService):
             except:
                 self.log_path = False
 
-
         thread.start_new_thread(self.listen, ())
+        thread.start_new_thread(self.process, ())
 
 
     def listen(self):
@@ -60,45 +75,51 @@ class Service(BaseService):
                 message, addr = self.sock.recvfrom(1024)
             except (socket.error):
                 continue
-
             try:
-                tstamp, site_name, host, method, data = json.loads(message)
+                message = SeismicMessage(json.loads(message))
             except:
                 logging.warning("Malformed seismic message detected")
                 continue
+            if message.site_name != config["site_name"]:
+                continue
+            self.message_queue.append(message)
 
-            if site_name == config["site_name"]:
+
+    def process(self):
+        while True:
+            if not self.message_queue:
+                time.sleep(.01)
+                continue
+
+            message = self.message_queue.pop(0)
+
+            #TODO: Message deduplication (playout_status etc)
+
+            self.relay_message(message.json)
+            if self.log_path and message.method == "log":
                 try:
-                    self.send_message("{}\n".format(message.replace("\n","")))
+                    log = "{}\t{}\t{}@{}\t{}\n".format(
+                            time.strftime("%H:%M:%S"),
+
+                            {DEBUG      : "DEBUG    ",
+                            INFO       : "INFO     ",
+                            WARNING    : "WARNING  ",
+                            ERROR      : "ERROR    ",
+                            GOOD_NEWS  : "GOOD NEWS"}[message.data["msg_type"]],
+
+                            message.data["user"],
+                            message.host,
+                            message.data["message"]
+                        )
                 except:
-                    logging.error("Unable to relay {} message to {} ".format(method, self.url))
+                    continue
+                fn = os.path.join(self.log_path, time.strftime("%Y-%m-%d.txt"))
+                f = open(fn, "a")
+                f.write(log)
+                f.close()
 
-                if self.log_path and method == "log":
-                    try:
-                        log = "{}\t{}\t{}@{}\t{}\n".format(
-                                time.strftime("%H:%M:%S"),
-
-                                {DEBUG      : "DEBUG    ",
-                                INFO       : "INFO     ",
-                                WARNING    : "WARNING  ",
-                                ERROR      : "ERROR    ",
-                                GOOD_NEWS  : "GOOD NEWS"}[data["msg_type"]],
-
-
-                                data["user"],
-                                host,
-                                data["message"]
-                            )
-                    except:
-                        pass
-                    else:
-                        fn = os.path.join(self.log_path, time.strftime("%Y-%m-%d.txt"))
-                        f = open(fn, "a")
-                        f.write(log)
-                        f.close()
-
-
-    def send_message(self, message):
-        post_data = message
-        result = urlopen(self.url, post_data.encode("ascii"), timeout=1)
+    def relay_message(self, message):
+        message = message.replace("\n", "") + "\n" # one message per line
+        for relay in self.relays:
+            result = urlopen(relay, message.encode("ascii"), timeout=1)
 
