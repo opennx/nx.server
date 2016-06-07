@@ -140,6 +140,10 @@ class HiveHandler(BaseHTTPRequestHandler):
             response, data = self.sessions.logout(auth_key)
             self.push_response(response, data)
 
+        elif method == "ping":
+            self._do_headers("application/json",200)
+            self.push_response(200, "pong")
+
 
         elif method in methods:
 
