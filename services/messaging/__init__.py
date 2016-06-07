@@ -14,7 +14,7 @@ class SeismicMessage():
 
     @property
     def json(self):
-        return json.dumps(self.timestamp, self.site_name, self.host, self.method, self.data)
+        return json.dumps([self.timestamp, self.site_name, self.host, self.method, self.data])
 
 
 class Service(BaseService):
