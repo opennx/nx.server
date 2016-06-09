@@ -11,9 +11,10 @@ def load_cache():
     for id_object, in db.fetchall():
         Asset(id_object, db=db)
 
-    db.query("SELECT id_object FROM nx_events ORDER BY id_object DESC LIMIT 150")
+    db.query("SELECT id_object FROM nx_events WHERE start > %s", [time.time() - 3600*24*7 ])
     for id_object, in db.fetchall():
-        Event(id_object, db=db)
+        e = Event(id_object, db=db)
+        b = e.bin
     logging.goodnews("All objects loaded in {:.04f} seconds".format(time.time()-start_time))
 
 
