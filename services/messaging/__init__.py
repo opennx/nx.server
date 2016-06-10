@@ -101,17 +101,20 @@ class Service(BaseService):
                     log = "{}\t{}\t{}@{}\t{}\n".format(
                             time.strftime("%H:%M:%S"),
 
-                            {DEBUG      : "DEBUG    ",
-                            INFO       : "INFO     ",
-                            WARNING    : "WARNING  ",
-                            ERROR      : "ERROR    ",
-                            GOOD_NEWS  : "GOOD NEWS"}[message.data["msg_type"]],
+                            {
+                                0 : "DEBUG    ",
+                                1 : "INFO     ",
+                                2 : "WARNING  ",
+                                3 : "ERROR    ",
+                                4 : "GOOD NEWS"
+                            }[message.data["message_type"]],
 
                             message.data["user"],
                             message.host,
                             message.data["message"]
                         )
                 except:
+                    log_traceback()
                     continue
                 fn = os.path.join(self.log_path, time.strftime("%Y-%m-%d.txt"))
                 f = open(fn, "a")
