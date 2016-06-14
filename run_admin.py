@@ -311,14 +311,12 @@ def logout():
 @app.route("/reports",methods=['GET', 'POST'])
 @app.route("/reports/<view>",methods=['GET', 'POST'])
 def reports(view=False):
-
     acl = acl_can('can/export', current_user)
     template = 'access.denied.html'
     ctrl = ''
     env = {}
 
     if acl['status'] == True:
-
         if view == False:
             plugins = AdmPlugins('reports')
             plugins.get_plugins()
@@ -331,8 +329,6 @@ def reports(view=False):
             plugin.env['get'] = request.args
             plugin.env['post'] = request.form
 
-            ################################
-            # CUSTOM LOADER
             plugin_loader = jinja2.ChoiceLoader([
                 app.jinja_loader,
                 jinja2.FileSystemLoader(plugin.env['plugin_path']),
@@ -340,20 +336,14 @@ def reports(view=False):
             app.jinja_loader = plugin_loader
 
             try:
-
+                logging.info("{} executes plugin {}".format(current_user, plugin.env["plugin_name"]))
                 plugin.run(view)
-                # ctrl = '/'+view
                 ctrl = ''
-
                 env = plugin.env
-
                 template = plugin.env['plugin']['data']['template']
-
             except Exception, e:
-
                 template = 'plugin.error.html'
                 plugin.env['errors']['plugin_error'] = format(e)
-
 
     current_controller = set_current_controller({'title': 'Reports', 'controller': 'reports'+ctrl, 'current_user': current_user, 'acl': acl })
     return render_template(template, view=view, env=env, current_controller=current_controller)

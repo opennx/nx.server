@@ -437,13 +437,9 @@ def nx_setting_exists(key):
 
 
 def save_nx_settings(nx_settings):
-
     db = DB()
-
     result = {'data': [], 'status': True, 'reason': 'Data saved', 'batch': {}}
-
     sql = json.loads(nx_settings)
-
     for key in sql:
         key = db.sanit(str(key))
         val = db.sanit(str(sql[key]))
@@ -460,71 +456,46 @@ def save_nx_settings(nx_settings):
         result['batch'][key] = sql_query
 
         try:
-
             db.query(sql_query)
             db.commit()
-
         except Exception, e:
-
             result['status'] = False
             result['reason'] = 'Data not saved for key '+key+', database error: ' + format(e)
-
     return result
 
 
 def acl_can(token, current_user):
-
     id = current_user.get_id()
     ia = current_user.is_admin()
-
     is_admin = False
-
     if ia == 'true':
         is_admin = True;
-
     db = DB()
-
-
-    #debug = ' DEBUG: is_admin: '+ia+' is_admin_STR: '+str(ia)+' id: '+id
     debug = ''
-
     result = {'status': False, 'reason': 'ACL: you have no permission to see this page '+debug, token: False, 'current_user': current_user}
-
     sql_query = "SELECT * FROM nx_meta WHERE tag LIKE '"+db.sanit(token)+"' AND object_type=4 AND id_object ="+id
-
     try:
-
         if token == 'noop':
             result['status'] = True
             result['reason'] = 'ACL: operation permitted on NOOP rule basis '+debug
             result[token] = True
-
-
         elif is_admin == True:
             result['status'] = True
             result['reason'] = 'ACL: operation permitted on admin rule basis '+debug
             result[token] = True
-
         elif is_admin == False:
-
             db.query(sql_query)
             res = db.fetchall()
-
             if len(res)>0 and token != 'is_admin' and token != 'noop':
-
                 result[token] = json.loads(res[0][3])
                 result['status'] = True
                 result['reason'] = 'ACL: operation permitted'
-
     except Exception, e:
-
         result['status'] = False
         result['reason'] = 'ACL: database error: '+sql_query+' ' + format(e)
-
     return result
 
 def permission_helper():
-
     ACL = [
         # ASSSETS
         "can/asset_create",
@@ -545,7 +516,6 @@ def permission_helper():
         # MARKETING/DATA EXPORT
         "can/export"
     ]
-
     return ACL
 
 
@@ -554,9 +524,7 @@ def permission_helper():
 
 class AdmPlugins():
     def __init__(self, type='reports', name=''):
-
         self.env = {}
-
         self.env['plugin_name']  = name
         self.env['plugin'] = {}
         self.env['plugin_path'] = ''
@@ -567,96 +535,57 @@ class AdmPlugins():
         if plugin_path:
             self.env['plugin_path'] = os.path.join(plugin_path, type)
 
-
     def get_plugins(self):
-
         if not os.path.exists(self.env['plugin_path']):
             self.env['errors']['plugin_path'] = "Admin plugins directory does not exist"
-
         else:
             for fname in os.listdir(self.env['plugin_path']):
-
                 mod_name, file_ext = os.path.splitext(fname)
-
                 if file_ext != ".py":
                     continue
-
                 try:
-
                     plugin = imp.load_source(mod_name, os.path.join(self.env['plugin_path'], fname))
-
                     if not "__manifest__" in dir(plugin):
                         self.env['errors'][mod_name] = "No plugin manifest found in {}".format(fname)
                         continue
-
                     self.env['plugins_available'][mod_name] = {'manifest': plugin.__manifest__, 'path': os.path.join(self.env['plugin_path'], fname), 'data': plugin}
-
                 except:
-
                     self.env['errors'][mod_name] = 'Error while openning file {}'.format(fname)
 
-
-
     def run(self, mod_name):
-
         if not os.path.exists(self.env['plugin_path']):
             self.env['errors']['plugin_path'] = "Admin plugins directory does not exist"
-
         else:
-
             try:
-
                 plugin = imp.load_source(mod_name, os.path.join(self.env['plugin_path'], mod_name+'.py'))
-
                 if not "__manifest__" in dir(plugin):
                     self.env['errors'][mod_name] = "No plugin manifest found in {}".format(mod_name)
                 else:
-
                     import importlib
-
                     plugin_i = importlib.import_module(mod_name)
-
                     plugin_class = plugin_i.Plugin()
                     plugin_class.run()
-
                     self.env['plugin'] = {'manifest': plugin.__manifest__, 'dir': self.env['plugin_path'], 'path': os.path.join(self.env['plugin_path'], mod_name+'.py'), 'token': mod_name, 'src': plugin,'data': plugin_class.env}
-
             except Exception, e:
-
                 self.env['errors'][mod_name] = 'Error while openning file {}'.format(os.path.join(self.env['plugin_path'], mod_name+'.py'))
                 self.env['errors']['Exception'] = format(e)
                 self.env['errors']['Args'] = 'GET: ' + json.dumps(self.env['get']) + ' POST: ' + json.dumps(self.env['post'])
 
-
-
     def api(self, mod_name):
-
         if not os.path.exists(self.env['plugin_path']):
             self.env['errors']['plugin_path'] = "Admin plugins directory does not exist"
-
         else:
-
             try:
-
                 plugin = imp.load_source(mod_name, os.path.join(self.env['plugin_path'], mod_name+'.py'))
-
                 if not "__manifest__" in dir(plugin):
                     self.env['errors'][mod_name] = "No plugin manifest found in {}".format(mod_name)
                 else:
-
                     import importlib
-
                     plugin_i = importlib.import_module(mod_name)
-
                     plugin_class = plugin_i.Plugin()
                     plugin_class.api()
-
                     self.env['plugin'] = plugin_class.api()
-
             except Exception, e:
-
                 self.env['errors'][mod_name] = 'Error while openning file {}'.format(os.path.join(self.env['plugin_path'], mod_name+'.py'))
                 self.env['errors']['Exception'] = format(e)
                 self.env['errors']['Args'] = 'GET: ' + json.dumps(self.env['get']) + ' POST: ' + json.dumps(self.env['post'])
-
-
