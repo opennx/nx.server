@@ -324,7 +324,6 @@ def reports(view=False):
             template = "reports.html"
             env = plugins.env
         else:
-
             plugin = AdmPlugins('reports')
             plugin.env['get'] = request.args
             plugin.env['post'] = request.form
@@ -341,9 +340,10 @@ def reports(view=False):
                 ctrl = ''
                 env = plugin.env
                 template = plugin.env['plugin']['data']['template']
+                logging.debug("Plugin {} execution finished".format(plugin.env["plugin_name"]))
             except Exception, e:
                 template = 'plugin.error.html'
-                plugin.env['errors']['plugin_error'] = format(e)
+                plugin.env['errors']['plugin_error'] = log_traceback("Plugin error")
 
     current_controller = set_current_controller({'title': 'Reports', 'controller': 'reports'+ctrl, 'current_user': current_user, 'acl': acl })
     return render_template(template, view=view, env=env, current_controller=current_controller)

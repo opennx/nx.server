@@ -249,85 +249,56 @@ def destroy_session(id_user, key, host):
 
 
 def save_user_data(id_user, query_data):
-
     result = {'status': True, 'reason': 'User saved'}
-
     try:
-
         sql = json.loads(query_data)
         user_test = user_exists(sql['login'], int(id_user))
-
         result['user_test'] = user_test
-
         if( user_test['status'] == False ):
-
             user = User(int(id_user))
-
             for key in sql:
                 if key != 'password':
                     user[str(key)] = str(sql[key])
                 else:
                     user.set_password(sql['password'])
-
             user.save()
-
         else:
-
             result['status'] = False
             result['reason'] = 'User '+sql['login']+' already exists'
-
     except Exception, e:
-
         result['status'] = False
         result['reason'] = 'User not saved, database error: ' + format(e)
-
     return result
 
 
 def save_user_state(id_user, is_disabled):
-
     result = {'status': True, 'reason': 'User state saved'}
-
     try:
-
         user = User(int(id_user))
-
         user['is_disabled'] = is_disabled
         user.save()
-
     except Exception, e:
-
         result['status'] = False
         result['reason'] = 'User state not saved, database error: ' + format(e)
-
     return result
 
 
 def user_exists(login, id_user):
-
     db = DB()
-
     result = {'status': False, 'reason': 'User not found'}
-
     try:
         if int(id_user) > 0:
             sql_query = "SELECT login FROM nx_users WHERE login LIKE '"+db.sanit(login)+"' AND id_object != "+str(id_user)
         else:
             sql_query = "SELECT login FROM nx_users WHERE login LIKE '"+db.sanit(login)+"'"
-
         db.query(sql_query)
-
         us = db.fetchall()
-
         if len(us)>0:
             result['status'] = True
             result['reason'] = 'User found'
-
     except Exception, e:
-
         result['status'] = False
         result['reason'] = 'User not found, database error: ' + format(e)
-
     return result
 
 
