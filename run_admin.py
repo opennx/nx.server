@@ -335,7 +335,7 @@ def reports(view=False):
             app.jinja_loader = plugin_loader
 
             try:
-                logging.info("{} executes plugin {}".format(current_user, plugin.env["plugin_name"]))
+                logging.info("{} executes plugin {}".format(current_user.name, plugin.env["plugin_name"]))
                 plugin.run(view)
                 ctrl = ''
                 env = plugin.env

@@ -191,9 +191,7 @@ def view_users():
 
 
 def get_user_data(id_user):
-
     db = DB()
-
     format='%Y-%m-%d %H:%M:%S'
 
     user = {'status': False, 'meta':{'no_meta':True}, 'reason': 'User not found'}
