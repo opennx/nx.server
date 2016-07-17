@@ -18,10 +18,11 @@ class BaseObject(object):
         self._db = kwargs.get("db", False)
         self._cache = kwargs.get("cache", False)
 
-        if "from_data" in kwargs:
-            assert hasattr(kwargs["from_data"], "keys")
-            self.meta = kwargs["from_data"]
+        if "meta" in kwargs:
+            assert hasattr(kwargs["meta"], "keys")
+            self.meta = kwargs["meta"]
             self.id = self.meta.get("id_object", False)
+            self.meta["id"] = self.id # Nebula v.5 compatibility hack
             self._loaded = True
         else:
             if self.id:

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 from nebula import *
-from nx.objects import *
 
 def load_cache():
     db = DB()
@@ -9,7 +8,8 @@ def load_cache():
 
     db.query("SELECT id_object FROM nx_assets ORDER BY id_object DESC")
     for id_object, in db.fetchall():
-        Asset(id_object, db=db)
+        a = Asset(id_object, db=db)
+        a.save(set_mtime=False)
 
     db.query("SELECT id_object FROM nx_events WHERE start > %s", [time.time() - 3600*24*7 ])
     for id_object, in db.fetchall():

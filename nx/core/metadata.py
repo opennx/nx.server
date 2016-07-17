@@ -12,6 +12,10 @@ class MetaType(object):
         self.settings   = False
         self.aliases    = {}
 
+    def __getitem__(self, key):
+        # Nebula v.5 compatibility hack
+        return self.pack()[key]
+
     def alias(self, lang='en-US'):
         if not lang in self.aliases:
             return self.title.replace("_"," ").capitalize()

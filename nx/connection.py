@@ -119,13 +119,13 @@ class Cache():
             return self.threaded_save(key, value)
 
         key = "{}_{}".format(self.site, key)
-        for i in range(10):
+        for i in range(2):
             try:
                 self.conn.set(key, str(value))
                 break
             except:
                 log_traceback("Cache save failed ({})".format(key))
-                time.sleep(.3)
+                time.sleep(.1)
                 self.connect()
         else:
             critical_error("Memcache save failed. This should never happen. Check MC server")
