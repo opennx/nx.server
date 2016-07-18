@@ -26,13 +26,13 @@ def create_ft_index(meta):
     return " ".join(idx)
 
 
-class ServerObject(object):
-    def __init__(self):
+class ServerObject(BaseObject):
+    def __init__(self, id=False, **kwargs):
         self.ns_prefix = self.object_type[0]
         self.ns_tags   = meta_types.ns_tags(self.ns_prefix)
         self._db = kwargs.get("db", False)
         self._cache = kwargs.get("cache", False)
-        BaseObject.__init__(self, id, **kwargs)
+        super(ServerObject, self).__init__(id, **kwargs)
 
     @property
     def db(self):
@@ -45,14 +45,14 @@ class ServerObject(object):
     def cache(self):
         return self._cache or cache
 
-    def load(self):
+    def load(self, id):
         try:
-            self.meta = json.loads(self.cache.load("{0}{1}".format(self.ns_prefix, self.id)))
+            self.meta = json.loads(self.cache.load("{0}{1}".format(self.ns_prefix, id)))
         except:
-            logging.debug("Loading {!r} from DB".format(self))
+            logging.debug("Loading {} id {} from DB".format(self.object_type, id))
             id_object_type = OBJECT_TYPES[self.object_type]
             qcols = ", ".join(self.ns_tags)
-            self.db.query("SELECT {0} FROM nx_{1}s WHERE id_object={2}".format(qcols, self.object_type, self.id))
+            self.db.query("SELECT {0} FROM nx_{1}s WHERE id_object={2}".format(qcols, self.object_type, id))
             try:
                 result = self.db.fetchall()[0]
             except:
@@ -62,7 +62,7 @@ class ServerObject(object):
             for tag, value in zip(self.ns_tags, result):
                 self[tag] = value
 
-            self.db.query("SELECT tag, value FROM nx_meta WHERE id_object = %s and object_type = %s", (self["id_object"], id_object_type))
+            self.db.query("SELECT tag, value FROM nx_meta WHERE id_object = %s and object_type = %s", (id, id_object_type))
             for tag, value in self.db.fetchall():
                 self[tag] = value
 
@@ -71,10 +71,10 @@ class ServerObject(object):
         return True
 
     def _save_to_cache(self):
-        return self.cache.save("{0}{1}".format(self.ns_prefix, self["id_object"]), json.dumps(self.meta))
+        return self.cache.save("{0}{1}".format(self.ns_prefix, self.id), json.dumps(self.meta))
 
     def save(self, **kwargs):
-        BaseObject.save(self, **kwargs)
+        super(ServerObject, self).save(**kwargs)
         id_object_type = OBJECT_TYPES[self.object_type]
 
         created = False
@@ -84,9 +84,8 @@ class ServerObject(object):
             ns_tags.extend(["meta", "ft_index"])
 
         if self["id_object"]:
-            q = "UPDATE nx_{0}s SET {1} WHERE id_object = {2}".format(self.object_type,
-                                                                  ", ".join("{} = %s".format(tag) for tag in ns_tags if tag != "id_object"),
-                                                                  self["id_object"]
+            q = "UPDATE nx_{}s SET {} WHERE id_object = {}".format(self.object_type,
+                                                                  ", ".join("{}=%s".format(tag) for tag in ns_tags if tag != "id_object"), self["id_object"]
                                                                   )
             v = [self[tag] for tag in self.ns_tags if tag != "id_object"]
             if jsonb:
@@ -106,7 +105,7 @@ class ServerObject(object):
                 v.extend([json.dumps(self.meta), create_ft_index(self.meta)])
 
             self.db.query(q, v)
-            self["id_object"] = self["id"] = self.id = self.db.lastid()
+            self["id_object"] = self["id"] = self.db.lastid()
             logging.info("{!r} created".format(self))
 
         for tag in self.meta:
@@ -131,7 +130,7 @@ class ServerObject(object):
         return True
 
     def delete(self):
-        BaseObject.save(self)
+        super(ServerObject, self).save(self)
         id_object_type = OBJECT_TYPES[self.object_type]
         if self.delete_childs():
             self.db.query("DELETE FROM nx_meta WHERE id_object = %s and object_type = %s", [self.id, id_object_type] )
@@ -216,13 +215,13 @@ class Item(ItemMixIn, ServerObject):
 
 
 class Bin(BinMixIn, ServerObject):
-    def load(self):
-        if not self._load_from_cache():
+    def load(self, id):
+        if not self._load_from_cache(id):
             id_object_type = OBJECT_TYPES[self.object_type]
-            logging.debug("Loading {!r} from DB".format(self))
+            logging.debug("Loading {} id {} from DB".format(self.object_type, id))
 
             qcols = ", ".join(self.ns_tags)
-            self.db.query("SELECT {0} FROM nx_{1}s WHERE id_object={2}".format(qcols, self.object_type, self.id))
+            self.db.query("SELECT {0} FROM nx_{1}s WHERE id_object={2}".format(qcols, self.object_type, id))
             try:
                 result = self.db.fetchall()[0]
             except:
@@ -232,21 +231,22 @@ class Bin(BinMixIn, ServerObject):
             for tag, value in zip(self.ns_tags, result):
                 self[tag] = value
 
-            self.db.query("SELECT tag, value FROM nx_meta WHERE id_object = %s and object_type = %s", (self["id_object"], id_object_type))
+            self.db.query("SELECT tag, value FROM nx_meta WHERE id_object=%s and object_type=%s", (id, id_object_type))
             for tag, value in self.db.fetchall():
                 self[tag] = value
 
-            self.db.query("SELECT id_object FROM nx_items WHERE id_bin = %s ORDER BY position", [self["id_object"]])
+            self.db.query("SELECT id_object FROM nx_items WHERE id_bin = %s ORDER BY position", [id])
             self.items = []
             for id_item, in self.db.fetchall():
                 self.items.append(Item(id_item, db=self._db))
             self._save_to_cache()
+        self["id"] = id
         return True
 
 
-    def _load_from_cache(self):
+    def _load_from_cache(self, id):
         try:
-            self.meta, itemdata = json.loads(self.cache.load("%s%d" % (self.ns_prefix, self.id)))
+            self.meta, itemdata = json.loads(self.cache.load("%s%d" % (self.ns_prefix, id)))
         except:
             return False
         self.items = []
@@ -255,7 +255,7 @@ class Bin(BinMixIn, ServerObject):
         return True
 
     def _save_to_cache(self):
-        return self.cache.save("%s%d" % (self.ns_prefix, self["id_object"]), json.dumps([self.meta, [i.meta for i in self.items]]))
+        return self.cache.save("%s%d" % (self.ns_prefix, self.id), json.dumps([self.meta, [i.meta for i in self.items]]))
 
     def delete_childs(self):
         for item in self.items:
@@ -267,13 +267,13 @@ class Bin(BinMixIn, ServerObject):
 class Event(EventMixIn, ServerObject):
     @property
     def bin(self):
-        if not self._bin:
+        if not hasattr(self, "_bin") or not self._bin:
             self._bin = Bin(self["id_magic"], db=self._db, cache=self.cache)
         return self._bin
 
     @property
     def asset(self):
-        if not self._asset:
+        if not hasattr(self, "_asset") or not self._asset:
             self._asset = Asset(self["id_magic"], db=self._db, cache=self.cache)
         return self._asset
 

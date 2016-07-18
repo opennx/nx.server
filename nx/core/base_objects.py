@@ -9,14 +9,14 @@ class BaseObject(object):
         self.is_new = True
         self.meta = {}
         meta = kwargs.get("meta", {})
-        assert hasattr(kwargs["meta"], "keys")
+        assert hasattr(meta, "keys")
         for key in meta:
             self.meta[key] = meta[key]
         if "id_object" in self.meta or "id" in self.meta:
             self.is_new = False
         elif not self.meta:
             if id:
-                self.load()
+                self.load(id)
                 self.is_new = False
             else:
                 self.new()
@@ -36,7 +36,7 @@ class BaseObject(object):
     def new(self):
         pass
 
-    def load(self):
+    def load(self, id):
         pass
 
     def save(self, **kwargs):
@@ -82,6 +82,8 @@ class BaseObject(object):
         return not self.is_new
 
     def show(self, key):
+        return self[key]
+        #TODO
         return meta_types.humanize(key, self[key])
 
 
@@ -124,7 +126,6 @@ class ItemMixIn():
     _asset = False
 
     def new(self):
-        super(BaseItem, self).new()
         self["id_bin"]    = False
         self["id_asset"]  = False
         self["position"]  = 0
@@ -182,7 +183,6 @@ class ItemMixIn():
 
 class BinMixIn():
     def new(self):
-        super(BaseBin, self).new()
         self.items = []
 
     @property
@@ -195,7 +195,6 @@ class BinMixIn():
 
 class EventMixIn():
     def new(self):
-        super(BaseEvent, self).new()
         self["start"]      = 0
         self["stop"]       = 0
         self["id_channel"] = 0

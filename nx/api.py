@@ -1,16 +1,19 @@
+from nx import *
+
+
 __all__ = [
         "api_get",       # list objects
         "api_create",    # create new object(s)
         "api_update",    # update object(s) metadata
 
-        "api_actions",
-        "api_send",
+#        "api_actions",
+#        "api_send",
 
-        "api_order",     # create / reorder bin items
-        "api_remove",    # remove item from bin
+#        "api_order",     # create / reorder bin items
+#        "api_remove",    # remove item from bin
 
-        "api_schedule",  # set events
-        "api_runs",  # get list of timestamps when asset is scheduled
+#        "api_schedule",  # set events
+#        "api_runs",  # get list of timestamps when asset is scheduled
     ]
 
 
@@ -31,19 +34,10 @@ set_events
 
 
 def api_get(**kwargs):
-    db = DB()
+    db = kwargs.get("db", DB())
     conds = []
 
-    for key in kwargs:
-        value = kwargs[key]
-        if type(value) == list:
-            operator = "IN"
-            value = "({})".format(", ".join("'{}'".format(value) for value in value))
-        else:
-            operator = "="
-            value = "'{}'".format(value)
-        conds.append("meta->>'{}' {} {}".format(key, operator, value))
-
+    fulltext = kwargs.get("fulltext", False)
     if fulltext:
         ft = slugify(fulltext, make_set=True)
         conds.extend(["ft_index LIKE '%{}%'".format(elm) for elm in ft])
@@ -55,7 +49,7 @@ def api_get(**kwargs):
     logging.debug("Executing browse query:", q)
     db.query(q)
     for meta, in db.fetchall():
-        yield Asset(meta=meta)
+        yield Asset(meta=meta, db=db)
 
 def api_create(**kwargs):
     pass

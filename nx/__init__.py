@@ -2,12 +2,13 @@ from .core import *
 from .connection import *
 from .objects import *
 from .helpers import *
+from .api import *
 
 #
 # Load system configuration
 #
 
-def load_site_settings(db):
+def load_site_settings(db, force=False):
     global config
     site_settings = {
                "playout_channels" : {},
@@ -102,14 +103,17 @@ def load_all_settings(force=False):
     logging.debug("Loading site configuration from DB", handlers=False)
     try:
         # This is the first time we are connecting DB so error handling should be here
-        db = DB() 
+        db = DB()
     except:
         log_traceback(handlers=False)
         critical_error("Unable to connect database", handlers=False)
+
     load_site_settings(db, force)
     load_storages(db, force)
     load_meta_types(db, force)
     load_cs(db, force)
+
     messaging.configure()
+    cache.configure()
 
 load_all_settings()
