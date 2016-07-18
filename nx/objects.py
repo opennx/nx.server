@@ -38,7 +38,7 @@ class ServerObject(object):
     def cache(self):
         return self._cache or cache
 
-    def _load(self):
+    def load(self):
         if not self._load_from_cache():
             logging.debug("Loading {!r} from DB".format(self))
 
@@ -73,7 +73,9 @@ class ServerObject(object):
     def _save_to_cache(self):
         return self.cache.save("{0}{1}".format(self.ns_prefix, self["id_object"]), json.dumps(self.meta))
 
-    def _save(self,**kwargs):
+    def save(self, **kwargs):
+        BaseObject.save(self, **kwargs)
+
         created = False
         ns_tags = copy.copy(self.ns_tags)
         jsonb = config.get("jsonb", False)
@@ -101,6 +103,7 @@ class ServerObject(object):
             v = [self[tag] for tag in self.ns_tags if tag != "id_object"]
             if jsonb:
                 v.extend([json.dumps(self.meta), create_ft_index(self.meta)])
+
             self.db.query(q, v)
             self["id_object"] = self.id = self.db.lastid()
             logging.info("{!r} created".format(self))
@@ -127,7 +130,7 @@ class ServerObject(object):
         return True
 
     def delete(self):
-        logging.debug("Deleting {!r}".format(self))
+        BaseObject.save(self)
         if self.delete_childs():
             self.db.query("DELETE FROM nx_meta WHERE id_object = %s and object_type = %s", [self.id, self.id_object_type()] )
             self.db.query("DELETE FROM nx_{}s WHERE id_object = %s".format(self.object_type), [self.id])
@@ -145,8 +148,6 @@ class ServerObject(object):
 
 
 class Asset(ServerObject, BaseAsset):
-    object_type = "asset"
-
     def load_sidecar_metadata(self):
         path_elms = os.path.splitext(self.file_path)[0].split("/")[1:]
         for i in range(len(path_elms)):
@@ -213,7 +214,6 @@ class Item(ServerObject, BaseItem):
 
 
 class Bin(ServerObject, BaseBin):
-    object_type = "bin"
     def _load(self):
         if not self._load_from_cache():
             logging.debug("Loading {!r} from DB".format(self))
@@ -282,9 +282,7 @@ class Event(ServerObject, BaseEvent):
         return self._asset
 
 
-class User(ServerObject, BaseObject):
-    object_type = "user"
-
+class User(ServerObject, BaseUser):
     def set_password(self, password):
         self["password"] = get_hash(password)
 

@@ -13,7 +13,7 @@ class NebulaAdmin(NebulaBaseAdmin):
         if not context["user"]:
             return self.render("login", **context)
         context = admin_browser(context)
-        return self.render(tpl, **context)
+        return self.render("browser", **context)
 
     @cherrypy.expose
     def browser(self, *args, **kwargs):

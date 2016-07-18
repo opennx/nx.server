@@ -2,13 +2,11 @@ from .common import *
 from .constants import *
 from .metadata import meta_types
 
-__all__ = ["BaseObject", "BaseAsset", "BaseItem", "BaseBin", "BaseEvent"]
+__all__ = ["BaseObject", "BaseAsset", "BaseItem", "BaseBin", "BaseEvent", "BaseUser"]
 
 class BaseObject(object):
-    object_type = "asset"
-
-    def __init__(self, *args, **kwargs):
-        self.id = int(args[0]) if args else False
+    def __init__(self, id=False, **kwargs):
+        self.id = id
 
         self.ns_prefix = self.object_type[0]
         self.ns_tags   = meta_types.ns_tags(self.ns_prefix)
@@ -22,14 +20,18 @@ class BaseObject(object):
             assert hasattr(kwargs["meta"], "keys")
             self.meta = kwargs["meta"]
             self.id = self.meta.get("id_object", False)
-            self.meta["id"] = self.id # Nebula v.5 compatibility hack
             self._loaded = True
         else:
             if self.id:
-                if self._load():
+                if self.load():
                     self._loaded = True
             else:
-                self._new()
+                self.new()
+        self.meta["id"] = self.id # Nebula v.5 compatibility hack
+
+    @property
+    def object_type(self):
+        return self.__class__.__name__.lower()
 
     def keys(self):
         return self.meta.keys()
@@ -37,22 +39,18 @@ class BaseObject(object):
     def id_object_type(self):
         return OBJECT_TYPES[self.object_type]
 
-    def _new(self):
-        self.meta = {}
-
-    def _load(self):
+    def new(self):
         pass
 
-    def _save(self,**kwargs):
+    def load(self):
         pass
 
     def save(self, **kwargs):
         if kwargs.get("set_mtime", True):
             self["mtime"] = int(time.time())
-        return self._save(**kwargs)
 
-    def delete(self):
-        pass
+    def delete(self, **kwargs):
+        assert self.id > 0, "Unable to delete unsaved asset"
 
     def __getitem__(self, key):
         key = key.lower().strip()
@@ -78,20 +76,19 @@ class BaseObject(object):
 
     def __repr__(self):
         if self.id:
-            iid = "{} ID:{}".format(self.object_type, self.id)
+            result = "{} ID:{}".format(self.object_type, self.id)
         else:
-            iid = "new {}".format(self.object_type)
-        try:
-            title = self["title"] or ""
-            if title:
-                title = " ({})".format(title)
-            return "{}{}".format(iid, title)
-        except:
-            return iid
+            result = "new {}".format(self.object_type)
+        title =  self.meta.get("title", "")
+        if title:
+            result += " ({})".format(title)
+        return result
 
     def __len__(self):
         return self._loaded
 
+    def show(self, key):
+        return meta_types.humanize(key, self[key])
 
 
 
@@ -100,12 +97,6 @@ class BaseObject(object):
 
 
 class BaseAsset(BaseObject):
-    object_type = "asset"
-
-    def _new(self):
-        self.meta = {
-        }
-
     def mark_in(self, new_val=False):
         if new_val:
             self["mark_in"] = new_val
@@ -136,10 +127,10 @@ class BaseAsset(BaseObject):
 
 
 class BaseItem(BaseObject):
-    object_type = "item"
     _asset = False
 
-    def _new(self):
+    def new(self):
+        super(BaseItem, self).new()
         self["id_bin"]    = False
         self["id_asset"]  = False
         self["position"]  = 0
@@ -195,23 +186,20 @@ class BaseItem(BaseObject):
         return dur
 
 
-
 class BaseBin(BaseObject):
-    object_type = "bin"
-    items = []
-
-    def _new(self):
-        self.meta = {}
+    def new(self):
+        super(BaseBin, self).new()
         self.items = []
 
 
 class BaseEvent(BaseObject):
-    object_type = "event"
-    _bin        = False
-    _asset      = False
-
-    def _new(self):
+    def new(self):
+        super(BaseEvent, self).new()
         self["start"]      = 0
         self["stop"]       = 0
         self["id_channel"] = 0
         self["id_magic"]   = 0
+
+
+class BaseUser(BaseObject):
+    pass
