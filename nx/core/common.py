@@ -11,6 +11,7 @@ from xml.etree import ElementTree as ET
 from nxtools import *
 from .constants import *
 
+
 if PLATFORM == "windows":
     python_cmd = "c:\\python27\python.exe"
     def ismount(path):

@@ -15,9 +15,9 @@ except ImportError:
 
 __all__ = ["DB", "cache", "Cache"]
 
-##
+#
 # Database
-##
+#
 
 class BaseDB(object):
     pmap = {}
@@ -69,6 +69,8 @@ class DB(BaseDB):
                 continue
             else:
                 break
+        else:
+            raise psycopg2.OperationalError
         self.cur = self.conn.cursor()
 
     def sanit(self, instr):
@@ -78,12 +80,12 @@ class DB(BaseDB):
             return instr.replace("''","'").replace("'","''")
 
     def lastid (self):
-        self.query("select lastval()")
+        self.query("SELECT LASTVAL()")
         return self.fetchall()[0][0]
 
-##
+#
 # Cache
-##
+#
 
 class Cache():
     def __init__(self):

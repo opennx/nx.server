@@ -27,6 +27,13 @@ def create_ft_index(meta):
 
 
 class ServerObject(object):
+    def __init__(self):
+        self.ns_prefix = self.object_type[0]
+        self.ns_tags   = meta_types.ns_tags(self.ns_prefix)
+        self._db = kwargs.get("db", False)
+        self._cache = kwargs.get("cache", False)
+        BaseObject.__init__(self, id, **kwargs)
+
     @property
     def db(self):
         if not self._db:
@@ -39,9 +46,11 @@ class ServerObject(object):
         return self._cache or cache
 
     def load(self):
-        if not self._load_from_cache():
+        try:
+            self.meta = json.loads(self.cache.load("{0}{1}".format(self.ns_prefix, self.id)))
+        except:
             logging.debug("Loading {!r} from DB".format(self))
-
+            id_object_type = OBJECT_TYPES[self.object_type]
             qcols = ", ".join(self.ns_tags)
             self.db.query("SELECT {0} FROM nx_{1}s WHERE id_object={2}".format(qcols, self.object_type, self.id))
             try:
@@ -53,28 +62,20 @@ class ServerObject(object):
             for tag, value in zip(self.ns_tags, result):
                 self[tag] = value
 
-            self.db.query("SELECT tag, value FROM nx_meta WHERE id_object = %s and object_type = %s", (self["id_object"], self.id_object_type()))
+            self.db.query("SELECT tag, value FROM nx_meta WHERE id_object = %s and object_type = %s", (self["id_object"], id_object_type))
             for tag, value in self.db.fetchall():
                 self[tag] = value
 
             self._save_to_cache()
+        self.meta["id"] = self.meta["id_object"]
         return True
-
-    def _load_from_cache(self):
-        try:
-            self.meta = json.loads(self.cache.load("{0}{1}".format(self.ns_prefix, self.id)))
-        except:
-            return False
-        else:
-            if self.meta:
-                return True
-            return False
 
     def _save_to_cache(self):
         return self.cache.save("{0}{1}".format(self.ns_prefix, self["id_object"]), json.dumps(self.meta))
 
     def save(self, **kwargs):
         BaseObject.save(self, **kwargs)
+        id_object_type = OBJECT_TYPES[self.object_type]
 
         created = False
         ns_tags = copy.copy(self.ns_tags)
@@ -92,7 +93,7 @@ class ServerObject(object):
                 v.extend([json.dumps(self.meta), create_ft_index(self.meta)])
 
             self.db.query(q, v)
-            self.db.query("DELETE FROM nx_meta WHERE id_object = {0} and object_type = {1}".format(self["id_object"], self.id_object_type()))
+            self.db.query("DELETE FROM nx_meta WHERE id_object = {0} and object_type = {1}".format(self["id_object"], id_object_type))
         else:
             self["ctime"] = self["ctime"] or time.time()
             created = True
@@ -105,7 +106,7 @@ class ServerObject(object):
                 v.extend([json.dumps(self.meta), create_ft_index(self.meta)])
 
             self.db.query(q, v)
-            self["id_object"] = self.id = self.db.lastid()
+            self["id_object"] = self["id"] = self.id = self.db.lastid()
             logging.info("{!r} created".format(self))
 
         for tag in self.meta:
@@ -113,7 +114,7 @@ class ServerObject(object):
                 continue
             value = meta_types.unformat(tag, self.meta[tag])
             q = "INSERT INTO nx_meta (id_object, object_type, tag, value) VALUES (%s, %s, %s, %s)"
-            v = [self["id_object"], self.id_object_type(), tag, value]
+            v = [self["id_object"], id_object_type, tag, value]
             self.db.query(q, v)
 
         if self._save_to_cache():
@@ -131,8 +132,9 @@ class ServerObject(object):
 
     def delete(self):
         BaseObject.save(self)
+        id_object_type = OBJECT_TYPES[self.object_type]
         if self.delete_childs():
-            self.db.query("DELETE FROM nx_meta WHERE id_object = %s and object_type = %s", [self.id, self.id_object_type()] )
+            self.db.query("DELETE FROM nx_meta WHERE id_object = %s and object_type = %s", [self.id, id_object_type] )
             self.db.query("DELETE FROM nx_{}s WHERE id_object = %s".format(self.object_type), [self.id])
             self.db.commit()
             self.cache.delete("{0}{1}".format(self.ns_prefix, self.id))
@@ -147,7 +149,7 @@ class ServerObject(object):
 
 
 
-class Asset(ServerObject, BaseAsset):
+class Asset(AssetMixIn, ServerObject):
     def load_sidecar_metadata(self):
         path_elms = os.path.splitext(self.file_path)[0].split("/")[1:]
         for i in range(len(path_elms)):
@@ -179,7 +181,7 @@ class Asset(ServerObject, BaseAsset):
 
 
 
-class Item(ServerObject, BaseItem):
+class Item(ItemMixIn, ServerObject):
     @property
     def asset(self):
         if not self._asset:
@@ -213,9 +215,10 @@ class Item(ServerObject, BaseItem):
 
 
 
-class Bin(ServerObject, BaseBin):
-    def _load(self):
+class Bin(BinMixIn, ServerObject):
+    def load(self):
         if not self._load_from_cache():
+            id_object_type = OBJECT_TYPES[self.object_type]
             logging.debug("Loading {!r} from DB".format(self))
 
             qcols = ", ".join(self.ns_tags)
@@ -229,7 +232,7 @@ class Bin(ServerObject, BaseBin):
             for tag, value in zip(self.ns_tags, result):
                 self[tag] = value
 
-            self.db.query("SELECT tag, value FROM nx_meta WHERE id_object = %s and object_type = %s", (self["id_object"], self.id_object_type()))
+            self.db.query("SELECT tag, value FROM nx_meta WHERE id_object = %s and object_type = %s", (self["id_object"], id_object_type))
             for tag, value in self.db.fetchall():
                 self[tag] = value
 
@@ -254,13 +257,6 @@ class Bin(ServerObject, BaseBin):
     def _save_to_cache(self):
         return self.cache.save("%s%d" % (self.ns_prefix, self["id_object"]), json.dumps([self.meta, [i.meta for i in self.items]]))
 
-    @property
-    def duration(self):
-        dur = 0
-        for item in self.items:
-            dur += item.duration
-        return dur
-
     def delete_childs(self):
         for item in self.items:
             if item.id > 0:
@@ -268,7 +264,7 @@ class Bin(ServerObject, BaseBin):
         return True
 
 
-class Event(ServerObject, BaseEvent):
+class Event(EventMixIn, ServerObject):
     @property
     def bin(self):
         if not self._bin:
@@ -282,10 +278,7 @@ class Event(ServerObject, BaseEvent):
         return self._asset
 
 
-class User(ServerObject, BaseUser):
-    def set_password(self, password):
-        self["password"] = get_hash(password)
-
+class User(UserMixIn, ServerObject):
     def has_right(self, key, val=True):
         if self["is_admin"]:
             return True
@@ -301,16 +294,3 @@ class User(ServerObject, BaseUser):
         if not key in self.meta:
             return meta_types.format_default(key)
         return self.meta[key]
-
-    def __repr__(self):
-        if self.id:
-            iid = "{} ID:{}".format(self.object_type, self.id)
-        else:
-            iid = "new {}".format(self.object_type)
-        try:
-            title = self["login"] or ""
-            if title:
-                title = " ({})".format(title)
-            return "{}{}".format(iid, title)
-        except:
-            return iid

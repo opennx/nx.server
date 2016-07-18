@@ -4,7 +4,6 @@ from .objects import *
 
 
 def get_user(login, password, db=False):
-    #TODO: sanitize inputs
     if not db:
         db = DB()
     db.query("SELECT id_object FROM nx_users WHERE login=%s and password=%s", [login, get_hash(password)])
@@ -15,6 +14,7 @@ def get_user(login, password, db=False):
 
 
 def asset_by_path(id_storage, path, db=False):
+    path = path.replace("\\", "/")
     if not db:
         db = DB()
     db.query("""SELECT id_object FROM nx_meta

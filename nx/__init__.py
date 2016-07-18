@@ -3,26 +3,39 @@ from .connection import *
 from .objects import *
 from .helpers import *
 
+#
+# Load system configuration
+#
+
 def load_site_settings(db):
     global config
-    config["playout_channels"] = {}
-    config["ingest_channels"] = {}
-    config["views"] = {}
+    site_settings = {
+               "playout_channels" : {},
+               "ingest_channels" : {},
+               "views" : {},
+               "asset_types" : {}
+            }
+
+    # Settings
 
     db.query("SELECT key, value FROM nx_settings")
     for key, value in db.fetchall():
-        config[key] = value
+        site_settings[key] = value
+
+    # Views
 
     db.query("SELECT id_view, config FROM nx_views")
-    for id_view, view_config in db.fetchall():
-        view_config = ET.XML(view_config)
+    for id, settings in db.fetchall():
+        settings = xml(settings)
         view = {}
         for elm in ["query", "folders", "origins", "media_types", "content_types", "statuses"]:
             try:
-                view[elm] = view_config.find(elm).text.strip()
+                view[elm] = settings.find(elm).text.strip()
             except:
                 continue
-        config["views"][id_view] = view
+        site_settings["views"][id] = view
+
+    # Channels
 
     db.query("SELECT id_channel, channel_type, title, config FROM nx_channels")
     for id_channel, channel_type, title, ch_config in db.fetchall():
@@ -33,12 +46,34 @@ def load_site_settings(db):
             continue
         ch_config.update({"title":title})
         if channel_type == PLAYOUT:
-            config["playout_channels"][id_channel] = ch_config
+            site_settings["playout_channels"][id_channel] = ch_config
         elif channel_type == INGEST:
-            config["ingest_channels"][id_channel] = ch_config
+            site_settings["ingest_channels"][id_channel] = ch_config
+    config.update(site_settings)
+    return True
 
 
-def load_meta_types(db):
+
+def load_storages(db, force=False):
+    global storages
+    db.query("SELECT id_storage, title, protocol, path, login, password FROM nx_storages")
+    for id_storage, title, protocol, path, login, password in db.fetchall():
+        storage = Storage(
+            id=id_storage,
+            title=title,
+            protocol=protocol,
+            path=path,
+            login=login,
+            password=password
+            )
+        storages.add(storage)
+    return True
+
+#
+# Load metadata model
+#
+
+def load_meta_types(db, force=False):
     global meta_types
     db.query("SELECT namespace, tag, editable, searchable, class, default_value,  settings FROM nx_meta_types")
     for ns, tag, editable, searchable, class_, default, settings in db.fetchall():
@@ -56,28 +91,25 @@ def load_meta_types(db):
     return True
 
 
-def load_storages(db):
-    global storages
-    db.query("SELECT id_storage, title, protocol, path, login, password FROM nx_storages")
-    for id_storage, title, protocol, path, login, password in db.fetchall():
-        storage = Storage(
-            id=id_storage,
-            title=title,
-            protocol=protocol,
-            path=path,
-            login=login,
-            password=password
-            )
-        storages.add(storage)
+def load_cs(db, force=False):
+    pass
 
+#
+# Do it! Do it! Do it!
+#
 
-def load_all():
-    db = DB()
-    load_site_settings(db)
-    load_meta_types(db)
-    load_storages(db)
-
-    cache.configure()
+def load_all_settings(force=False):
+    logging.debug("Loading site configuration from DB", handlers=False)
+    try:
+        # This is the first time we are connecting DB so error handling should be here
+        db = DB() 
+    except:
+        log_traceback(handlers=False)
+        critical_error("Unable to connect database", handlers=False)
+    load_site_settings(db, force)
+    load_storages(db, force)
+    load_meta_types(db, force)
+    load_cs(db, force)
     messaging.configure()
 
-load_all()
+load_all_settings()

@@ -2,32 +2,29 @@ from .common import *
 from .constants import *
 from .metadata import meta_types
 
-__all__ = ["BaseObject", "BaseAsset", "BaseItem", "BaseBin", "BaseEvent", "BaseUser"]
+__all__ = ["BaseObject", "AssetMixIn", "ItemMixIn", "BinMixIn", "EventMixIn", "UserMixIn"]
 
 class BaseObject(object):
     def __init__(self, id=False, **kwargs):
-        self.id = id
-
-        self.ns_prefix = self.object_type[0]
-        self.ns_tags   = meta_types.ns_tags(self.ns_prefix)
+        self.is_new = True
         self.meta = {}
-
-        self._loaded = False
-        self._db = kwargs.get("db", False)
-        self._cache = kwargs.get("cache", False)
-
-        if "meta" in kwargs:
-            assert hasattr(kwargs["meta"], "keys")
-            self.meta = kwargs["meta"]
-            self.id = self.meta.get("id_object", False)
-            self._loaded = True
-        else:
-            if self.id:
-                if self.load():
-                    self._loaded = True
+        meta = kwargs.get("meta", {})
+        assert hasattr(kwargs["meta"], "keys")
+        for key in meta:
+            self.meta[key] = meta[key]
+        if "id_object" in self.meta or "id" in self.meta:
+            self.is_new = False
+        elif not self.meta:
+            if id:
+                self.load()
+                self.is_new = False
             else:
                 self.new()
-        self.meta["id"] = self.id # Nebula v.5 compatibility hack
+                self.is_new = True
+
+    @property
+    def id(self):
+        return self.meta.get("id", False)
 
     @property
     def object_type(self):
@@ -35,9 +32,6 @@ class BaseObject(object):
 
     def keys(self):
         return self.meta.keys()
-
-    def id_object_type(self):
-        return OBJECT_TYPES[self.object_type]
 
     def new(self):
         pass
@@ -85,7 +79,7 @@ class BaseObject(object):
         return result
 
     def __len__(self):
-        return self._loaded
+        return not self.is_new
 
     def show(self, key):
         return meta_types.humanize(key, self[key])
@@ -95,8 +89,7 @@ class BaseObject(object):
 
 
 
-
-class BaseAsset(BaseObject):
+class AssetMixIn():
     def mark_in(self, new_val=False):
         if new_val:
             self["mark_in"] = new_val
@@ -112,7 +105,9 @@ class BaseAsset(BaseObject):
         try:
             return os.path.join(storages[self["id_storage"]].local_path, self["path"])
         except:
-            return "" # Yes. empty string. keep it this way!!! (because of os.path.exists and so on)
+            # Yes. empty string. keep it this way!!! (because of os.path.exists and so on)
+            # Also: it evals as false
+            return ""
 
     @property
     def duration(self):
@@ -125,8 +120,7 @@ class BaseAsset(BaseObject):
         return dur
 
 
-
-class BaseItem(BaseObject):
+class ItemMixIn():
     _asset = False
 
     def new(self):
@@ -186,13 +180,20 @@ class BaseItem(BaseObject):
         return dur
 
 
-class BaseBin(BaseObject):
+class BinMixIn():
     def new(self):
         super(BaseBin, self).new()
         self.items = []
 
+    @property
+    def duration(self):
+        dur = 0
+        for item in self.items:
+            dur += item.duration
+        return dur
 
-class BaseEvent(BaseObject):
+
+class EventMixIn():
     def new(self):
         super(BaseEvent, self).new()
         self["start"]      = 0
@@ -201,5 +202,19 @@ class BaseEvent(BaseObject):
         self["id_magic"]   = 0
 
 
-class BaseUser(BaseObject):
-    pass
+class UserMixIn():
+    def set_password(self, password):
+        self["password"] = get_hash(password)
+
+    def __repr__(self):
+        if self.id:
+            iid = "{} ID:{}".format(self.object_type, self.id)
+        else:
+            iid = "new {}".format(self.object_type)
+        try:
+            title = self["login"] or ""
+            if title:
+                title = " ({})".format(title)
+            return "{}{}".format(iid, title)
+        except:
+            return iid

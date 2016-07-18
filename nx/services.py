@@ -55,4 +55,3 @@ class BaseService(object):
 
         if state in [STOPPED, STOPPING, KILL]:
             self.shutdown()
-
