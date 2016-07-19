@@ -46,6 +46,8 @@ def api_get(**kwargs):
     if conds:
         conds = "WHERE " + conds
     q = "SELECT meta FROM nx_assets {}".format(conds)
+    if "limit" in kwargs:
+        q += " LIMIT {}".format(kwargs["limit"])
     logging.debug("Executing browse query:", q)
     db.query(q)
     for meta, in db.fetchall():

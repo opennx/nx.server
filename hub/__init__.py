@@ -2,38 +2,37 @@ import os
 import cherrypy
 
 from nx import *
-
-from .admin import NebulaAdmin
-from .api import NebulaAPI
+from .hub import HubHandler
 
 class Hub():
     def __init__(self, blocking=False):
+        sessions_dir = config.get("hub_sessions_dir", "/tmp/hub_sessions_{}".format(config["site_name"]))
+        if not os.path.exists(sessions_dir):
+            os.makedirs(sessions_dir)
+
         self.is_running = False
-        self.admin_config = {
+
+        self.config = {
             '/': {
+                'tools.staticdir.root': os.path.join(config["nebula_root"], "hub"),
+                'tools.trailing_slash.on' : False,
                 'tools.sessions.on': True,
-                'tools.staticdir.root': os.path.join(config["nebula_root"], "hub")
-                 },
+                'tools.sessions.storage_type' : 'file',
+                'tools.sessions.storage_path' : sessions_dir
+                },
             '/static': {
                 'tools.staticdir.on': True,
                 'tools.staticdir.dir': "static"
                 },
             }
-        self.api_config = {
-            '/': {
-                'tools.sessions.on' : True,
-                'tools.trailing_slash.on' : False
-                 },
-            }
 
         cherrypy.config.update({
-            'server.socket_host': config.get("hub_host", "0.0.0.0"),
-            'server.socket_port': config.get("hub_port", 80),
+            'server.socket_host': str(config.get("hub_host", "0.0.0.0")),
+            'server.socket_port': int(config.get("hub_port", 80)),
             })
 
         cherrypy.engine.subscribe('start', self.start)
-        cherrypy.tree.mount(NebulaAdmin(), "/", self.admin_config)
-        cherrypy.tree.mount(NebulaAPI(), "/api", self.admin_config)
+        cherrypy.tree.mount(HubHandler(), "/", self.config)
 
         cherrypy.engine.subscribe('stop', self.stop)
         cherrypy.engine.start()
