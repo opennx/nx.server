@@ -98,6 +98,8 @@ class HiveHandler(BaseHTTPRequestHandler):
     def sessions(self):
         return self.server.service.sessions
 
+    def do_GET(self):
+        pass
 
     def do_POST(self):
         start_time =  time.time()

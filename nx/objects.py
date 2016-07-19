@@ -46,6 +46,7 @@ class ServerObject(BaseObject):
         return self._cache or cache
 
     def load(self, id):
+        id = int(id)
         try:
             self.meta = json.loads(self.cache.load("{0}{1}".format(self.ns_prefix, id)))
         except:
@@ -65,9 +66,8 @@ class ServerObject(BaseObject):
             self.db.query("SELECT tag, value FROM nx_meta WHERE id_object = %s and object_type = %s", (id, id_object_type))
             for tag, value in self.db.fetchall():
                 self[tag] = value
-
+            self.meta["id"] = self.meta["id_object"] = id
             self._save_to_cache()
-        self.meta["id"] = self.meta["id_object"]
         return True
 
     def _save_to_cache(self):
@@ -216,6 +216,7 @@ class Item(ItemMixIn, ServerObject):
 
 class Bin(BinMixIn, ServerObject):
     def load(self, id):
+        id = int(id)
         if not self._load_from_cache(id):
             id_object_type = OBJECT_TYPES[self.object_type]
             logging.debug("Loading {} id {} from DB".format(self.object_type, id))
@@ -239,8 +240,8 @@ class Bin(BinMixIn, ServerObject):
             self.items = []
             for id_item, in self.db.fetchall():
                 self.items.append(Item(id_item, db=self._db))
+            self.meta["id"] = self.meta["id_object"] = id
             self._save_to_cache()
-        self["id"] = id
         return True
 
 
@@ -292,5 +293,5 @@ class User(UserMixIn, ServerObject):
             return True
         key = key.lower().strip()
         if not key in self.meta:
-            return meta_types.format_default(key)
+            return meta_types[key].default
         return self.meta[key]

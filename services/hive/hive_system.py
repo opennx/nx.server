@@ -4,7 +4,7 @@ from nx.objects import *
 
 
 def hive_meta_types(user, params):
-    return [[200, [meta_types[t].pack() for t in meta_types.keys()]]]
+    return [[200, meta_types.dump]]
 
 
 def hive_site_settings(user, params):

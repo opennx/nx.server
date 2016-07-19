@@ -78,16 +78,19 @@ def load_meta_types(db, force=False):
     global meta_types
     db.query("SELECT namespace, tag, editable, searchable, class, default_value,  settings FROM nx_meta_types")
     for ns, tag, editable, searchable, class_, default, settings in db.fetchall():
-        meta_type = MetaType(tag)
-        meta_type.namespace  = ns
-        meta_type.editable   = bool(editable)
-        meta_type.searchable = bool(searchable)
-        meta_type.class_     = class_
-        meta_type.default    = default
-        meta_type.settings   = json.loads(settings)
+        meta_type = MetaType(
+                tag, **{
+                    "namespace" : ns,
+                    "editable" : bool(editable),
+                    "searchable" : bool(searchable),
+                    "class" : class_,
+                    "default" : default,
+                    "settings" : json.loads(settings)
+                }
+            )
         db.query("SELECT lang, alias, col_header FROM nx_meta_aliases WHERE tag='{0}'".format(tag))
         for lang, alias, col_header in db.fetchall():
-            meta_type.aliases[lang] = alias, col_header
+            meta_type["aliases"][lang] = alias, col_header
         meta_types[tag] = meta_type
     return True
 

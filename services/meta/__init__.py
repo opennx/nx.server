@@ -83,7 +83,7 @@ class Service(BaseService):
 
                 keys = list(asset.meta.keys())
                 for key in keys:
-                    if meta_types[key].namespace in ("fmt", "qc"):
+                    if meta_types[key]["namespace"] in ("fmt", "qc"):
                         del (asset.meta[key])
 
                 asset["file/size"]  = fsize

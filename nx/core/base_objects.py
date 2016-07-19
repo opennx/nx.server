@@ -33,6 +33,19 @@ class BaseObject(object):
     def keys(self):
         return self.meta.keys()
 
+    def __getitem__(self, key):
+        key = key.lower().strip()
+        return self.meta.get(key, meta_types[key].default)
+
+    def __setitem__(self, key, value):
+        key = key.lower().strip()
+        value = meta_types[key].validate(value)
+        if not value:
+            del self[key]
+        else:
+            self.meta[key] = value
+        return True
+
     def new(self):
         pass
 
@@ -46,23 +59,10 @@ class BaseObject(object):
     def delete(self, **kwargs):
         assert self.id > 0, "Unable to delete unsaved asset"
 
-    def __getitem__(self, key):
-        key = key.lower().strip()
-        if not key in self.meta:
-            return meta_types.format_default(key)
-        return self.meta[key]
-
-    def __setitem__(self, key, value):
-        key = key.lower().strip()
-        if value or type(value) in [float, int, bool]:
-            self.meta[key] = meta_types.format(key,value)
-        else:
-            del self[key] # empty strings
-        return True
-
     def __delitem__(self, key):
         key = key.lower().strip()
-        if key in meta_types and meta_types[key].namespace == self.object_type[0]:
+        #TODO: resolve this.
+        if key in meta_types and meta_types[key]["namespace"] == self.object_type[0]:
             return
         if not key in self.meta:
             return
@@ -81,10 +81,8 @@ class BaseObject(object):
     def __len__(self):
         return not self.is_new
 
-    def show(self, key):
-        return self[key]
-        #TODO
-        return meta_types.humanize(key, self[key])
+    def show(self, key, **kwargs):
+        return meta_types[key].humanize(self[key], **kwargs)
 
 
 

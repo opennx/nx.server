@@ -47,7 +47,7 @@ class Service(BaseService):
 
                 if filters:
                     for f in filters:
-                        if CONTENT_TYPES.get(f.text.upper(), "blah blah") == filetype:
+                        if CONTENT_TYPES.get(f.text.lower(), "blah blah") == filetype:
                           break
                     else:
                         continue
