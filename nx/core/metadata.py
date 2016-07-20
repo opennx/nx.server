@@ -275,21 +275,21 @@ class MetaTypes():
             return value
         mtype = self[key]
         if  key == "path":                return value.replace("\\","/")
-        elif mtype.class_ == TEXT:        return value.strip()
-        elif mtype.class_ == BLOB:        return value.strip()
-        elif mtype.class_ == INTEGER:     return int(value)
-        elif mtype.class_ == NUMERIC:     return float(value)
-        elif mtype.class_ == BOOLEAN:     return int(value)
-        elif mtype.class_ == DATETIME:    return float(value)
-        elif mtype.class_ == TIMECODE:    return float(value)
-        elif mtype.class_ == REGIONS:     return value if type(value) == dict else json.loads(value)
-        elif mtype.class_ == FRACTION:    return str(value).strip().replace(":","/")
-        elif mtype.class_ == SELECT:      return value
-        elif mtype.class_ == CS_SELECT:   return value
-        elif mtype.class_ == ENUM:        return int(value)
-        elif mtype.class_ == CS_ENUM:     return int(value)
-        elif mtype.class_ == SELECT:      return value
-        elif mtype.class_ == CS_SELECT:   return value
+        elif mtype["class"] == TEXT:        return value.strip()
+        elif mtype["class"] == BLOB:        return value.strip()
+        elif mtype["class"] == INTEGER:     return int(value)
+        elif mtype["class"] == NUMERIC:     return float(value)
+        elif mtype["class"] == BOOLEAN:     return int(value)
+        elif mtype["class"] == DATETIME:    return float(value)
+        elif mtype["class"] == TIMECODE:    return float(value)
+        elif mtype["class"] == REGIONS:     return value if type(value) == dict else json.loads(value)
+        elif mtype["class"] == FRACTION:    return str(value).strip().replace(":","/")
+        elif mtype["class"] == SELECT:      return value
+        elif mtype["class"] == CS_SELECT:   return value
+        elif mtype["class"] == ENUM:        return int(value)
+        elif mtype["class"] == CS_ENUM:     return int(value)
+        elif mtype["class"] == SELECT:      return value
+        elif mtype["class"] == CS_SELECT:   return value
 
         return value
 
@@ -298,7 +298,7 @@ class MetaTypes():
         mtype = self[key]
         if type(value) in (list, dict):
             return json.dumps(value)
-        elif mtype.class_ == REGIONS or key.startswith("can/"):
+        elif mtype["class"] == REGIONS or key.startswith("can/"):
             return json.dumps(value)
         return value
 
