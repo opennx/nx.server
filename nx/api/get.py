@@ -6,6 +6,7 @@ def api_get(**kwargs):
     db = kwargs.get("db", DB())
     conds = kwargs.get("conds", [])
     object_type = kwargs.get("object_type", "asset")
+    result_type = kwargs.get("result", False)
 
     ObjectType, table = {
                 "asset" : [Asset, "nx_assets"],
@@ -46,11 +47,25 @@ def api_get(**kwargs):
 
         logging.debug("Executing get query:", q)
         db.query(q)
-        for id_object, meta in db.fetchall():
-            if meta:
-                result["data"].append(ObjectType(meta=meta, db=db).meta)
-            else:
-                result["data"].append(ObjectType(id_object).meta)
+
+        if result_type == "ids":
+            for id_object, meta in db.fetchall():
+                result["data"].append(id_object)
+
+        elif type(result_type) == list:
+            for id_object, meta in db.fetchall():
+                if meta:
+                    obj = ObjectType(meta=meta, db=db)
+                else:
+                    obj = ObjectType(id_object, db=db)
+                result["data"].append([obj[key] for key in result_type])
+
+        else:
+            for id_object, meta in db.fetchall():
+                if meta:
+                    result["data"].append(ObjectType(meta=meta, db=db).meta)
+                else:
+                    result["data"].append(ObjectType(id_object, db=db).meta)
 
     #
     # response
