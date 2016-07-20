@@ -247,16 +247,19 @@ class Bin(BinMixIn, ServerObject):
 
     def _load_from_cache(self, id):
         try:
-            self.meta, itemdata = json.loads(self.cache.load("%s%d" % (self.ns_prefix, id)))
+            self.meta, itemdata = json.loads(self.cache.load("{}{}".format(self.ns_prefix, id)))
         except:
             return False
         self.items = []
         for idata in itemdata:
-            self.items.append(Item(from_data=idata, db=self._db))
+            self.items.append(Item(meta=idata, db=self._db))
         return True
 
     def _save_to_cache(self):
-        return self.cache.save("%s%d" % (self.ns_prefix, self.id), json.dumps([self.meta, [i.meta for i in self.items]]))
+        assert type(self.id) == int
+        key = "{}{}".format(self.ns_prefix, self.id)
+        data = json.dumps([self.meta, [i.meta for i in self.items]])
+        return self.cache.save(key, data)
 
     def delete_childs(self):
         for item in self.items:
