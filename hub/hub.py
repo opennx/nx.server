@@ -72,7 +72,7 @@ class HubHandler(object):
     def render(self, view, **context):
         template = self.jinja.get_template("{}.html".format(view))
         context["view"] = view
-        js_path = os.path.join(config["nebula_root"], "hub", "static", "js", "api_{}.js".format(view))
+        js_path = os.path.join(config["nebula_root"], "hub", "static", "js", "{}.js".format(view))
         if os.path.exists(js_path):
             context["view_js"] = "/static/js/{}.js".format(view)
         return template.render(**context)
@@ -131,7 +131,7 @@ class HubHandler(object):
             cherrypy.response.headers[h] = v
 
         if cherrypy.request.method != "POST":
-            return {"response" : 400, "message" : "Bad request"}
+            return {"response" : 400, "message" : "Bad request. Post expected."}
 
         cl = cherrypy.request.headers['Content-Length']
         rawbody = cherrypy.request.body.read(int(cl))
