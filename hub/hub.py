@@ -13,7 +13,6 @@ from .admin_jobs import admin_jobs
 from .admin_services import admin_services
 from .admin_config import admin_config
 
-from .hub_api import *
 
 views = {
         "dashboard" : admin_dashboard,
@@ -32,6 +31,12 @@ api_headers = [
         ["Cache-Control", "no-cache"],
         ["Access-Control-Allow-Origin", "*"]
     ]
+
+api_methods = {
+        "get" : api_get,
+        "rundown" : api_rundown
+    }
+
 
 
 class Context(dict):
@@ -121,19 +126,25 @@ class HubHandler(object):
 
 
     @cherrypy.expose
-    def api(self, method=False, **kwargs):
+    def api(self, method=False):
         for h, v in api_headers:
             cherrypy.response.headers[h] = v
 
-        return method
-
         if cherrypy.request.method != "POST":
             return {"response" : 400, "message" : "Bad request"}
+
+        cl = cherrypy.request.headers['Content-Length']
+        rawbody = cherrypy.request.body.read(int(cl))
+        kwargs = json.loads(rawbody)
+
 
         context = self.context()
         if not context["user"]:
             return {"response" : 401, "message" : "Not logged in"}
 
 
+        if method in api_methods:
+            logging.debug("Executing {} /w params {}".format(method, kwargs))
+            data = api_methods[method](**kwargs)
 
         return json.dumps(data)
