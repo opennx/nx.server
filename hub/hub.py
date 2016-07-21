@@ -24,7 +24,6 @@ views = {
         "config" : admin_config
     }
 
-
 api_headers = [
         ["Content-Type", "application/json"],
         ["Connection", "keep-alive"],
@@ -36,7 +35,6 @@ api_methods = {
         "get" : api_get,
         "rundown" : api_rundown
     }
-
 
 
 class Context(dict):
@@ -127,24 +125,29 @@ class HubHandler(object):
 
     @cherrypy.expose
     def api(self, method=False):
-        for h, v in api_headers:
-            cherrypy.response.headers[h] = v
+        for key, value in api_headers:
+            cherrypy.response.headers[key] = value
 
         if cherrypy.request.method != "POST":
             return {"response" : 400, "message" : "Bad request. Post expected."}
 
-        cl = cherrypy.request.headers['Content-Length']
-        rawbody = cherrypy.request.body.read(int(cl))
-        kwargs = json.loads(rawbody)
-
+        try:
+            content_length = cherrypy.request.headers['Content-Length']
+            raw_body = cherrypy.request.body.read(int(content_length))
+            kwargs = json.loads(raw_body)
+        except:
+            message = log_traceback("Bad request")
+            return {"response" : 400, "message" : message}
 
         context = self.context()
         if not context["user"]:
             return {"response" : 401, "message" : "Not logged in"}
 
-
         if method in api_methods:
             logging.debug("Executing {} /w params {}".format(method, kwargs))
-            data = api_methods[method](**kwargs)
-
+            try:
+                data = api_methods[method](**kwargs)
+            except:
+                message = log_traceback("Internal server error")
+                return {"response" : 500, "message" : message}
         return json.dumps(data)
