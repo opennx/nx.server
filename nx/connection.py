@@ -15,21 +15,36 @@ except ImportError:
 
 __all__ = ["DB", "cache", "Cache"]
 
+
 #
 # Database
 #
 
-class BaseDB(object):
-    pmap = {}
-
+class DB(object):
     def __init__(self, **kwargs):
+        self.pmap = {
+            "host" : "db_host",
+            "user" : "db_user",
+            "password" : "db_pass",
+            "database" : "db_name",
+            }
+
         self.settings = {
             key : kwargs.get(self.pmap[key], config[self.pmap[key]]) for key in self.pmap
             }
-        self._connect()
 
-    def _connect(self):
-        pass
+        self.conn = psycopg2.connect(**self.settings)
+        self.cur = self.conn.cursor()
+
+    def sanit(self, instr):
+        try:
+            return str(instr).replace("''","'").replace("'","''").decode("utf-8")
+        except:
+            return instr.replace("''","'").replace("'","''")
+
+    def lastid (self):
+        self.query("SELECT LASTVAL()")
+        return self.fetchall()[0][0]
 
     def query(self, q, *args):
         self.cur.execute(q,*args)
@@ -48,40 +63,6 @@ class BaseDB(object):
 
     def __len__(self):
         return True
-
-
-class DB(BaseDB):
-    pmap = {
-        "host" : "db_host",
-        "user" : "db_user",
-        "password" : "db_pass",
-        "database" : "db_name",
-        }
-
-    def _connect(self):
-        i = 0
-        while i < 3:
-            try:
-                self.conn = psycopg2.connect(**self.settings)
-            except psycopg2.OperationalError:
-                time.sleep(1)
-                i+=1
-                continue
-            else:
-                break
-        else:
-            raise psycopg2.OperationalError
-        self.cur = self.conn.cursor()
-
-    def sanit(self, instr):
-        try:
-            return str(instr).replace("''","'").replace("'","''").decode("utf-8")
-        except:
-            return instr.replace("''","'").replace("'","''")
-
-    def lastid (self):
-        self.query("SELECT LASTVAL()")
-        return self.fetchall()[0][0]
 
 #
 # Cache
