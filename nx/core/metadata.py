@@ -221,8 +221,8 @@ class MetaType(object):
 
     def humanize(self, value, **kwargs):
         if not self.humanizer:
-            return self.humanizer(self, value, **kwargs)
-        return value
+            return value
+        return self.humanizer(self, value, **kwargs)
 
 
 

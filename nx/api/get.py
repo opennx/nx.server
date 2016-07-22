@@ -53,12 +53,28 @@ def api_get(**kwargs):
                 result["data"].append(id_object)
 
         elif type(result_type) == list:
+            result_format = []
+            for i, key in enumerate(result_type):
+                form = key.split("@")
+                if len(form) == 2:
+                    result_format.append(json.loads(form[1] or "{}"))
+                else:
+                    result_format.append(None)
+                result_type[i] = form[0]
+
             for id_object, meta in db.fetchall():
                 if meta:
                     obj = ObjectType(meta=meta, db=db)
                 else:
                     obj = ObjectType(id_object, db=db)
-                result["data"].append([obj[key] for key in result_type])
+                row = []
+                for key, form in zip(result_type, result_format):
+                    if form is None:
+                        row.append(obj[key])
+                    else:
+                        form = form or {}
+                        row.append(obj.show(key, **form))
+                result["data"].append(row)
 
         else:
             for id_object, meta in db.fetchall():

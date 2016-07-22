@@ -35,6 +35,8 @@ class BaseObject(object):
 
     def __getitem__(self, key):
         key = key.lower().strip()
+        if key == "_duration":
+            return self.duration
         return self.meta.get(key, meta_types[key].default)
 
     def __setitem__(self, key, value):
@@ -82,7 +84,7 @@ class BaseObject(object):
         return not self.is_new
 
     def show(self, key, **kwargs):
-        return meta_types[key].humanize(self[key], **kwargs)
+        return meta_types[key.lstrip("_")].humanize(self[key], **kwargs)
 
 
 

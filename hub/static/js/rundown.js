@@ -20,7 +20,7 @@ $( document ).ready(function() {
         type: "POST",
         url: "/api/get",
         contentType : "application/json",
-        data: '{"fulltext" : "vlozte", "result" : ["title", "genre", "id"]}',
+        data: '{"fulltext" : "vlozte", "result" : ["title", "genre", "_duration@" ,"id"]}',
         dataType: "json",
         processData: false,
         success: function(data){
