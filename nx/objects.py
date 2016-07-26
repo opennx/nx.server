@@ -11,6 +11,10 @@ from .core import *
 from .core.base_objects import *
 from .connection import *
 
+
+__all__ = ["Asset", "Item", "Bin", "Event", "User", "anonymous"]
+
+
 def create_ft_index(meta):
     idx = set()
     for key in meta:
@@ -298,3 +302,8 @@ class User(UserMixIn, ServerObject):
         if not key in self.meta:
             return meta_types[key].default
         return self.meta[key]
+
+
+anonymous = User(meta={
+        "login" : "Anonymous"
+    })
