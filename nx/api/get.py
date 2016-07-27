@@ -1,12 +1,24 @@
 from nx import *
 
-def api_get(**kwargs):
-    start_time = time.time()
+#
+# TODO:
+# - list result type in ids select
+#
 
-    db = kwargs.get("db", DB())
-    conds = kwargs.get("conds", [])
+
+def api_get(**kwargs):
     object_type = kwargs.get("object_type", "asset")
+    ids         = kwargs.get("ids", [])
+    conds       = kwargs.get("conds", [])
+    fulltext    = kwargs.get("fulltext", False)
     result_type = kwargs.get("result", False)
+    count       = kwargs.get("count", False)
+    limit       = kwargs.get("limit", False)
+    offset      = kwargs.get("offset", False)
+    user        = kwargs.get("user", anonymous)
+    db          = kwargs.get("db", DB())
+
+    start_time = time.time()
 
     ObjectType, table = {
                 "asset" : [Asset, "nx_assets"],
@@ -20,14 +32,13 @@ def api_get(**kwargs):
             "data" : []
         }
 
-    if kwargs.get("ids", []):
-        result["data"] = [ObjectType(id, db=db) for id in kwargs.get["ids"]]
+    if ids:
+        result["data"] = [ObjectType(id, db=db) for id in ids]
         result["count"] = len(result["data"])
 
     else:
         # Filtered results
 
-        fulltext = kwargs.get("fulltext", False)
         if fulltext:
             ft = slugify(fulltext, make_set=True)
             conds.extend(["ft_index LIKE '%{}%'".format(elm) for elm in ft])
@@ -36,14 +47,16 @@ def api_get(**kwargs):
         if conds:
             conds = "WHERE " + conds
 
-        if kwargs.get("count", False):
+        if count:
             q = "SELECT count(id_object) FROM {} {}".format(table, conds)
             db.query(q)
             result["count"] = db.fetchall()[0][0]
 
         q = "SELECT id_object, meta FROM {} {}".format(table, conds)
-        if "limit" in kwargs:
-            q += " LIMIT {}".format(kwargs["limit"])
+        if limit:
+            q += " LIMIT {}".format(limit)
+        if offset:
+            q += " OFFSET {}".format(offset)
 
         logging.debug("Executing get query:", q)
         db.query(q)
