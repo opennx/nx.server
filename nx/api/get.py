@@ -33,7 +33,7 @@ def api_get(**kwargs):
         }
 
     if ids:
-        result["data"] = [ObjectType(id, db=db) for id in ids]
+        result["data"] = [ObjectType(id, db=db).meta for id in ids]
         result["count"] = len(result["data"])
 
     else:
