@@ -6,10 +6,11 @@ def load_cache():
 
     start_time = time.time()
 
-    db.query("SELECT id_object FROM nx_assets ORDER BY id_object DESC")
-    for id_object, in db.fetchall():
-        a = Asset(id_object, db=db)
-        a.save(set_mtime=False)
+    db.query("SELECT id_object, meta FROM nx_assets ORDER BY id_object DESC")
+    for id_object, meta in db.fetchall():
+        asset = Asset(id_object, db=db)
+        if not meta:
+            asset.save(set_mtime=False)
 
     db.query("SELECT id_object FROM nx_events WHERE start > %s ORDER BY start DESC", [time.time() - 3600*24*7 ])
     for id_object, in db.fetchall():
