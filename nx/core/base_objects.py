@@ -48,6 +48,10 @@ class BaseObject(object):
             self.meta[key] = value
         return True
 
+    def update(self, data):
+        for key in data.keys():
+            self[key] = data[key]
+
     def new(self):
         pass
 
@@ -75,7 +79,7 @@ class BaseObject(object):
             result = "{} ID:{}".format(self.object_type, self.id)
         else:
             result = "new {}".format(self.object_type)
-        title =  self.meta.get("title", "")
+        title = self.meta.get("title", "").encode("utf8", "replace")
         if title:
             result += " ({})".format(title)
         return result
