@@ -1,6 +1,5 @@
 from .get import api_get
-from .create import api_create
-from .update import api_update
+from .set import api_set
 from .delete import api_delete
 
 from .actions import api_actions
