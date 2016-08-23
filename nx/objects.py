@@ -41,7 +41,6 @@ class ServerObject(BaseObject):
     @property
     def db(self):
         if not self._db:
-            logging.info("{} is opening DB connection".format(self))
             self._db = DB()
         return self._db
 
