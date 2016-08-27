@@ -33,7 +33,8 @@ api_headers = [
 
 api_methods = {
         "get" : api_get,
-        "rundown" : api_rundown
+        "rundown" : api_rundown,
+        "settings" : api_settings
     }
 
 
@@ -90,14 +91,18 @@ class HubHandler(object):
         login = kwargs.get("login", "-")
         password = kwargs.get("password", "-")
         user = get_user(login, password)
+        cherrypy.session["id_user"] = user.id
+        if int(kwargs.get("api", 0)) == 1:
+            return json.dumps({
+                    "response" : 200 if user else 403,
+                    "message" : "OK",
+                    "user" : user.meta
+                })
         if user:
-            cherrypy.session["id_user"] = user.id
             raise cherrypy.HTTPRedirect(kwargs.get("from_page", "/"))
         else:
             logging.error("{} login failed".format(login))
-            cherrypy.session["id_user"] = False
             raise cherrypy.HTTPRedirect("/")
-
 
     @cherrypy.expose
     def logout(self, **kwargs):
@@ -105,6 +110,17 @@ class HubHandler(object):
         cherrypy.lib.sessions.expire()
         raise cherrypy.HTTPRedirect("/")
 
+    @cherrypy.expose
+    def ping(self, **kwargs):
+        id_user = cherrypy.session.get("id_user", 0)
+        if id_user:
+            return json.dumps({
+                    "response" : 200,
+                    "message" : "OK",
+                    "user" : User(id_user).meta
+                })
+        else:
+            return json.dumps({"response" : 401, "message" : "Not logged in"})
 
     @cherrypy.expose
     def default(self, *args, **kwargs):
@@ -122,14 +138,13 @@ class HubHandler(object):
         context = views[view](context, args, **kwargs)
         return self.render(view, **context)
 
-
     @cherrypy.expose
     def api(self, method=False):
         for key, value in api_headers:
             cherrypy.response.headers[key] = value
 
         if cherrypy.request.method != "POST":
-            return {"response" : 400, "message" : "Bad request. Post expected."}
+            return json.dumps({"response" : 400, "message" : "Bad request. Post expected."})
 
         try:
             content_length = cherrypy.request.headers['Content-Length']
@@ -137,11 +152,11 @@ class HubHandler(object):
             kwargs = json.loads(raw_body)
         except:
             message = log_traceback("Bad request")
-            return {"response" : 400, "message" : message}
+            return json.dumps({"response" : 400, "message" : message})
 
         context = self.context()
         if not context["user"]:
-            return {"response" : 401, "message" : "Not logged in"}
+            return json.dumps({"response" : 401, "message" : "Not logged in"})
 
         if method in api_methods:
             logging.debug("Executing {} /w params {}".format(method, kwargs))
@@ -149,5 +164,5 @@ class HubHandler(object):
                 data = api_methods[method](**kwargs)
             except:
                 message = log_traceback("Internal server error")
-                return {"response" : 500, "message" : message}
+                return json.dumps({"response" : 500, "message" : message})
         return json.dumps(data)
