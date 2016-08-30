@@ -1,8 +1,8 @@
 from nx import *
 
 def api_actions(**kwargs):
-    asset_idss = kwargs.get("assets", [])
-    if not asset_ids:
+    ids = kwargs.get("ids", [])
+    if not ids:
         return {"response" : 400, "message" : "No asset selected"}
 
     result = []
@@ -15,7 +15,7 @@ def api_actions(**kwargs):
             log_traceback()
             continue
 
-        for id_asset in assets:
+        for id_asset in ids:
             asset = Asset(id_asset, db=db)
             if not eval(cond):
                 break

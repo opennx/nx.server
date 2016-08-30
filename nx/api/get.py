@@ -1,12 +1,10 @@
 from nx import *
 
-#
-# TODO:
-# - list result type in ids select
-#
-
 
 def api_get(**kwargs):
+    # TODO:
+    # - list result type in ids select
+
     object_type = kwargs.get("object_type", "asset")
     ids         = kwargs.get("ids", [])
     conds       = kwargs.get("conds", [])
