@@ -37,9 +37,10 @@ class DB(object):
         self.cur = self.conn.cursor()
 
     def sanit(self, instr):
+        """Deprecated. Do not use"""
         try:
             return str(instr).replace("''","'").replace("'","''").decode("utf-8")
-        except:
+        except Exception:
             return instr.replace("''","'").replace("'","''")
 
     def lastid (self):
@@ -106,7 +107,7 @@ class Cache():
             try:
                 self.conn.set(key, str(value))
                 break
-            except:
+            except Exception:
                 log_traceback("Cache save failed ({})".format(key))
                 time.sleep(.1)
                 self.connect()
@@ -123,7 +124,7 @@ class Cache():
             try:
                 self.conn.delete(key)
                 break
-            except:
+            except Exception:
                 log_traceback("Cache delete failed ({})".format(key))
                 time.sleep(.3)
                 self.connect()
@@ -155,7 +156,7 @@ class Cache():
                 try:
                     mc.set(key, str(value))
                     break
-                except:
+                except Exception:
                     log_traceback("Cache save failed ({})".format(key))
                     time.sleep(.3)
                     self.connect()
@@ -174,7 +175,7 @@ class Cache():
                 try:
                     mc.delete(key)
                     break
-                except:
+                except Exception:
                     log_traceback("Cache delete failed ({})".format(key))
                     time.sleep(.3)
                     self.connect()
