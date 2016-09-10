@@ -34,7 +34,8 @@ api_headers = [
 api_methods = {
         "get" : api_get,
         "rundown" : api_rundown,
-        "settings" : api_settings
+        "settings" : api_settings,
+        "meta_types" : api_meta_types,
     }
 
 
