@@ -85,7 +85,6 @@ def validate_enum(meta_type, value, **kwargs):
 def validate_cs_enum(meta_type, value, **kwargs):
     return int(value)
 
-
 #
 # Humanizers
 # functions returning a human readable representation of the meta value
@@ -248,9 +247,6 @@ class MetaTypes():
         self.data = {}
         for key in dump:
             self.data[key] = MetaType(key, dump[key])
-
-
-
 
 
     #

@@ -10,18 +10,18 @@ from .api import *
 
 def load_site_settings(db, force=False):
     global config
-    site_settings = {
-               "playout_channels" : {},
-               "ingest_channels" : {},
-               "views" : {},
-               "asset_types" : {}
-            }
+
+    config["playout_channels"] = {}
+    config["ingest_channels"] = {}
+    config["views"] = {}
+    config["asset_types"] = {}
+    config["folders"] = {}
 
     # Settings
 
     db.query("SELECT key, value FROM nx_settings")
     for key, value in db.fetchall():
-        site_settings[key] = value
+        config[key] = value
 
     # Views
 
@@ -34,7 +34,7 @@ def load_site_settings(db, force=False):
                 view[elm] = settings.find(elm).text.strip()
             except:
                 continue
-        site_settings["views"][id] = view
+        config["views"][id] = view
 
     # Channels
 
@@ -47,10 +47,10 @@ def load_site_settings(db, force=False):
             continue
         ch_config.update({"title":title})
         if channel_type == PLAYOUT:
-            site_settings["playout_channels"][id_channel] = ch_config
+            config["playout_channels"][id_channel] = ch_config
         elif channel_type == INGEST:
-            site_settings["ingest_channels"][id_channel] = ch_config
-    config.update(site_settings)
+            config["ingest_channels"][id_channel] = ch_config
+
     return True
 
 
