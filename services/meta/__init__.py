@@ -46,7 +46,7 @@ class Service(BaseService):
         try:
             fmtime = int(os.path.getmtime(fname))
             fsize  = int(os.path.getsize(fname))
-        except:
+        except Exception:
             log_traceback("Unable to get file attrs {}".format(asset))
             return
 
@@ -60,7 +60,7 @@ class Service(BaseService):
         if fmtime != asset["file/mtime"] or asset["status"] == RESET:
             try:
                 f = open(fname,"rb")
-            except:
+            except Exception:
                 logging.debug("{} creation in progress.".format(asset))
                 return
             else:
