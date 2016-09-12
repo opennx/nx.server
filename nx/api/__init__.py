@@ -27,6 +27,6 @@ from .rundown import api_rundown
 # aux
 #
 
-from .settings import api_settings
+from .settings import api_settings, api_meta_types
 from .services import api_services
 from .message import api_message
