@@ -25,7 +25,7 @@ def asset_by_path(id_storage, path, db=False):
                 """ % (id_storage, db.sanit(path.replace("\\","/"))))
     try:
         return db.fetchall()[0][0]
-    except:
+    except IndexError:
         return False
 
 
@@ -50,7 +50,7 @@ def meta_exists(tag, value, db=False):
                 """ % (tag, value))
     try:
         return res[0][0]
-    except:
+    except IndexError:
         return False
 
 
@@ -91,7 +91,7 @@ def get_bin_first_item(id_bin, db=False):
     db.query("SELECT id_item FROM nx_items WHERE id_bin=%d ORDER BY position LIMIT 1" % id_bin)
     try:
         return db.fetchall()[0][0]
-    except:
+    except IndexError:
         return False
 
 
@@ -105,7 +105,7 @@ def get_item_event(id_item, **kwargs):
         ))
     try:
         id_object, start, id_channel = db.fetchall()[0]
-    except:
+    except IndexError:
         return False
     return Event(id_object, db=db, cache=lcache)
 
@@ -149,6 +149,6 @@ def get_next_item(id_item, **kwargs):
             if next_event["run_mode"]:
                 raise Exception
             return next_event.bin.items[0]
-        except:
+        except Exception:
             logging.info("Looping current playlist")
             return current_bin.items[0]

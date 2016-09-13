@@ -32,7 +32,7 @@ def load_site_settings(db, force=False):
         for elm in ["query", "folders", "origins", "media_types", "content_types", "statuses"]:
             try:
                 view[elm] = settings.find(elm).text.strip()
-            except:
+            except Exception:
                 continue
         config["views"][id] = view
 
@@ -42,8 +42,8 @@ def load_site_settings(db, force=False):
     for id_channel, channel_type, title, ch_config in db.fetchall():
         try:
             ch_config = json.loads(ch_config)
-        except:
-            print ("Unable to parse channel {}:{} config.".format(id_channel, title))
+        except Exception:
+            logging.error("Unable to parse channel {}:{} config.".format(id_channel, title))
             continue
         ch_config.update({"title":title})
         if channel_type == PLAYOUT:
@@ -107,7 +107,7 @@ def load_all_settings(force=False):
     try:
         # This is the first time we are connecting DB so error handling should be here
         db = DB()
-    except:
+    except Exception:
         log_traceback(handlers=False)
         critical_error("Unable to connect database", handlers=False)
 

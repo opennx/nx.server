@@ -4,7 +4,7 @@ import copy
 
 try:
     import yaml
-except:
+except ImportError:
     yaml = False
 
 from .core import *
@@ -52,14 +52,14 @@ class ServerObject(BaseObject):
         id = int(id)
         try:
             self.meta = json.loads(self.cache.load("{0}{1}".format(self.ns_prefix, id)))
-        except:
+        except Exception:
             logging.debug("Loading {} id {} from DB".format(self.object_type, id))
             id_object_type = OBJECT_TYPES[self.object_type]
             qcols = ", ".join(self.ns_tags)
             self.db.query("SELECT {0} FROM nx_{1}s WHERE id_object={2}".format(qcols, self.object_type, id))
             try:
                 result = self.db.fetchall()[0]
-            except:
+            except Exception:
                 logging.error("Unable to load {!r}".format(self))
                 return False
 
@@ -160,7 +160,7 @@ class Asset(AssetMixIn, ServerObject):
             if os.path.exists(nxmeta_name):
                 try:
                     self.meta.update(json.loads(open(nxmeta_name).read()))
-                except:
+                except Exception:
                     logging.warning("Unable to parse %s" % nxmeta_name)
                 else:
                     logging.debug("Applied meta from template %s" % nxmeta_name)
@@ -175,8 +175,8 @@ class Asset(AssetMixIn, ServerObject):
                     m = yaml.safe_load(f)
                     f.close()
                     self.meta.update(m)
-                except:
-                    logging.warning("Unable to parse %s" % nxmeta_name)
+                except Exception:
+                    logging.warning("Unable to parse {}".format(nxmeta_name))
                 else:
                     logging.debug("Applied meta from template {}".format(nxmeta_name))
 
@@ -228,7 +228,7 @@ class Bin(BinMixIn, ServerObject):
             self.db.query("SELECT {0} FROM nx_{1}s WHERE id_object={2}".format(qcols, self.object_type, id))
             try:
                 result = self.db.fetchall()[0]
-            except:
+            except Exception:
                 logging.error("Unable to load {!r}".format(self))
                 return False
 
@@ -251,7 +251,7 @@ class Bin(BinMixIn, ServerObject):
     def _load_from_cache(self, id):
         try:
             self.meta, itemdata = json.loads(self.cache.load("{}{}".format(self.ns_prefix, id)))
-        except:
+        except Exception:
             return False
         self.items = []
         for idata in itemdata:
