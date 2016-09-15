@@ -7,6 +7,37 @@ import sys
 
 from nebula import *
 
+def dump():
+
+    result = {
+        "assets" : [],
+        "items" : [],
+        "bins" : [],
+        "events" : [],
+        "cs" : [],
+        "folders" : [],
+        "users" : [],
+        }
+
+    sets = [
+            ["assets", Asset],
+            ["items", Item],
+            ["bins", Bin],
+            ["events", Event],
+            ["users", User]
+        ]
+
+    db = DB()
+    for name, oclass in sets:
+        db.query("SELECT id_object FROM nx_{}".format(name))
+        for id_object, in db.fetchall():
+            obj = oclass(id_object, db=db)
+            result[name].append(obj.meta)
+    f = open("dump.json", "w")
+    json.dump(result, f)
+
+
+
 def recache():
     db = DB()
     start_time = time.time()
@@ -50,6 +81,7 @@ def add_user():
 
 if __name__ == "__main__":
     methods = {
+            "dump" : dump,
             "recache" : recache,
             "adduser" : add_user
         }
