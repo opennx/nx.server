@@ -109,8 +109,8 @@ class AssetMixIn():
     @property
     def file_path(self):
         try:
-            return os.path.join(storages[self["id_storage"]].local_path, self["path"])
-        except:
+            return os.path.join(storages[int(self["id_storage"])].local_path, self["path"])
+        except (KeyError, IndexError, ValueError):
             # Yes. empty string. keep it this way!!! (because of os.path.exists and so on)
             # Also: it evals as false
             return ""
@@ -219,5 +219,5 @@ class UserMixIn():
             if title:
                 title = " ({})".format(title)
             return "{}{}".format(iid, title)
-        except:
+        except Exception:
             return iid
