@@ -45,11 +45,11 @@ class Service(BaseService):
     def load_from_settings(self):
         try:
             self.exec_init = self.settings.find("init").text
-        except:
+        except Exception:
             pass
         try:
             self.exec_main = self.settings.find("main").text
-        except:
+        except Exception:
             pass
 
         if self.exec_init:
