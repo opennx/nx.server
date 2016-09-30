@@ -11,13 +11,13 @@ class Service(BaseService):
         for id_action, title, aconfig in db.fetchall():
             try:
                 start_cond = ET.XML(aconfig).find("start_if")
-            except:
+            except Exception:
                 logging.debug("No start condition for action {}".format(title))
                 continue
 
             try:
                 priority = int(start_cond.attrib["priority"])
-            except:
+            except Exception:
                 priority = 1
 
             if start_cond is not None and start_cond.text:
@@ -27,13 +27,17 @@ class Service(BaseService):
 
     def on_main(self):
         db = DB()
-        db.query("SELECT id_object FROM nx_assets WHERE status=%s", [ONLINE])
-        for id_asset, in db.fetchall():
-            self._proc(id_asset, db)
+        db.query("SELECT id_object, meta FROM nx_assets WHERE status=%s", [ONLINE])
+        for id_asset, meta in db.fetchall():
+            if meta:
+                asset = Asset(meta=meta)
+            else:
+                asset = Asset(id_asset, db=db)
+            if asset:
+                self._proc(asset)
 
 
-    def _proc(self, id_asset, db):
-        asset = Asset(id_asset, db = db)
+    def _proc(self, asset):
         for id_action in self.conditions:
             if "broker/started/{}".format(id_action) in asset.meta:
                 continue
