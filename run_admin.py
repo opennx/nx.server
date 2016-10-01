@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+#
+# Nebula admin is deprecated and will be removed from future releases.
+# Along with Hive service, admin is going to be replaced with unified
+# HUB interface.
+#
 
 from nebula import *
 
