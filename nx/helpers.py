@@ -6,11 +6,12 @@ from .objects import *
 def get_user(login, password, db=False):
     if not db:
         db = DB()
-    db.query("SELECT id_object FROM nx_users WHERE login=%s and password=%s", [login, get_hash(password)])
-    res = db.fetchall()
-    if not res:
-        return False
-    return User(res[0][0])
+    db.query("SELECT id_object, meta FROM nx_users WHERE login=%s and password=%s", [login, get_hash(password)])
+    for id_object, meta in db.fetchall():
+        if meta:
+            return User(meta=meta)
+        return User(id_user, db=db)
+    return False
 
 
 def asset_by_path(id_storage, path, db=False):
