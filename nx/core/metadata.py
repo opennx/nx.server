@@ -42,7 +42,7 @@ def validate_numeric(meta_type, value):
         return value
     try:
         return float(value)
-    except:
+    except ValueError:
         raise NebulaInvalidValueError
 
 def validate_boolean(meta_type, value):

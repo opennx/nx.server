@@ -46,7 +46,7 @@ class Config(dict):
                 try:
                     settings.update(json.load(open(settings_file)))
                     logging.debug("Parsing {}".format(settings_file), handlers=False)
-                except:
+                except Exception:
                     log_traceback(handlers=False)
 
         if not settings:
@@ -103,7 +103,7 @@ class Messaging():
                     ),
                 (self.addr, self.port)
                 )
-        except:
+        except Exception:
             log_traceback(handlers=False)
 
 messaging = Messaging()
