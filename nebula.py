@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 #
 #    This file is part of Nebula media asset management.
 #
@@ -52,7 +51,6 @@ config["nebula_root"] = nebula_root
 #
 
 if __name__ == "__main__":
-
     from nx.storage_monitor import StorageMonitor
     from nx.service_monitor import ServiceMonitor
     from nx.system_monitor import SystemMonitor
