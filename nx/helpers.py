@@ -10,7 +10,7 @@ def get_user(login, password, db=False):
     for id_object, meta in db.fetchall():
         if meta:
             return User(meta=meta)
-        return User(id_user, db=db)
+        return User(id_object, db=db)
     return False
 
 
