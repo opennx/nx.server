@@ -43,7 +43,7 @@ if plugin_path:
 if __name__ == "__main__":
     try:
         id_service = int(sys.argv[1])
-    except (IndexError, ValueError:
+    except (IndexError, ValueError):
         critical_error("You must provide service id as first parameter")
 
     db = DB()
