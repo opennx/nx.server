@@ -137,5 +137,5 @@ def api_rundown(**kwargs):
         items.append(item.meta)
 
     process_time = time.time() - process_start_time
-    return {"response" : "200", "message" : "Rundown loaded in {:.02f} seconds".format(process_time), "data" : data}
+    return {"response" : 200, "message" : "Rundown loaded in {:.02f} seconds".format(process_time), "data" : data}
 
