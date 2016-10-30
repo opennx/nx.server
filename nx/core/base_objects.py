@@ -9,7 +9,8 @@ class BaseObject(object):
         self.is_new = True
         self.meta = {}
         meta = kwargs.get("meta", {})
-        assert hasattr(meta, "keys")
+        assert meta is not None, "Unable to load {}.  Meta must not be 'None'.".format(self.object_type)
+        assert hasattr(meta, "keys"), "Incorrect meta!"
         for key in meta:
             self.meta[key] = meta[key]
         if "id_object" in self.meta or "id" in self.meta:
@@ -67,11 +68,10 @@ class BaseObject(object):
 
     def __delitem__(self, key):
         key = key.lower().strip()
-        #TODO: resolve this.
-        if key in meta_types and meta_types[key]["namespace"] == self.object_type[0]:
-            return
         if not key in self.meta:
             return
+        if hasattr(self, "ns_tags") and key in self.ns_tags:
+            return #v4 only
         del self.meta[key]
 
     def __repr__(self):
@@ -120,9 +120,12 @@ class AssetMixIn():
         dur = float(self.meta.get("duration",0))
         mki = float(self.meta.get("mark_in" ,0))
         mko = float(self.meta.get("mark_out",0))
-        if not dur: return 0
-        if mko > 0: dur -= dur - mko
-        if mki > 0: dur -= mki
+        if not dur:
+            return 0
+        if mko > 0:
+            dur -= dur - mko
+        if mki > 0:
+            dur -= mki
         return dur
 
 
