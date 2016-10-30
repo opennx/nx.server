@@ -8,9 +8,8 @@ def get_user(login, password, db=False):
         db = DB()
     db.query("SELECT id_object, meta FROM nx_users WHERE login=%s and password=%s", [login, get_hash(password)])
     for id_object, meta in db.fetchall():
-        if meta:
-            return User(meta=meta)
-        return User(id_object, db=db)
+        return User(meta=meta)
+    logging.warning("Login failed for user {}".format(login))
     return False
 
 
@@ -18,16 +17,16 @@ def asset_by_path(id_storage, path, db=False):
     path = path.replace("\\", "/")
     if not db:
         db = DB()
-    db.query("""SELECT id_object FROM nx_meta
+    db.query("""SELECT id_object FROM nx_assets
                 WHERE object_type = 0
-                AND tag='id_storage'
-                AND value='%s'
-                AND id_object IN (SELECT id_object FROM nx_meta WHERE object_type = 0 AND tag='path' AND value='%s')
-                """ % (id_storage, db.sanit(path.replace("\\","/"))))
+                AND meta->>'id_storage' = %s
+                AND meta->>'path' = '%s')
+                """, [id_storage, path.replace("\\","/")])
     try:
         return db.fetchall()[0][0]
     except IndexError:
         return False
+
 
 
 def asset_by_full_path(path, db=False):
@@ -37,24 +36,6 @@ def asset_by_full_path(path, db=False):
         if path.startswith(storages[s].local_path):
             return asset_by_path(s,path.lstrip(s.path),db=db)
     return False
-
-
-def meta_exists(tag, value, db=False):
-    if not db:
-        db = DB()
-    db.query("""SELECT a.id_asset FROM nx_meta as m, nx_assets as a
-                WHERE a.status <> 'TRASHED'
-                AND a.id_asset = m.id_object
-                AND m.object_type = 0
-                AND m.tag='%s'
-                AND m.value='%s'
-                """ % (tag, value))
-    try:
-        return res[0][0]
-    except IndexError:
-        return False
-
-
 
 
 
@@ -81,9 +62,9 @@ def get_day_events(id_channel, date, num_days=1):
     start_time = datestr2ts(date, *config["playout_channels"][id_channel].get("day_start", [6,0]))
     end_time   = start_time + (3600*24*num_days)
     db = DB()
-    db.query("SELECT id_object FROM nx_events WHERE id_channel=%s AND start > %s AND start < %s ", (id_channel, start_time, end_time))
-    for id_event, in db.fetchall():
-        yield Event(id_event)
+    db.query("SELECT id_object, meta FROM nx_events WHERE id_channel=%s AND start > %s AND start < %s ", (id_channel, start_time, end_time))
+    for id_event, meta in db.fetchall():
+        yield Event(meta=meta)
 
 
 def get_bin_first_item(id_bin, db=False):
@@ -98,17 +79,15 @@ def get_bin_first_item(id_bin, db=False):
 
 def get_item_event(id_item, **kwargs):
     db = kwargs.get("db", DB())
-    lcache = kwargs.get("cahce", cache)
-
-    db.query("""SELECT e.id_object, e.start, e.id_channel from nx_items as i, nx_events as e where e.id_magic = i.id_bin and i.id_object = {} and e.id_channel in ({})""".format(
+    db.query("""SELECT e.id_object, e.start, e.id_channel, e.meta FROM nx_items AS i, nx_events AS e WHERE e.id_magic = i.id_bin AND i.id_object = {} AND e.id_channel IN ({})""".format(
         id_item,
         ", ".join([str(f) for f in config["playout_channels"].keys()])
         ))
     try:
-        id_object, start, id_channel = db.fetchall()[0]
+        id_object, start, id_channel, meta = db.fetchall()[0]
     except IndexError:
         return False
-    return Event(id_object, db=db, cache=lcache)
+    return Event(meta=meta)
 
 
 def get_item_runs(id_channel, from_ts, to_ts, db=False):
@@ -141,15 +120,23 @@ def get_next_item(id_item, **kwargs):
             return item
     else:
         current_event = get_item_event(id_item, db=db, cache=lcache)
-        q = "SELECT id_object FROM nx_events WHERE id_channel = {} and start > {} ORDER BY start ASC LIMIT 1".format(current_event["id_channel"], current_event["start"])
-        db.query(q)
+        db.query(
+                "SELECT id_object, meta FROM nx_events WHERE id_channel = %s AND start > %s ORDER BY start ASC LIMIT 1",
+                [current_event["id_channel"], current_event["start"]]
+            )
         try:
-            next_event = Event(db.fetchall()[0][0], db=db, cache=lcache)
-            if not next_event.bin.items:
-                raise Exception
-            if next_event["run_mode"]:
-                raise Exception
-            return next_event.bin.items[0]
-        except Exception:
-            logging.info("Looping current playlist")
+            id_next_event, meta = db.fetchall()[0]
+        except IndexError:
+            logging.info("Looping current playlist (no more events scheduled)")
             return current_bin.items[0]
+
+        next_event = Event(meta=meta)
+        if not next_event.bin.items:
+            logging.info("Looping current playlist (next event is empty)")
+            return current_bin.items[0]
+
+        if next_event["run_mode"]:
+            logging.info("Looping current playlist (because of run_mode)")
+            return current_bin.items[0]
+
+        return next_event.bin.items[0]
