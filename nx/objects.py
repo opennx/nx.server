@@ -32,10 +32,9 @@ def create_ft_index(meta):
 
 class ServerObject(BaseObject):
     def __init__(self, id=False, **kwargs):
-        self.ns_prefix = self.object_type[0]
-        self.ns_tags   = meta_types.ns_tags(self.ns_prefix)
         self._db = kwargs.get("db", False)
         self._cache = kwargs.get("cache", False)
+        self.ns_prefix = self.object_type[0]
         super(ServerObject, self).__init__(id, **kwargs)
 
     @property
@@ -51,7 +50,8 @@ class ServerObject(BaseObject):
     def load(self, id):
         id = int(id)
         try:
-            self.meta = json.loads(self.cache.load("{0}{1}".format(self.ns_prefix, id)))
+            cache_key = "{0}{1}".format(self.ns_prefix, id)
+            self.meta = json.loads(self.cache.load(cache_key))
         except Exception:
             logging.debug("Loading {} id {} from DB".format(self.object_type, id))
             id_object_type = OBJECT_TYPES[self.object_type]
@@ -87,9 +87,11 @@ class ServerObject(BaseObject):
             ns_tags.extend(["meta", "ft_index"])
 
         if self["id_object"]:
-            q = "UPDATE nx_{}s SET {} WHERE id_object = {}".format(self.object_type,
-                                                                  ", ".join("{}=%s".format(tag) for tag in ns_tags if tag != "id_object"), self["id_object"]
-                                                                  )
+            q = "UPDATE nx_{}s SET {} WHERE id_object = {}".format(
+                    self.object_type,
+                    ", ".join("{}=%s".format(tag) for tag in ns_tags if tag != "id_object"),
+                    self["id_object"]
+                )
             v = [self[tag] for tag in self.ns_tags if tag != "id_object"]
             if jsonb:
                 v.extend([json.dumps(self.meta), create_ft_index(self.meta)])
@@ -152,6 +154,8 @@ class ServerObject(BaseObject):
 
 
 class Asset(AssetMixIn, ServerObject):
+    ns_tags = ["id_object", "media_type", "content_type", "id_folder", "origin", "version_of", "status", "ctime", "mtime"]
+
     def load_sidecar_metadata(self):
         path_elms = os.path.splitext(self.file_path)[0].split("/")[1:]
         for i in range(len(path_elms)):
@@ -184,6 +188,13 @@ class Asset(AssetMixIn, ServerObject):
 
 
 class Item(ItemMixIn, ServerObject):
+    ns_tags = ["id_object", "id_asset", "id_bin", "position", "ctime", "mtime"]
+
+    def __getitem__(self, key):
+        if key == "id_asset":
+            return int(self.meta.get("id_asset", 0))
+        return super(ServerObject, self).__getitem__(key)
+
     @property
     def asset(self):
         if not self._asset:
@@ -218,6 +229,8 @@ class Item(ItemMixIn, ServerObject):
 
 
 class Bin(BinMixIn, ServerObject):
+    ns_tags = ["id_object", "bin_type", "ctime", "mtime"]
+
     def load(self, id):
         id = int(id)
         if not self._load_from_cache(id):
@@ -272,6 +285,8 @@ class Bin(BinMixIn, ServerObject):
 
 
 class Event(EventMixIn, ServerObject):
+    ns_tags = ["id_object", "start", "stop", "id_channel", "id_magic", "ctime", "mtime"]
+
     @property
     def bin(self):
         if not hasattr(self, "_bin") or not self._bin:
@@ -286,6 +301,8 @@ class Event(EventMixIn, ServerObject):
 
 
 class User(UserMixIn, ServerObject):
+    ns_tags = ["id_object", "login", "password", "ctime", "mtime"]
+
     def has_right(self, key, val=True):
         if self["is_admin"]:
             return True
