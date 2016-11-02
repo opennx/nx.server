@@ -24,7 +24,6 @@ import sys
 from nebula import *
 
 def dump():
-
     result = {
         "assets" : [],
         "items" : [],
@@ -57,22 +56,37 @@ def dump():
 def recache():
     db = DB()
     start_time = time.time()
-    db.query("SELECT id_object, meta FROM nx_assets ORDER BY id_object DESC")
-    for id_object, meta in db.fetchall():
-        asset = Asset(id_object, db=db)
-        if not meta:
-            asset.save(set_mtime=False)
-
-    db.query("SELECT id_object FROM nx_events WHERE start > %s ORDER BY start DESC", [time.time() - 3600*24*7 ])
-    for id_object, in db.fetchall():
-        e = Event(id_object, db=db)
-        e.save()
-        b = e.bin
-        b.save(set_mtime=False)
-        for item in b.items:
-            logging.debug("saving {}".format(item))
-            item.save(set_mtime=False)
-    logging.goodnews("All objects loaded in {:.04f} seconds".format(time.time()-start_time))
+    object_types = [
+            ["nx_assets", Asset],
+            ["nx_users", User],
+            ["nx_items", Item],
+            ["nx_bins", Bin],
+            ["nx_events", Event]
+        ]
+    i = 0
+    for table_name, ObjectClass in object_types:
+        logging.info("Caching {}".format(table_name))
+        db.query("SELECT id_object, meta FROM {} ORDER BY id_object DESC".format(table_name))
+        for id_object, meta in db.fetchall():
+            if not id_object:
+                continue
+            try:
+                obj = ObjectClass(id_object, db=db)
+                if not meta:
+                    obj.save(set_mtime=False)
+            except KeyboardInterrupt:
+                print()
+                logging.warning("Interrupted by user")
+                break
+            except Exception:
+                log_traceback()
+                print (obj.meta)
+                sys.exit(-1)
+            i += 1
+        else:
+            continue
+        break
+    logging.goodnews("{} objects loaded in {:.04f} seconds".format(i, time.time()-start_time))
 
 
 def add_user():
@@ -82,7 +96,7 @@ def add_user():
         is_admin = raw_input("Is it admin (yes/no): ").strip()
     except KeyboardInterrupt:
         print()
-        logging.info("Aborted")
+        logging.warning("Interrupted by user")
         sys.exit(0)
     u = User()
     u["login"] = u["full_name"] = login
