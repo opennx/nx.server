@@ -1,30 +1,11 @@
-# -*- coding: utf-8 -*-
-
-import hashlib
-
 from nx import *
-from nx.objects import *
 from nx.jobs import send_to
 
 
 def hive_browse(user, params):
-    db = DB()
-
-    if params.get("fulltext", "").startswith("\\"):
-        #TODO: Hello. I am security hole. FIXME FIXME FIXME
-        q = params["fulltext"].lstrip("\\")
-        try:
-            db.query("SELECT DISTINCT(a.id_object) as id, a.mtime FROM nx_assets AS a, nx_meta AS m WHERE a.id_object=m.id_object AND object_type=0 AND ({})".format(q.encode("utf-8")))
-        except:
-            return [[400, log_traceback("Query error")]]
-        return [[200, {"result":db.fetchall(), "asset_data":[]}]]
-
-
-    conds = []
-
     id_view = params.get("view", 1)
     view_config = config["views"][id_view]
-
+    conds = []
     if "folders" in view_config:
         conds.append("id_folder IN ({})".format(view_config["folders"]))
     if "media_types" in view_config:
@@ -37,34 +18,22 @@ def hive_browse(user, params):
         conds.append("status IN ({})".format(view_config["statuses"]))
     if "query" in view_config:
         conds.append("id_object in ({})".format(view_config["query"]))
-
-    # TODO: PLEASE REWRITE ME
-    if params.get("fulltext", False):
-        fulltext_base = "id_object IN (SELECT id_object FROM nx_meta WHERE object_type=0 AND {})"
-        element_base  = "unaccent(value) ILIKE unaccent('%{}%')"
-        fq = params["fulltext"].encode("utf-8").replace("'", "''")
-        fulltext_cond = " AND ".join([element_base.format(elm) for elm in fq.split()])
-        conds.append(fulltext_base.format(fulltext_cond))
-
-    query_conditions = " WHERE {}".format(" AND ".join(conds)) if conds else ""
-    query = "SELECT id_object, mtime FROM nx_assets{}".format(query_conditions)
-
-    db.query(query)
-    return [[200, {"result": db.fetchall(), "asset_data":[]}]]
-
+    result = api_get(
+                fulltext=params.get("fulltext", False),
+                conds = conds
+            )
+    result = [[obj["id_object"], obj["mtime"]] for obj in result["data"]]
+    return [[200, {"result" : result, "asset_data" : []}]]
 
 
 def hive_get_assets(user, params):
     asset_ids = params.get("asset_ids", [])
     db = DB()
-
     for id_asset in asset_ids:
         asset = Asset(id_asset, db=db)
         yield -1, asset.meta
-
     yield 200, "{} assets updated".format(len(asset_ids))
     return
-
 
 
 def hive_actions(user, params):
@@ -91,28 +60,22 @@ def hive_actions(user, params):
     return [[200, result]]
 
 
-
 def hive_send_to(user, params):
     id_action = params.get("id_action", False)
     settings  = params.get("settings", {})
     restart_existing = params.get("restart_existing", True)
-
     if not id_action:
         yield 400, "Bad request"
         return
-
     if not user.has_right("job_control", id_action):
         yield 403, "Not authorised"
         return
-
     logging.info("{} is starting action {} for following assets: {}".format(user, id_action, params.get("objects", [])))
-
     db = DB()
     for id_object in params.get("objects", []):
         yield -1, send_to(id_object, id_action, settings={}, id_user=user.id, restart_existing=restart_existing, db=db)[1]
     yield 200, "OK"
     return
-
 
 
 def hive_set_meta(user, params):
