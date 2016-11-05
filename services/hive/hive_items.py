@@ -296,6 +296,22 @@ def hive_rundown(user, params):
 
 
 
+def hive_rundown(user, params):
+    yield -1, {"progress":0}
+    result = api_rundown(**params)
+    yield result["response"], {"data" : result["data"]}
+
+
+
+
+
+
+
+
+
+
+
+
 def hive_bin_order(user, params):
     id_channel = params.get("id_channel", False) # Optional. Just for playlist-bin.
 
