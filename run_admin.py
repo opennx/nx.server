@@ -48,7 +48,7 @@ def load_user(id):
 
 @app.template_filter('datetime')
 def _jinja2_filter_datetime(date, format='%Y-%m-%d %H:%M:%S'):
-    return str(time.strftime(format, time.localtime(date)))
+    return str(time.strftime(format, time.localtime(float(date))))
 
 @app.template_filter('date')
 def _jinja2_filter_date(date, format='%Y-%m-%d'):
