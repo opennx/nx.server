@@ -67,10 +67,9 @@ def get_day_events(id_channel, date, num_days=1):
         yield Event(meta=meta)
 
 
-def get_bin_first_item(id_bin, db=False):
-    if not db:
-        db = DB()
-    db.query("SELECT id_item FROM nx_items WHERE id_bin=%d ORDER BY position LIMIT 1" % id_bin)
+def get_bin_first_item(id_bin, **kwars):
+    db = kwargs.get("db", DB())
+    db.query("SELECT id_item FROM nx_items WHERE id_bin=%s ORDER BY position LIMIT 1", [id_bin])
     try:
         return db.fetchall()[0][0]
     except IndexError:
