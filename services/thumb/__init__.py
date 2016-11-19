@@ -36,9 +36,17 @@ class Service(BaseService):
             return
 
         db = DB()
-        db.query("SELECT id_object FROM nx_assets WHERE status=1 AND media_type=0 AND id_object NOT IN (SELECT id_object FROM nx_meta WHERE object_type=0 AND tag='has_thumbnail') ORDER BY mtime DESC")
-        for id_asset, in db.fetchall():
-            asset = Asset(id_asset, db=db)
+        db.query("""
+            SELECT id_object, meta FROM nx_assets WHERE
+                status=1 AND
+                media_type=0 AND
+                NOT meta?'has_thumbnail'
+                ORDER BY mtime DESC
+            """)
+
+
+        for id_asset, meta in db.fetchall():
+            asset = Asset(meta=meta)
             spath = asset.file_path
             tpath = os.path.join(self.thumb_root, "{:04d}".format(int(id_asset/1000)), "{:d}".format(id_asset))
 
