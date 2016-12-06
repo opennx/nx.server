@@ -18,7 +18,7 @@ class BaseService(object):
             self.shutdown()
         else:
             db = DB()
-            db.query("UPDATE nx_services SET last_seen = %d, state=1 WHERE id_service=%d" % (time.time(), self.id_service))
+            db.query("UPDATE nx_services SET last_seen = %s, state=1 WHERE id_service=%s", [time.time(), self.id_service])
             db.commit()
         logging.goodnews("Service started")
 
@@ -31,7 +31,7 @@ class BaseService(object):
     def soft_stop(self):
         logging.info("Soft stop requested")
         db = DB()
-        db.query("UPDATE nx_services SET state=3 WHERE id_service=%d"%self.id_service)
+        db.query("UPDATE nx_services SET state=3 WHERE id_service=%s", [self.id_service])
         db.commit()
 
     def shutdown(self, no_restart=False):
@@ -44,13 +44,13 @@ class BaseService(object):
 
     def heartbeat(self):
         db = DB()
-        db.query("SELECT state FROM nx_services WHERE id_service=%s" % self.id_service)
+        db.query("SELECT state FROM nx_services WHERE id_service=%s", [self.id_service])
         try:
             state = db.fetchall()[0][0]
         except:
             state = KILL
         else:
-            db.query("UPDATE nx_services SET last_seen = %d, state=1 WHERE id_service=%d" % (time.time(), self.id_service))
+            db.query("UPDATE nx_services SET last_seen = %s, state=1 WHERE id_service=%s", [time.time(), self.id_service])
             db.commit()
 
         if state in [STOPPED, STOPPING, KILL]:
