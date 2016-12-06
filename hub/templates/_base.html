@@ -2,76 +2,33 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <title>{% if user %}{{ user.login }}@{% endif %}{{ config.site_name }}</title>
-    <!--[if IE]><meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'><![endif]-->
+    <title>{% if user %}{{ user.login }}@{% endif %}{{ site.name }}</title>
 
+    <!--[if IE]><meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'><![endif]-->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
 
-	<!-- vsechny ty stylesheety by se mely narvat do jednoho ze sassu generovanyho includu + fonty -->
-    <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Roboto:300,400,500,700" />
-    <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/icon?family=Material+Icons" />
-
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/bootstrap.material-design/0.5.10/css/bootstrap-material-design.min.css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/bootstrap.material-design/0.5.10/css/ripples.min.css" />
-
-    <link rel="stylesheet" href="/static/css/main.css">
-
-
-
+    {% for stylesheet in site.css %}<link rel="stylesheet" type="text/css" href="{{ stylesheet }}"/>
+    {% endfor %}
+    {% for stylesheet in page.css %}<link rel="stylesheet" type="text/css" href="{{ stylesheet }}"/>
+    {% endfor %}
 </head>
 
 <body class="app-{{ view }}">
-    {% if user %}
-	<div class="navbar navbar-default">
-	    <div class="container-fluid">
-            <div class="navbar-header">
-                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-responsive-collapse">
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                </button>
-                <a class="navbar-brand" href="/">{% if user %}{{ user.login }}@{% endif %}{{ config.site_name }}</a>
-            </div>
-            <div class="navbar-collapse collapse navbar-responsive-collapse">
-                <ul class="nav navbar-nav">
-                    <li{% if view == "assets" %} class="active"{% endif %}><a href="/assets">Assets</a></li>
-                    <li{% if view == "scheduler" %} class="active"{% endif %}><a href="/scheduler">Scheduler</a></li>
-                    <li{% if view == "rundown" %} class="active"{% endif %}><a href="/rundown">Rundown</a></li>
-                    <li{% if view == "jobs" %} class="active"{% endif %}><a href="/jobs">Jobs</a></li>
-                    <li{% if view == "services" %} class="active"{% endif %}><a href="/services">Services</a></li>
-                </ul>
-                <ul class="nav navbar-nav navbar-right">
-                    <li><a href="/logout">Logout</a></li>
-                </ul>
-            </div>
-        </div>
-	</div>
-    {% endif %}
-
-
+    {% if user %}{% include "includes/nav.html" %}{% endif %}
     {% if flash_messages %}<ul>
     {% for message, level in flash_messages %}
         <li>{{ message }}</li>
     {% endfor %}
     </ul>{% endif %}
 
-<div class="container-fluid main">
-    {% block content %}
-    {% endblock %}
-</div> <!-- /container-fluid main -->
+    <div class="container-fluid main" id="main">
+        {% block content %}
+        {% endblock %}
+    </div> <!-- /container-fluid main -->
 
-
-    <!--vendor js-->
-    <script src="https://code.jquery.com/jquery-2.2.4.min.js" integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44=" crossorigin="anonymous"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/bootstrap.material-design/0.5.10/js/material.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/bootstrap.material-design/0.5.10/js/ripples.min.js"></script>
-
-    <!--custom js-->
-    {% if view_js %}<script src="{{ view_js }}"></script>
-    {% endif %}<script src="/static/js/boot.js"></script>
-
+    {% if site.js %}<!-- Site javascripts -->{% for script in site.js %}
+    <script src="{{ script }}"></script>{% endfor %}{% endif %}
+    {% if page.js %}<!-- Page javascripts -->{% for script in page.js %}
+    <script src="{{ script }}"></script>{% endfor %}{% endif %}
 </body>
 </html>
-

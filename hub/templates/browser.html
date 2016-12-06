@@ -1,0 +1,43 @@
+{% extends "_base.html" %}
+
+{% block content %}
+
+<div class="container">
+    <div class="col-md-6 col-md-offset-3">
+        <div class="form-group label-floating">
+            <label class="control-label" for="addon2">Search assets</label>
+            <div class="input-group">
+                <input type="text" id="addon2" class="form-control">
+                <span class="input-group-btn">
+                    <button type="button" class="btn btn-fab btn-fab-mini">
+                        <i class="material-icons">search</i>
+                    </button>
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+{% include "includes/pagination.html" %}
+
+<table class="table table-striped table-hover">
+<thead>
+    <tr>{% for column in page.columns %}
+        <th>{{ site.meta_types[column].header() }}</th>{% endfor %}
+    </tr>
+</thead>
+<tbody>{% for asset in page.data %}
+    <tr data-href="{{ asset.id }}">{% for key in page.columns %}
+        <td>{{ asset.show(key)  }}</td>{% endfor %}
+    </tr>{% endfor %}
+</tbody>
+</table>
+
+{% include "includes/pagination.html" %}
+{% include "includes/new_asset.html" %}
+
+
+
+{% endblock %}
