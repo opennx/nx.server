@@ -25,7 +25,7 @@ class BaseObject(object):
 
     @property
     def id(self):
-        return self.meta.get("id", False)
+        return int(self.meta.get("id", False))
 
     @property
     def object_type(self):

@@ -86,18 +86,18 @@ class ServerObject(BaseObject):
         if jsonb:
             ns_tags.extend(["meta", "ft_index"])
 
-        if self["id_object"]:
+        if self.id:
             q = "UPDATE nx_{}s SET {} WHERE id_object = {}".format(
                     self.object_type,
                     ", ".join("{}=%s".format(tag) for tag in ns_tags if tag != "id_object"),
-                    self["id_object"]
+                    self.id
                 )
             v = [self[tag] for tag in self.ns_tags if tag != "id_object"]
             if jsonb:
                 v.extend([json.dumps(self.meta), create_ft_index(self.meta)])
 
             self.db.query(q, v)
-            self.db.query("DELETE FROM nx_meta WHERE id_object = {0} and object_type = {1}".format(self["id_object"], id_object_type))
+            self.db.query("DELETE FROM nx_meta WHERE id_object = {0} and object_type = {1}".format(self.id, id_object_type))
         else:
             self["ctime"] = self["ctime"] or time.time()
             created = True
@@ -110,7 +110,8 @@ class ServerObject(BaseObject):
                 v.extend([json.dumps(self.meta), create_ft_index(self.meta)])
 
             self.db.query(q, v)
-            self["id_object"] = self["id"] = self.db.lastid()
+            self.meta["id_object"] = self.meta["id"] = self.db.lastid() #TODO: id_object is deprecated
+            self.db.query("UPDATE nx_{}s SET meta=%s WHERE id_object=%s".format(self.object_type), [json.dumps(self.meta), self.id])
             logging.info("{!r} created".format(self))
 
         for tag in self.meta:
@@ -118,7 +119,7 @@ class ServerObject(BaseObject):
                 continue
             value = meta_types.unformat(tag, self.meta[tag])
             q = "INSERT INTO nx_meta (id_object, object_type, tag, value) VALUES (%s, %s, %s, %s)"
-            v = [self["id_object"], id_object_type, tag, value]
+            v = [self.id, id_object_type, tag, value]
             self.db.query(q, v)
 
         if self._save_to_cache():
@@ -256,7 +257,7 @@ class Bin(BinMixIn, ServerObject):
             self.items = []
             for id_item, in self.db.fetchall():
                 self.items.append(Item(id_item, db=self._db))
-            self.meta["id"] = self.meta["id_object"] = id
+            self.meta["id"] = self.meta["id_object"] = id #TODO: id_object is deprecated
             self._save_to_cache()
         return True
 
