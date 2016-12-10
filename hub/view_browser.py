@@ -35,19 +35,19 @@ class ViewBrowser(CherryAdminView):
         columns = view_config["columns"]
 
         conds = []
-
-        if "folders" in view_config:
-            conds.append("id_folder IN ({})".format(view_config["folders"]))
-        if "media_types" in view_config:
-            conds.append("media_type IN ({})".format(view_config["media_types"]))
-        if "content_types" in view_config:
-            conds.append("content_type IN ({})".format(view_config["content_types"]))
-        if "origins" in view_config:
-            conds.append("origin IN ({})".format(view_config["origins"]))
-        if "statuses" in view_config:
-            conds.append("status IN ({})".format(view_config["statuses"]))
-        if "query" in view_config:
-            conds.append("id_object in ({})".format(view_config["query"]))
+        for key, col in [
+                    ["folders", "id_folder"],
+                    ["media_types", "media_type"],
+                    ["content_types", "content_type"],
+                    ["origins", "origin"],
+                    ["statuses", "status"],
+                    ["folders", "id_folder"],
+                ]:
+            if key in view_config:
+                if len(view_config[key].split(",")) == 1:
+                    conds.append("{}={}".format(col, view_config[key]))
+                else:
+                    conds.append("{} IN ({})".format(col, view_config[key]))
 
         #
         # get data

@@ -10,7 +10,7 @@ def api_get(**kwargs):
     conds       = kwargs.get("conds", [])
     fulltext    = kwargs.get("fulltext", False)
     result_type = kwargs.get("result", False)
-    count       = kwargs.get("count", False)
+    do_count    = kwargs.get("count", False)
     limit       = kwargs.get("limit", False)
     offset      = kwargs.get("offset", False)
     user        = kwargs.get("user", anonymous)
@@ -27,7 +27,8 @@ def api_get(**kwargs):
             }[object_type]
 
     result = {
-            "data" : []
+            "data" : [],
+            "count" : 0
         }
 
     if ids:
@@ -45,12 +46,12 @@ def api_get(**kwargs):
         if conds:
             conds = "WHERE " + conds
 
-        if count:
-            q = "SELECT count(id_object) FROM {} {}".format(table, conds)
-            db.query(q)
-            result["count"] = db.fetchall()[0][0]
+        if do_count:
+            counter = ", count(*) OVER() AS full_count"
+        else:
+            counter = ", 0"
 
-        q = "SELECT id_object, meta FROM {} {}".format(table, conds)
+        q = "SELECT id_object, meta{} FROM {} {}".format(counter, table, conds)
         if limit:
             q += " LIMIT {}".format(limit)
         if offset:
@@ -60,7 +61,8 @@ def api_get(**kwargs):
         db.query(q)
 
         if result_type == "ids":
-            for id_object, meta in db.fetchall():
+            for id_object, meta, count in db.fetchall():
+                result["count"] |= count
                 result["data"].append(id_object)
 
         elif type(result_type) == list:
@@ -73,7 +75,8 @@ def api_get(**kwargs):
                     result_format.append(None)
                 result_type[i] = form[0]
 
-            for id_object, meta in db.fetchall():
+            for id_object, meta, count in db.fetchall():
+                result["count"] |= count
                 if meta:
                     obj = ObjectType(meta=meta, db=db)
                 else:
@@ -88,7 +91,8 @@ def api_get(**kwargs):
                 result["data"].append(row)
 
         else:
-            for id_object, meta in db.fetchall():
+            for id_object, meta, count in db.fetchall():
+                result["count"] |= count
                 if meta:
                     result["data"].append(ObjectType(meta=meta, db=db).meta)
                 else:
