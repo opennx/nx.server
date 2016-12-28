@@ -91,16 +91,37 @@ def validate_cs_enum(meta_type, value, **kwargs):
 # since it may be used anywhere (admin, front end) additional rendering params can be passed
 #
 
+def humanize_integer(meta_type, value, **kwargs):
+    value = int(value)
+    if kwargs.get("mode", False) == "hub":
+        if meta_type.key == "id_folder":
+            fconfig = config["folders"][value]
+            return "<span class=\"badge\" style=\"background-color : #{:06x}\">{}</span>".format(fconfig["color"], fconfig["title"])
+
+    return value
+
+
 def humanize_numeric(meta_type, value, **kwargs):
-    return "{:.03d}".format(value)
+    return "{:.03f}".format(value)
 
 def humanize_boolean(meta_type, value, **kwargs):
-    #TODO: web version, qt version etc
-    return ["no", "yes"][bool(value)]
+    value = int(value)
+    if kwargs.get("mode", False) == "hub":
+        if meta_type.key == "promoted":
+            return [
+                    "<i class=\"mdi mdi-star-outline\">",
+                    "<i class=\"mdi mdi-star\">"
+                ][value]
+        else:
+            return [
+                    "<i class=\"mdi mdi-checkbox-blank-outline\">",
+                    "<i class=\"mdi mdi-checkbox-marked-outline\">"
+                ][value]
+    return ["no", "yes"][value]
 
 def humanize_datetime(meta_type, value, **kwargs):
     time_format = kwargs.get("time_format", "%Y-%m-%d %H:%M")
-    return time.strfitme(time_format, time.localtime(value))
+    return time.strftime(time_format, time.localtime(value))
 
 def humanize_timecode(meta_type, value, **kwargs):
     return s2time(value)
@@ -144,7 +165,7 @@ class MetaType(object):
                 -1 : None,
                 TEXT : None,
                 BLOB : None,
-                INTEGER : None,
+                INTEGER : humanize_integer,
                 NUMERIC : humanize_numeric,
                 BOOLEAN : humanize_boolean,
                 DATETIME : humanize_datetime,
@@ -203,14 +224,14 @@ class MetaType(object):
     def default_alias(self):
         return self.key.replace("_"," ").capitalize()
 
-    def alias(self, lang="en"):
+    def alias(self, lang="en-US"):
         if lang in self.settings["aliases"]:
-            return self.settings["aliases"][0]
+            return self.settings["aliases"][lang][0]
         return self.default_alias
 
-    def header(self, lang="en"):
+    def header(self, lang="en-US"):
         if lang in self.settings["aliases"]:
-            return self.settings["aliases"][1]
+            return self.settings["aliases"][lang][1]
         return self.default_alias
 
     def validate(self, value):
@@ -228,7 +249,7 @@ class MetaType(object):
 class MetaTypes():
     def __init__(self):
         self.data = {}
-        self.nstagdict = {}
+#        self.nstagdict = {}
 
     def __getitem__(self, key):
         return self.data.get(key, MetaType(key))
@@ -248,20 +269,18 @@ class MetaTypes():
         for key in dump:
             self.data[key] = MetaType(key, dump[key])
 
-
     #
-    # v4 specs: to be deprecated
+    # v4 specs:  deprecated
     #
-
-    def ns_tags(self, ns):
-        """deprecated"""
-        if not ns in self.nstagdict:
-            result = []
-            for tag in self:
-                if self[tag]["namespace"] in ["o", ns]:
-                    result.append(self[tag].key)
-            self.nstagdict[ns] = result
-        return self.nstagdict[ns]
+#    def ns_tags(self, ns):
+#        """deprecated"""
+#        if not ns in self.nstagdict:
+#            result = []
+#            for tag in self:
+#                if self[tag]["namespace"] in ["o", ns]:
+#                    result.append(self[tag].key)
+#            self.nstagdict[ns] = result
+#        return self.nstagdict[ns]
 
     def format(self, key, value):
         """deprecated"""
