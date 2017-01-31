@@ -3,6 +3,7 @@ from .connection import *
 from .objects import *
 from .helpers import *
 from .api import *
+from .plugins import *
 
 #
 # Load system configuration
@@ -25,10 +26,15 @@ def load_site_settings(db, force=False):
 
     # Views
 
-    db.query("SELECT id_view, config FROM nx_views")
-    for id, settings in db.fetchall():
+    db.query("SELECT id_view, title, position, config FROM nx_views")
+    for id, title, position, settings in db.fetchall():
         settings = xml(settings)
-        view = {}
+        view = {"name" : title, "columns" : [], "position" : position}
+        columns = settings.find("columns")
+        if columns is not None:
+            for column in columns.findall("column"):
+                if column.text:
+                    view["columns"].append(column.text.strip())
         for elm in ["query", "folders", "origins", "media_types", "content_types", "statuses"]:
             try:
                 view[elm] = settings.find(elm).text.strip()
@@ -50,6 +56,18 @@ def load_site_settings(db, force=False):
             config["playout_channels"][id_channel] = ch_config
         elif channel_type == INGEST:
             config["ingest_channels"][id_channel] = ch_config
+
+    # Folders
+
+    db.query("SELECT id_folder, title, color, meta_set, validator FROM nx_folders")
+    for id_folder, title, color, meta_set, validator in db.fetchall():
+        config["folders"][id_folder] = {
+                "title" : title,
+                "color" : color,
+                "meta_set" : json.loads(meta_set),
+                "validator" : validator
+            }
+
 
     return True
 
@@ -90,7 +108,7 @@ def load_meta_types(db, force=False):
             )
         db.query("SELECT lang, alias, col_header FROM nx_meta_aliases WHERE tag='{0}'".format(tag))
         for lang, alias, col_header in db.fetchall():
-            meta_type["aliases"][lang] = alias, col_header
+            meta_type["aliases"][lang] = alias, col_header or alias
         meta_types[tag] = meta_type
     return True
 
@@ -99,7 +117,7 @@ def load_cs(db, force=False):
     pass
 
 #
-# Do it! Do it! Do it!
+# Put it together
 #
 
 def load_all_settings(force=False):
@@ -119,4 +137,13 @@ def load_all_settings(force=False):
     messaging.configure()
     cache.configure()
 
+#
+# Do it! Do it! Do it!
+#
+
 load_all_settings()
+
+if plugin_path:
+    python_plugin_path = os.path.join(plugin_path, "python")
+    if os.path.exists(python_plugin_path):
+        sys.path.append(python_plugin_path)

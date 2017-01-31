@@ -20,8 +20,8 @@ SECRET_KEY = "yeah, not actually a secret"
 DEBUG = True
 
 app = Flask(__name__,
-        static_folder=os.path.join(nebula_root, "admin", "static"),
-        template_folder=os.path.join(nebula_root, "admin", "templates")
+        static_folder=os.path.join(config["nebula_root"], "admin", "static"),
+        template_folder=os.path.join(config["nebula_root"], "admin", "templates")
         )
 app.config.from_object(__name__)
 

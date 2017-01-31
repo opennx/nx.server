@@ -2,7 +2,7 @@
 #
 #    This file is part of Nebula media asset management.
 #
-#    Nebula is free software: you can redistribute it and/or modify
+#    Nebula is` free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
 #    (at your option) any later version.
@@ -23,7 +23,68 @@ import sys
 
 from nebula import *
 
-def dump():
+logging.user = "Manager"
+
+#
+# Service / admin runner
+#
+
+
+def run(*args):
+    id_service = args[0]
+    try:
+        id_service = int(id_service)
+    except ValueError:
+        critical_error("Service ID must be integer")
+
+    db = DB()
+    db.query("SELECT agent, title, host, loop_delay, settings FROM nx_services WHERE id_service=%s", [id_service])
+    try:
+        agent, title, host, loop_delay, settings = db.fetchall()[0]
+    except IndexError:
+        critical_error("Unable to start service {}. No such service".format(id_service))
+
+    config["user"] = logging.user = title
+
+    if host != config["host"]:
+        critical_error("This service should not run here.")
+
+    if settings:
+        try:
+            settings = xml(settings)
+        except Exception:
+            log_traceback()
+            db.query("UPDATE nx_services SET autostart=0 WHERE id_service=%s", [id_service])
+            db.commit()
+            critical_error("Malformed settings XML")
+
+    _module = __import__("services." + agent, globals(), locals(), ["Service"], -1)
+    Service = _module.Service
+    service = Service(id_service, settings)
+
+    while True:
+        try:
+            service.on_main()
+            last_run = time.time()
+            while True:
+                time.sleep(min(loop_delay, 2))
+                service.heartbeat()
+                if time.time() - last_run >= loop_delay:
+                    break
+        except (KeyboardInterrupt):
+            sys.exit(0)
+        except (SystemExit):
+            break
+        except:
+            log_traceback()
+            time.sleep(2)
+            sys.exit(1)
+
+#
+# System utils
+#
+
+def dump(*args):
     result = {
         "assets" : [],
         "items" : [],
@@ -52,8 +113,7 @@ def dump():
     json.dump(result, f)
 
 
-
-def recache():
+def recache(*args):
     db = DB()
     start_time = time.time()
     object_types = [
@@ -88,8 +148,11 @@ def recache():
         break
     logging.goodnews("{} objects loaded in {:.04f} seconds".format(i, time.time()-start_time))
 
+#
+# Administration
+#
 
-def add_user():
+def add_user(*args):
     try:
         login = raw_input("Login: ").strip()
         password = raw_input("Password: ").strip()
@@ -111,14 +174,16 @@ def add_user():
 
 if __name__ == "__main__":
     methods = {
+            "run" : run,
             "dump" : dump,
             "recache" : recache,
             "adduser" : add_user
         }
-    if len(sys.argv) != 2:
-        critical_error("This command takes exactly one argument")
+
+    if len(sys.argv) < 2:
+        critical_error("This command takes at least one argument")
     method = sys.argv[1]
+    args = sys.argv[2:]
     if not method in methods:
         critical_error("Unknown method '{}'".format(method))
-    logging.info("Executing '{}'".format(method))
-    methods[method]()
+    methods[method](*args)

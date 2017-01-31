@@ -55,14 +55,22 @@ class ServerObject(BaseObject):
         except Exception:
             logging.debug("Loading {} id {} from DB".format(self.object_type, id))
             id_object_type = OBJECT_TYPES[self.object_type]
-            qcols = ", ".join(self.ns_tags)
-            self.db.query("SELECT {0} FROM nx_{1}s WHERE id_object={2}".format(qcols, self.object_type, id))
+            qcols = ", ".join(self.ns_tags + ["meta"])
+            self.db.query("SELECT {} FROM nx_{}s WHERE id_object={}".format(qcols, self.object_type, id))
             try:
                 result = self.db.fetchall()[0]
             except Exception:
                 logging.error("Unable to load {!r}".format(self))
                 return False
 
+            meta = result[-1]
+            if meta:
+                for key in meta:
+                    self.meta[key] = meta[key]
+                self._save_to_cache()
+                return True
+
+            result = result[:-1]
             for tag, value in zip(self.ns_tags, result):
                 self[tag] = value
 
@@ -70,7 +78,7 @@ class ServerObject(BaseObject):
             for tag, value in self.db.fetchall():
                 self[tag] = value
             self.meta["id"] = self.meta["id_object"] = id
-            self._save_to_cache()
+            self.save(set_mtime=False)
         return True
 
     def _save_to_cache(self):
@@ -101,10 +109,11 @@ class ServerObject(BaseObject):
         else:
             self["ctime"] = self["ctime"] or time.time()
             created = True
-            q = "INSERT INTO nx_{0}s ({1}) VALUES ({2})".format( self.object_type,
-                                                          ", ".join(tag for tag in ns_tags if tag != 'id_object'),
-                                                          ", ".join(["%s"]*(len(ns_tags)-1))
-                                                        )
+            q = "INSERT INTO nx_{0}s ({1}) VALUES ({2})".format(
+                    self.object_type,
+                    ", ".join(tag for tag in ns_tags if tag != 'id_object'),
+                    ", ".join(["%s"]*(len(ns_tags)-1))
+                )
             v = [self[tag] for tag in self.ns_tags if tag != "id_object"]
             if jsonb:
                 v.extend([json.dumps(self.meta), create_ft_index(self.meta)])
@@ -136,7 +145,7 @@ class ServerObject(BaseObject):
         return True
 
     def delete(self):
-        super(ServerObject, self).save(self)
+        #super(ServerObject, self).save(self) #WHY????
         id_object_type = OBJECT_TYPES[self.object_type]
         if self.delete_childs():
             self.db.query("DELETE FROM nx_meta WHERE id_object = %s and object_type = %s", [self.id, id_object_type] )
@@ -231,36 +240,17 @@ class Item(ItemMixIn, ServerObject):
 
 class Bin(BinMixIn, ServerObject):
     ns_tags = ["id_object", "bin_type", "ctime", "mtime"]
-
     def load(self, id):
-        id = int(id)
-        if not self._load_from_cache(id):
-            id_object_type = OBJECT_TYPES[self.object_type]
-            logging.debug("Loading {} id {} from DB".format(self.object_type, id))
-
-            qcols = ", ".join(self.ns_tags)
-            self.db.query("SELECT {0} FROM nx_{1}s WHERE id_object={2}".format(qcols, self.object_type, id))
-            try:
-                result = self.db.fetchall()[0]
-            except Exception:
-                logging.error("Unable to load {!r}".format(self))
-                return False
-
-            for tag, value in zip(self.ns_tags, result):
-                self[tag] = value
-
-            self.db.query("SELECT tag, value FROM nx_meta WHERE id_object=%s and object_type=%s", (id, id_object_type))
-            for tag, value in self.db.fetchall():
-                self[tag] = value
-
-            self.db.query("SELECT id_object FROM nx_items WHERE id_bin = %s ORDER BY position", [id])
-            self.items = []
-            for id_item, in self.db.fetchall():
-                self.items.append(Item(id_item, db=self._db))
-            self.meta["id"] = self.meta["id_object"] = id #TODO: id_object is deprecated
-            self._save_to_cache()
-        return True
-
+        super(ServerObject, self).load(id)
+        if hasattr(self, "items"):
+            return True
+        self.items = []
+        db = self._db
+        db.query("SELECT i.meta, a.meta FROM nx_items AS i, nx_assets AS a WHERE i.id_object = %s AND i.id_asset = a.id_object", [id])
+        for imeta, ameta in db.fetchall():
+            item = Item(meta=imeta, db=db)
+            item._asset = Asset(meta=ameta, db=db)
+            self.items.append(item)
 
     def _load_from_cache(self, id):
         try:
