@@ -15,37 +15,21 @@ except ImportError:
 
 __all__ = ["DB", "cache", "Cache"]
 
-
-#
+##
 # Database
-#
+##
 
-class DB(object):
+class BaseDB(object):
+    pmap = {}
+
     def __init__(self, **kwargs):
-        self.pmap = {
-            "host" : "db_host",
-            "user" : "db_user",
-            "password" : "db_pass",
-            "database" : "db_name",
-            }
-
         self.settings = {
             key : kwargs.get(self.pmap[key], config[self.pmap[key]]) for key in self.pmap
             }
+        self._connect()
 
-        self.conn = psycopg2.connect(**self.settings)
-        self.cur = self.conn.cursor()
-
-    def sanit(self, instr):
-        """Deprecated. Do not use"""
-        try:
-            return str(instr).replace("''","'").replace("'","''").decode("utf-8")
-        except Exception:
-            return instr.replace("''","'").replace("'","''")
-
-    def lastid (self):
-        self.query("SELECT LASTVAL()")
-        return self.fetchall()[0][0]
+    def _connect(self):
+        pass
 
     def query(self, q, *args):
         self.cur.execute(q,*args)
@@ -65,9 +49,41 @@ class DB(object):
     def __len__(self):
         return True
 
-#
+
+class DB(BaseDB):
+    pmap = {
+        "host" : "db_host",
+        "user" : "db_user",
+        "password" : "db_pass",
+        "database" : "db_name",
+        }
+
+    def _connect(self):
+        i = 0
+        while i < 3:
+            try:
+                self.conn = psycopg2.connect(**self.settings)
+            except psycopg2.OperationalError:
+                time.sleep(1)
+                i+=1
+                continue
+            else:
+                break
+        self.cur = self.conn.cursor()
+
+    def sanit(self, instr):
+        try:
+            return str(instr).replace("''","'").replace("'","''").decode("utf-8")
+        except:
+            return instr.replace("''","'").replace("'","''")
+
+    def lastid (self):
+        self.query("select lastval()")
+        return self.fetchall()[0][0]
+
+##
 # Cache
-#
+##
 
 class Cache():
     def __init__(self):
@@ -103,13 +119,13 @@ class Cache():
             return self.threaded_save(key, value)
 
         key = "{}_{}".format(self.site, key)
-        for i in range(2):
+        for i in range(10):
             try:
                 self.conn.set(key, str(value))
                 break
-            except Exception:
+            except:
                 log_traceback("Cache save failed ({})".format(key))
-                time.sleep(.1)
+                time.sleep(.3)
                 self.connect()
         else:
             critical_error("Memcache save failed. This should never happen. Check MC server")
@@ -124,7 +140,7 @@ class Cache():
             try:
                 self.conn.delete(key)
                 break
-            except Exception:
+            except:
                 log_traceback("Cache delete failed ({})".format(key))
                 time.sleep(.3)
                 self.connect()
@@ -156,7 +172,7 @@ class Cache():
                 try:
                     mc.set(key, str(value))
                     break
-                except Exception:
+                except:
                     log_traceback("Cache save failed ({})".format(key))
                     time.sleep(.3)
                     self.connect()
@@ -175,7 +191,7 @@ class Cache():
                 try:
                     mc.delete(key)
                     break
-                except Exception:
+                except:
                     log_traceback("Cache delete failed ({})".format(key))
                     time.sleep(.3)
                     self.connect()

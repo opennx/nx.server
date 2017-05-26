@@ -91,8 +91,10 @@
 	                            <span class="glyphicon glyphicon-ok"></span>
 	                        {% elif job.progress == -3%}
 	                            <span class="glyphicon glyphicon-remove"></span>
-	                        {% elif job.progress == -1%}
-	                            <span class="glyphicon glyphicon-refresh"></span>
+                            {% elif job.progress == -1%}
+                                <span class="glyphicon glyphicon-refresh"></span>
+                            {% elif job.progress == -4%}
+                                <span class="glyphicon glyphicon-refresh"></span>
 	                        {% else %}
 	                            <div class="progress job-progress">
 	                                <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ job.progress }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ job.progress }}%;">{{ job.progress }}%</div>
@@ -214,10 +216,12 @@
                 else if (pval == -3){
                     progressWrap.html("<span class='glyphicon glyphicon-remove'></span>");
                     buttonSwap(btnParent, id_job, -1);
-                }
-                else if(pval == -1) {
+                }else if(pval == -1) {
                     progressWrap.html("<span class='glyphicon glyphicon-refresh'></span>");
                     buttonSwap(btnParent, id_job, -4);
+                }else if(pval == -4) {
+                    progressWrap.html("<span class='glyphicon glyphicon-refresh'></span>");
+                    buttonSwap(btnParent, id_job, -1);
                 }else{
 
                 	var progressBar = progressWrap.find(".progress-bar");

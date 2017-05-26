@@ -1,12 +1,11 @@
-import cgi
-import thread
-from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-
 from nx import *
 from nx.services import BaseService
+from nx.objects import *
 
-from .sessions import Sessions
-from .sessions import Sessions
+from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+
+import cgi
+import thread
 
 import hive_assets
 import hive_system
@@ -16,6 +15,61 @@ import hive_dramatica
 reload(sys)
 sys.setdefaultencoding('utf-8')
 
+REQUIRED_PROTOCOL = 140000
+
+class Sessions():
+    def __init__(self):
+        self.data = {}
+
+    def __getitem__(self, key):
+        if key in self.data:
+            return self.data[key]
+        db = DB()
+        db.query("SELECT id_user FROM nx_sessions WHERE key=%s", [key])
+        try:
+            user = User(db.fetchall()[0][0])
+            return user
+        except IndexError:
+            return False
+
+    def __delitem__(self, key):
+        if key in self.data:
+            del(self.data[key])
+
+    def login(self, auth_key, params):
+        if params.get("protocol", 0) < REQUIRED_PROTOCOL:
+            return [400, "Your Firefly version is outdated.\nPlease download latest update from support website."]
+
+        if self[auth_key]:
+            return [200, "Already logged in"]
+
+        if params.get("login") and params.get("password"):
+            db = DB()
+            user = get_user(params["login"], params["password"], db=db)
+            if user:
+                db.query("INSERT INTO nx_sessions (key, id_user, host, ctime, mtime) VALUES (%s, %s , %s, %s, %s)", [ auth_key, user.id, params.get("host", "unknown"), time.time(), time.time()])
+                db.commit()
+                return [200, "Logged in"]
+            else:
+                return [403, "Incorrect login/password combination"]
+
+        else:
+            return [403, "Not logged in"]
+
+
+    def logout(self, auth_key):
+        user = self[auth_key]
+        if not user:
+            return [403, "Not logged in"]
+        db = DB()
+        db.query("DELETE FROM nx_sessions WHERE key = %s", [auth_key])
+        db.commit()
+        del self[auth_key]
+        return [200, "ok"]
+
+
+
+
 
 class HiveHandler(BaseHTTPRequestHandler):
     def log_request(self, code='-', size='-'):
@@ -24,7 +78,7 @@ class HiveHandler(BaseHTTPRequestHandler):
     def _do_headers(self,mime="application/json",response=200,headers=[]):
         self.send_response(response)
         self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
         for h in headers:
             handler.send_header(h[0],h[1])
         self.send_header('Content-type', mime)
@@ -44,8 +98,6 @@ class HiveHandler(BaseHTTPRequestHandler):
     def sessions(self):
         return self.server.service.sessions
 
-    def do_GET(self):
-        pass
 
     def do_POST(self):
         start_time =  time.time()
@@ -89,7 +141,7 @@ class HiveHandler(BaseHTTPRequestHandler):
             self.push_response(response, data)
 
         elif method == "ping":
-            self._do_headers("text/txt", 200)
+            self._do_headers("application/json",200)
             self.push_response(200, "pong")
 
 
@@ -136,13 +188,16 @@ class Service(BaseService):
                 module_name  = module.__name__.split(".")[-1]
                 exec ("self.methods['{}'] = {}.{}".format(method_title, module_name, method ))
                 logging.debug("Enabling method '{}'".format(method_title))
+
         try:
             port = int(self.config.find("port").text)
         except:
             port = 42000
 
         logging.debug("Starting hive at port {}".format(port))
+
         self.server = HiveHTTPServer(('',port), HiveHandler)
+
         self.sessions = Sessions()
         self.server.service = self
         thread.start_new_thread(self.server.serve_forever,())

@@ -58,7 +58,7 @@ def day_start(ts, start):
 
 
 def load_solvers():
-    solvers_path = os.path.join(plugin_path, "dramatica_solvers")
+    solvers_path = os.path.join (plugin_path, "dramatica_solvers")
     if not os.path.exists(solvers_path):
         logging.warning("Dramatica solvers directory not found. Only default solvers will be available")
         return

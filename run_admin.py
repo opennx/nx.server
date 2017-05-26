@@ -1,10 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#
-# Nebula admin is deprecated and will be removed from future releases.
-# Along with Hive service, admin is going to be replaced with unified
-# HUB interface.
-#
 
 from nebula import *
 
@@ -20,8 +15,8 @@ SECRET_KEY = "yeah, not actually a secret"
 DEBUG = True
 
 app = Flask(__name__,
-        static_folder=os.path.join(config["nebula_root"], "admin", "static"),
-        template_folder=os.path.join(config["nebula_root"], "admin", "templates")
+        static_folder=os.path.join(nebula_root, "admin", "static"),
+        template_folder=os.path.join(nebula_root, "admin", "templates")
         )
 app.config.from_object(__name__)
 
@@ -48,7 +43,7 @@ def load_user(id):
 
 @app.template_filter('datetime')
 def _jinja2_filter_datetime(date, format='%Y-%m-%d %H:%M:%S'):
-    return str(time.strftime(format, time.localtime(float(date))))
+    return str(time.strftime(format, time.localtime(date)))
 
 @app.template_filter('date')
 def _jinja2_filter_date(date, format='%Y-%m-%d'):
@@ -333,6 +328,8 @@ def reports(view=False):
             plugin.env['get'] = request.args
             plugin.env['post'] = request.form
 
+            ################################
+            # CUSTOM LOADER
             plugin_loader = jinja2.ChoiceLoader([
                 app.jinja_loader,
                 jinja2.FileSystemLoader(plugin.env['plugin_path']),

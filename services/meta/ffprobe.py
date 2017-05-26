@@ -14,7 +14,7 @@ class FFProbe(Probe):
             dump = ffprobe(fname)
             streams = dump["streams"]
             format  = dump["format"]
-        except Exception:
+        except:
             logging.error("Unable to parse media metadata of {}".format(asset))
             asset["meta_probed"] = 1
             return asset
@@ -55,7 +55,7 @@ class FFProbe(Probe):
 
                 try:
                     w, h = int(stream["width"]), int(stream["height"])
-                except Exception:
+                except:
                     w = h = 0
 
                 if w and h:

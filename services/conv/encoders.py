@@ -172,7 +172,7 @@ class Ffmpeg(Encoder):
                 logging.info("Updating asset {!r}".format(new))
                 keys = new.meta.keys()
                 for key in keys:
-                    if key in meta_types and meta_types[key]["namespace"] in ["qc", "fmt"]:
+                    if key in meta_types and meta_types[key].namespace in ["qc", "fmt"]:
                         new[key] = ""
             else:
                 logging.info("Creating new asset for {!r} conversion.".format(asset))
@@ -187,7 +187,7 @@ class Ffmpeg(Encoder):
                 new["id_folder"]    = asset["id_folder"]
 
                 for key in asset.meta:
-                    if key in meta_types and meta_types[key]["namespace"] in ["AIEB", "m"]:
+                    if key in meta_types and meta_types[key].namespace in ["AIEB", "m"]:
                         new[key] = asset[key]
 
             new["status"] = CREATING

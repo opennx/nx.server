@@ -1,7 +1,9 @@
 from nx import *
+from nx.objects import User, get_user
+
 from .nx_admin import *
 
-from flask_login import (LoginManager, current_user, login_required,
+from flask.ext.login import (LoginManager, current_user, login_required,
                             login_user, logout_user, UserMixin,
                             confirm_login, fresh_login_required)
 import hashlib

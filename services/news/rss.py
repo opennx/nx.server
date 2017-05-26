@@ -71,7 +71,11 @@ class RSS():
     def __init__(self, feed_url, parser=False):
         self.feed_url = feed_url
         self.parser = parser
-        data = urlopen(self.feed_url).read()
+        try:
+            data = urlopen(self.feed_url).read()
+        except:
+            data = "<rss><channel></channel></rss>"
+            log_traceback()
         self.feed = xml(data).find("channel")
 
     @property

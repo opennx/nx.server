@@ -46,7 +46,7 @@ class Service(BaseService):
         try:
             fmtime = int(os.path.getmtime(fname))
             fsize  = int(os.path.getsize(fname))
-        except Exception:
+        except:
             log_traceback("Unable to get file attrs {}".format(asset))
             return
 
@@ -60,7 +60,7 @@ class Service(BaseService):
         if fmtime != asset["file/mtime"] or asset["status"] == RESET:
             try:
                 f = open(fname,"rb")
-            except Exception:
+            except:
                 logging.debug("{} creation in progress.".format(asset))
                 return
             else:
@@ -83,7 +83,7 @@ class Service(BaseService):
 
                 keys = list(asset.meta.keys())
                 for key in keys:
-                    if meta_types[key]["namespace"] in ("fmt", "qc"):
+                    if meta_types[key].namespace in ("fmt", "qc"):
                         del (asset.meta[key])
 
                 asset["file/size"]  = fsize

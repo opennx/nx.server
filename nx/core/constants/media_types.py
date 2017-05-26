@@ -1,3 +1,0 @@
-FILE = 0
-VIRTUAL = 1
-URL = 2

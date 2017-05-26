@@ -1,4 +1,5 @@
 *.pyc
 local_settings.json
 dramatica.log
-vendor/
+tool*
+plugins

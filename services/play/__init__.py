@@ -363,7 +363,7 @@ class Service(BaseService):
         db = DB()
         item = Item(channel.current_item, db=db)
         if item["item_role"] == "studio":
-            channel.current_asset = Asset(meta=item.meta)
+            channel.current_asset = Asset(from_data=item.meta)
         else:
             channel.current_asset = item.asset
         channel.current_event = item.event

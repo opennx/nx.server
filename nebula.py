@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 #
 #    This file is part of Nebula media asset management.
 #
@@ -13,34 +14,46 @@
 #    GNU General Public License for more details.
 #
 #    You should have received a copy of the GNU General Public License
-#    along with Nebula. If not, see <http://www.gnu.org/licenses/>.
+#    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 #
 
 from __future__ import print_function
 
 import os
 import sys
-import rex
 
-#
+##
 # Env setup
-#
+##
 
 if sys.version_info[:2] < (3, 0):
     reload(sys)
     sys.setdefaultencoding('utf-8')
 
+nebula_root = os.path.abspath(os.getcwd())
+
+##
+# Vendor imports
+##
+
+vendor_dir = os.path.join(nebula_root, "vendor")
+if os.path.exists(vendor_dir):
+    for pname in os.listdir(vendor_dir):
+        pname = os.path.join(vendor_dir, pname)
+        pname = os.path.abspath(pname)
+        if not pname in sys.path:
+            sys.path.insert(0, pname)
+
 from nx import *
 
-config["nebula_root"] = os.path.abspath(os.getcwd())
-if not config["nebula_root"] in sys.path:
-    sys.path.insert(0,config["nebula_root"])
+config["nebula_root"] = nebula_root
 
-#
+##
 # Start agents only if this script is executed (not imported)
-#
+##
 
 if __name__ == "__main__":
+
     from nx.storage_monitor import StorageMonitor
     from nx.service_monitor import ServiceMonitor
     from nx.system_monitor import SystemMonitor
@@ -83,6 +96,5 @@ if __name__ == "__main__":
         logging.goodnews("Exiting gracefully")
         sys.exit(0)
     except KeyboardInterrupt:
-        print()
         logging.warning("Immediate shutdown enforced. This may cause problems")
         sys.exit(1)

@@ -2,100 +2,109 @@ from .common import *
 from .constants import *
 from .metadata import meta_types
 
-__all__ = ["BaseObject", "AssetMixIn", "ItemMixIn", "BinMixIn", "EventMixIn", "UserMixIn"]
+__all__ = ["BaseObject", "BaseAsset", "BaseItem", "BaseBin", "BaseEvent"]
 
 class BaseObject(object):
-    def __init__(self, id=False, **kwargs):
-        self.is_new = True
+    object_type = "asset"
+
+    def __init__(self, *args, **kwargs):
+        self.id = int(args[0]) if args else False
+
+        self.ns_prefix = self.object_type[0]
+        self.ns_tags   = meta_types.ns_tags(self.ns_prefix)
         self.meta = {}
-        meta = kwargs.get("meta", {})
-        assert meta is not None, "Unable to load {}.  Meta must not be 'None'.".format(self.object_type)
-        assert hasattr(meta, "keys"), "Incorrect meta!"
-        for key in meta:
-            self.meta[key] = meta[key]
-        if "id_object" in self.meta or "id" in self.meta:
-            self.is_new = False
-        elif not self.meta:
-            if id:
-                self.load(id)
-                self.is_new = False
+
+        self._loaded = False
+        self._db = kwargs.get("db", False)
+        self._cache = kwargs.get("cache", False)
+
+        if "from_data" in kwargs:
+            assert hasattr(kwargs["from_data"], "keys")
+            self.meta = kwargs["from_data"]
+            self.id = self.meta.get("id_object", False)
+            self._loaded = True
+        else:
+            if self.id:
+                if self._load():
+                    self._loaded = True
             else:
-                self.new()
-                self.is_new = True
-
-    @property
-    def id(self):
-        return int(self.meta.get("id", False))
-
-    @property
-    def object_type(self):
-        return self.__class__.__name__.lower()
+                self._new()
 
     def keys(self):
         return self.meta.keys()
 
-    def __getitem__(self, key):
-        key = key.lower().strip()
-        if key == "_duration":
-            return self.duration
-        return self.meta.get(key, meta_types[key].default)
+    def id_object_type(self):
+        return OBJECT_TYPES[self.object_type]
 
-    def __setitem__(self, key, value):
-        key = key.lower().strip()
-        value = meta_types[key].validate(value)
-        if not value:
-            del self[key]
-        else:
-            self.meta[key] = value
-        return True
+    def _new(self):
+        self.meta = {}
 
-    def update(self, data):
-        for key in data.keys():
-            self[key] = data[key]
-
-    def new(self):
+    def _load(self):
         pass
 
-    def load(self, id):
+    def _save(self,**kwargs):
         pass
 
     def save(self, **kwargs):
         if kwargs.get("set_mtime", True):
             self["mtime"] = int(time.time())
+        return self._save(**kwargs)
 
-    def delete(self, **kwargs):
-        assert self.id > 0, "Unable to delete unsaved asset"
+    def delete(self):
+        pass
+
+    def __getitem__(self, key):
+        key = key.lower().strip()
+        if not key in self.meta:
+            return meta_types.format_default(key)
+        return self.meta[key]
+
+    def __setitem__(self, key, value):
+        key = key.lower().strip()
+        if value or type(value) in [float, int, bool]:
+            self.meta[key] = meta_types.format(key,value)
+        else:
+            del self[key] # empty strings
+        return True
 
     def __delitem__(self, key):
         key = key.lower().strip()
+        if key in meta_types and meta_types[key].namespace == self.object_type[0]:
+            return
         if not key in self.meta:
             return
-        if hasattr(self, "ns_tags") and key in self.ns_tags:
-            return #v4 only
         del self.meta[key]
 
     def __repr__(self):
         if self.id:
-            result = "{} ID:{}".format(self.object_type, self.id)
+            iid = "{} ID:{}".format(self.object_type, self.id)
         else:
-            result = "new {}".format(self.object_type)
-        title = self.meta.get("title", "").encode("utf8", "replace")
-        if title:
-            result += " ({})".format(title)
-        return result
+            iid = "new {}".format(self.object_type)
+        try:
+            title = self["title"] or ""
+            if title:
+                title = " ({})".format(title)
+            return "{}{}".format(iid, title)
+        except:
+            return iid
 
     def __len__(self):
-        return not self.is_new
-
-    def show(self, key, **kwargs):
-        return meta_types[key.lstrip("_")].humanize(self[key], **kwargs)
+        return self._loaded
 
 
 
 
 
 
-class AssetMixIn():
+
+
+class BaseAsset(BaseObject):
+    object_type = "asset"
+
+    def _new(self):
+        self.meta = {
+        }
+
     def mark_in(self, new_val=False):
         if new_val:
             self["mark_in"] = new_val
@@ -109,30 +118,27 @@ class AssetMixIn():
     @property
     def file_path(self):
         try:
-            return os.path.join(storages[int(self["id_storage"])].local_path, self["path"])
-        except (KeyError, IndexError, ValueError):
-            # Yes. empty string. keep it this way!!! (because of os.path.exists and so on)
-            # Also: it evals as false
-            return ""
+            return os.path.join(storages[self["id_storage"]].local_path, self["path"])
+        except:
+            return "" # Yes. empty string. keep it this way!!! (because of os.path.exists and so on)
 
     @property
     def duration(self):
         dur = float(self.meta.get("duration",0))
         mki = float(self.meta.get("mark_in" ,0))
         mko = float(self.meta.get("mark_out",0))
-        if not dur:
-            return 0
-        if mko > 0:
-            dur -= dur - mko
-        if mki > 0:
-            dur -= mki
+        if not dur: return 0
+        if mko > 0: dur -= dur - mko
+        if mki > 0: dur -= mki
         return dur
 
 
-class ItemMixIn():
+
+class BaseItem(BaseObject):
+    object_type = "item"
     _asset = False
 
-    def new(self):
+    def _new(self):
         self["id_bin"]    = False
         self["id_asset"]  = False
         self["position"]  = 0
@@ -188,39 +194,23 @@ class ItemMixIn():
         return dur
 
 
-class BinMixIn():
-    def new(self):
+
+class BaseBin(BaseObject):
+    object_type = "bin"
+    items = []
+
+    def _new(self):
+        self.meta = {}
         self.items = []
 
-    @property
-    def duration(self):
-        dur = 0
-        for item in self.items:
-            dur += item.duration
-        return dur
 
+class BaseEvent(BaseObject):
+    object_type = "event"
+    _bin        = False
+    _asset      = False
 
-class EventMixIn():
-    def new(self):
+    def _new(self):
         self["start"]      = 0
         self["stop"]       = 0
         self["id_channel"] = 0
         self["id_magic"]   = 0
-
-
-class UserMixIn():
-    def set_password(self, password):
-        self["password"] = get_hash(password)
-
-    def __repr__(self):
-        if self.id:
-            iid = "{} ID:{}".format(self.object_type, self.id)
-        else:
-            iid = "new {}".format(self.object_type)
-        try:
-            title = self["login"] or ""
-            if title:
-                title = " ({})".format(title)
-            return "{}{}".format(iid, title)
-        except Exception:
-            return iid

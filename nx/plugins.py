@@ -1,12 +1,13 @@
 from nx import *
 
-__all__ = ["plugin_path","PlayoutPlugin"]
+__all__ = ["plugin_path", "PlayoutPlugin", "WorkerPlugin"]
+
 
 try:
     plugin_path = os.path.join(storages[int(config["plugin_storage"])].local_path, config["plugin_root"])
-except (KeyError, ValueError):
-    logging.warning("Plugin path is not configured")
-    plugin_path = os.getcwd()
+except:
+    logging.error("Unable to load plugin path")
+    plugin_path = False
 else:
     if not os.path.exists(plugin_path) and ismount(storages[int(config["plugin_storage"])].local_path):
         os.makedirs(plugin_path)
