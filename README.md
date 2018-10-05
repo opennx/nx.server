@@ -1,6 +1,6 @@
 Nebula
 ======
-_Version 4.25_
+_Version 4.25 (oldstable). For the latest version, check https://github.com/nebulabroadcast This repository is deprecated and will be removed soon_
 
 Nebula is media asset management and workflow automation system for TV and radio broadcast.
 
